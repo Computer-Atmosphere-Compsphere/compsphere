@@ -96,13 +96,13 @@ export function SubEventDetail() {
             <img
               src={event.iconSrc}
               alt={event.name}
-              className="h-28 w-auto object-contain drop-shadow-[0_10px_60px_rgba(0,0,0,0.7)] sm:h-36"
+              className="h-20 w-auto object-contain drop-shadow-[0_10px_60px_rgba(0,0,0,0.7)] sm:h-28 md:h-36"
             />
           </motion.div>
 
           <motion.h1
             variants={item}
-            className="font-display text-5xl font-black uppercase tracking-tight sm:text-7xl md:text-8xl"
+            className="font-display text-4xl font-black uppercase tracking-tight sm:text-6xl md:text-8xl"
           >
             <span className="bg-white-gradient bg-clip-text text-transparent drop-shadow-[0_2px_20px_rgba(255,255,255,0.12)]">
               {event.name}
@@ -358,7 +358,7 @@ function SpeakersBlock({ speakers }: { speakers: NonNullable<typeof subEvents[nu
                     />
 
                     {/* Name plaques */}
-                    <div className="absolute inset-x-0 bottom-0 grid items-end gap-3 px-4 pb-4 sm:gap-4 sm:px-5 sm:pb-5"
+                    <div className="absolute inset-x-0 bottom-0 grid items-end gap-1.5 px-2 pb-2 sm:gap-3 sm:px-4 sm:pb-4 md:gap-4 md:px-5 md:pb-5"
                       style={{ gridTemplateColumns: `repeat(${Math.min(speakers.length, 3)}, 1fr)` }}
                     >
                       {speakers.map((s, idx) => (
@@ -371,29 +371,29 @@ function SpeakersBlock({ speakers }: { speakers: NonNullable<typeof subEvents[nu
                             delay: 0.75 + idx * 0.16,
                             ease: smooth,
                           }}
-                          className={`rounded-2xl border border-white/20 bg-black/35 px-3 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:px-4 sm:py-3 ${idx === 1 ? "border-white/35 bg-white/[0.12]" : ""}`}
+                          className={`rounded-xl sm:rounded-2xl border border-white/20 bg-black/35 px-1.5 py-1.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:px-3 sm:py-2.5 md:px-4 md:py-3 ${idx === 1 ? "border-white/35 bg-white/[0.12]" : ""}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-center gap-1">
                             {idx === 1 ? (
-                              <BadgeCheck className="hidden h-3.5 w-3.5 shrink-0 text-brand-primary sm:block" />
+                              <BadgeCheck className="hidden h-3 w-3 shrink-0 text-brand-primary md:block" />
                             ) : (
-                              <Mic2 className="hidden h-3.5 w-3.5 shrink-0 text-text-muted sm:block" />
+                              <Mic2 className="hidden h-3 w-3 shrink-0 text-text-muted md:block" />
                             )}
                             <h3
                               className={`font-display font-extrabold leading-tight tracking-tight ${idx === 1
-                                ? "text-sm text-text-primary sm:text-lg"
-                                : "text-xs text-text-secondary sm:text-sm"
+                                ? "text-[10px] text-text-primary sm:text-sm md:text-lg"
+                                : "text-[9px] text-text-secondary sm:text-xs md:text-sm"
                               }`}
                             >
                               {s.name}
                             </h3>
                           </div>
                           <p
-                            className={`mt-1 text-[9px] font-semibold uppercase tracking-wider sm:text-[10px] ${idx === 1 ? "text-brand-accent" : "text-text-muted"}`}
+                            className={`mt-0.5 text-[7px] font-semibold uppercase tracking-wider sm:text-[9px] md:text-[10px] ${idx === 1 ? "text-brand-accent" : "text-text-muted"}`}
                           >
                             {s.role}
                           </p>
-                          <p className="mt-0.5 hidden text-[9px] text-text-muted/80 sm:block sm:text-[10px]">
+                          <p className="mt-0.5 hidden text-[8px] text-text-muted/80 sm:block sm:text-[9px] md:text-[10px]">
                             {s.org}
                           </p>
                         </motion.div>
@@ -668,7 +668,7 @@ function SponsorsBlock({ sponsors: eventSponsors }: { sponsors: typeof sponsors 
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: idx * 0.06 }}
-              className={`group relative flex w-[200px] items-center justify-center overflow-hidden rounded-[24px] border px-8 py-10 sm:w-[220px] ${GLASS.cardHover}`}
+              className={`group relative flex w-[140px] items-center justify-center overflow-hidden rounded-[24px] border px-4 py-6 sm:w-[180px] sm:px-6 sm:py-8 md:w-[200px] md:px-8 md:py-10 ${GLASS.cardHover}`}
               style={{ ...GLASS.card }}
             >
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
@@ -846,21 +846,25 @@ function CtaBlock({ eventId, eventName, tagline }: { eventId: string; eventName:
     >
       <GlitterFinal speed={0.6} intensity={4.5} uvScale={2.0} />
       <div className="relative z-10 mx-auto max-w-5xl px-6 flex flex-col items-center">
-        {/* Ticket */}
-        <AdmitOneTicket
-          name={eventName}
-          presenter="Compsphere 2026 presents"
-          event={eventName}
-          venue="President University, Cikarang"
-          dates="Oct 2026"
-          stubText="Admit one"
-          watermark="2026"
-          width={580}
-          texture={style.texture}
-          gradient={style.gradient}
-          layout={brightLayout}
-          tilt={undefined}
-        />
+        {/* Ticket — scales down on mobile via wrapper */}
+        <div className="w-full max-w-[580px] overflow-hidden">
+          <div className="origin-top scale-[0.65] sm:scale-75 md:scale-90 lg:scale-100">
+            <AdmitOneTicket
+              name={eventName}
+              presenter="Compsphere 2026 presents"
+              event={eventName}
+              venue="President University, Cikarang"
+              dates="Oct 2026"
+              stubText="Admit one"
+              watermark="2026"
+              width={580}
+              texture={style.texture}
+              gradient={style.gradient}
+              layout={brightLayout}
+              tilt={undefined}
+            />
+          </div>
+        </div>
 
         {/* CTA text */}
         <div className="mt-8 text-center">

@@ -131,7 +131,7 @@ export function SpeakersSection() {
                     />
 
                     {/* Name plaques — inside the image */}
-                    <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 items-end gap-3 px-4 pb-4 sm:gap-4 sm:px-5 sm:pb-5">
+                    <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 items-end gap-1.5 px-2 pb-2 sm:gap-3 sm:px-4 sm:pb-4 md:gap-4 md:px-5 md:pb-5">
                       {speakerSlots.map((s, idx) => (
                         <motion.div
                           key={idx}
@@ -142,31 +142,31 @@ export function SpeakersSection() {
                             delay: 0.75 + idx * 0.16,
                             ease: smooth,
                           }}
-                          className={`rounded-2xl border border-white/20 bg-black/35 px-3 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:px-4 sm:py-3 ${idx === 1 ? "border-white/35 bg-white/[0.12]" : ""
+                          className={`rounded-xl sm:rounded-2xl border border-white/20 bg-black/35 px-1.5 py-1.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:px-3 sm:py-2.5 md:px-4 md:py-3 ${idx === 1 ? "border-white/35 bg-white/[0.12]" : ""
                             }`}
                         >
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-center gap-1">
                             {idx === 1 ? (
-                              <BadgeCheck className="hidden h-3.5 w-3.5 shrink-0 text-brand-primary sm:block" />
+                              <BadgeCheck className="hidden h-3 w-3 shrink-0 text-brand-primary md:block" />
                             ) : (
-                              <Mic2 className="hidden h-3.5 w-3.5 shrink-0 text-text-muted sm:block" />
+                              <Mic2 className="hidden h-3 w-3 shrink-0 text-text-muted md:block" />
                             )}
                             <h3
                               className={`font-display font-extrabold leading-tight tracking-tight ${idx === 1
-                                ? "text-sm text-text-primary sm:text-lg"
-                                : "text-xs text-text-secondary sm:text-sm"
+                                ? "text-[10px] text-text-primary sm:text-sm md:text-lg"
+                                : "text-[9px] text-text-secondary sm:text-xs md:text-sm"
                                 }`}
                             >
                               {s.name}
                             </h3>
                           </div>
                           <p
-                            className={`mt-1 text-[9px] font-semibold uppercase tracking-wider sm:text-[10px] ${idx === 1 ? "text-brand-accent" : "text-text-muted"
+                            className={`mt-0.5 text-[7px] font-semibold uppercase tracking-wider sm:text-[9px] md:text-[10px] ${idx === 1 ? "text-brand-accent" : "text-text-muted"
                               }`}
                           >
                             {s.role}
                           </p>
-                          <p className="mt-0.5 hidden text-[9px] text-text-muted/80 sm:block sm:text-[10px]">
+                          <p className="mt-0.5 hidden text-[8px] text-text-muted/80 sm:block sm:text-[9px] md:text-[10px]">
                             {s.org}
                           </p>
                         </motion.div>

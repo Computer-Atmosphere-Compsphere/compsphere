@@ -378,7 +378,7 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
 
             <h2
               ref={headingRef}
-              className="relative z-20 -translate-y-10 text-5xl md:text-8xl font-black footer-text-glow tracking-tighter mb-5 text-center"
+              className="relative z-20 -translate-y-10 text-3xl sm:text-5xl md:text-8xl font-black footer-text-glow tracking-tighter mb-5 text-center"
             >
               Ready to join <span className="footer-brand-text">COMPSPHERE</span>?
             </h2>
@@ -389,11 +389,11 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
             {/* Interactive Magnetic Pills Layout */}
             <div ref={linksRef} className="flex flex-col items-center gap-6 w-full">
               {/* Primary CTAs */}
-              <div className="flex flex-wrap justify-center gap-4 w-full">
+              <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 w-full">
                 <MagneticButton
                   as="a"
                   href="/#events"
-                  className="footer-glass-pill px-10 py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group"
+                  className="footer-glass-pill px-6 sm:px-10 py-4 sm:py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group w-full sm:w-auto justify-center"
                 >
                   <img
                     src="/compsphere-logo.png"
@@ -406,7 +406,7 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
                 <MagneticButton
                   as="a"
                   href="/guidebook"
-                  className="footer-glass-pill px-10 py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group"
+                  className="footer-glass-pill px-6 sm:px-10 py-4 sm:py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group w-full sm:w-auto justify-center"
                 >
                   <ArrowUp className="w-5 h-5 text-secondary group-hover:text-foreground transition-colors transition-transform duration-300 group-hover:-rotate-45" />
                   Discover More

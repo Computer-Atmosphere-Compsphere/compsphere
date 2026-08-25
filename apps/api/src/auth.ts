@@ -2,6 +2,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db, schema } from "@compsphere/db";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -29,7 +31,7 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    useSecureCookies: false,           // Allow HTTP cookies on localhost dev
+    useSecureCookies: isProduction,
     crossSubDomainCookies: {
       enabled: false,
     },
@@ -37,7 +39,10 @@ export const auth = betterAuth({
       session_token: {
         attributes: {
           sameSite: "lax",
-          secure: false,               // Must be false for HTTP localhost
+          secure: isProduction,
+          ...(isProduction && process.env.COOKIE_DOMAIN
+            ? { domain: process.env.COOKIE_DOMAIN }
+            : {}),
         },
       },
     },
@@ -45,6 +50,8 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:5173",
     "http://localhost:3001",
+    "https://compsphere12.id",
+    "https://api.compsphere12.id",
   ],
 });
 

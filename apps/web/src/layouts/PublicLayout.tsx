@@ -72,12 +72,12 @@ function PublicNavbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
-      <div className={`px-3 transition-[padding-top] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-6 ${scrolled ? "pt-3" : "pt-0"}`}>
+      <div className={`px-2.5 transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-6 ${scrolled ? "pt-2.5 sm:pt-3" : "pt-2 sm:pt-3"}`}>
         <div
-          className={`mx-auto flex h-16 max-w-7xl items-center justify-between rounded-3xl border px-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-6 ${
+          className={`mx-auto flex items-center justify-between rounded-2xl sm:rounded-3xl border transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             isFloating
-              ? "border-white/20 bg-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_40px_rgba(0,245,200,0.08),inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-2xl backdrop-saturate-[1.8]"
-              : "border-transparent bg-transparent shadow-none"
+              ? "h-12 sm:h-14 md:h-16 max-w-5xl px-3 sm:px-4 md:px-6 border-white/20 bg-[#0a0a0a]/80 shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_40px_rgba(0,245,200,0.06),inset_0_1px_0_rgba(255,255,255,0.15)] backdrop-blur-2xl backdrop-saturate-[1.8]"
+              : "h-14 sm:h-16 max-w-5xl px-3 sm:px-5 border-transparent bg-transparent shadow-none"
           }`}
         >
         {/* Logo */}
@@ -85,7 +85,9 @@ function PublicNavbar() {
           <img
             src="/compsphere-logo.png"
             alt="Compsphere"
-            className="h-9 w-auto transition-transform duration-500 group-hover:scale-105 sm:h-10"
+            className={`w-auto transition-all duration-500 group-hover:scale-105 ${
+              isFloating ? "h-7 sm:h-8 md:h-9" : "h-8 sm:h-9 md:h-10"
+            }`}
           />
         </Link>
 
@@ -214,12 +216,25 @@ function PublicNavbar() {
             </>
           ) : null}
         </div>
+
+        {/* Mobile hamburger — animated icon swap */}
         <button
-          className="flex h-10 w-10 items-center justify-center rounded-md border border-border text-text-secondary md:hidden"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-text-secondary transition-all duration-300 hover:border-white/25 hover:bg-white/[0.10] hover:text-white active:scale-95 md:hidden"
           onClick={() => setMobileOpen((o) => !o)}
           aria-label="Toggle menu"
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <span className="relative flex h-5 w-5 items-center justify-center">
+            <span
+              className={`absolute block h-[1.5px] w-4 bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                mobileOpen ? "rotate-45 translate-y-0 opacity-100" : "-translate-y-[3px] opacity-100"
+              }`}
+            />
+            <span
+              className={`absolute block h-[1.5px] w-4 bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                mobileOpen ? "-rotate-45 translate-y-0 opacity-100" : "translate-y-[3px] opacity-100"
+              }`}
+            />
+          </span>
         </button>
       </div>
 
@@ -227,72 +242,118 @@ function PublicNavbar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:hidden ${
-              isFloating
-                ? "mx-auto max-w-7xl rounded-b-3xl border-x border-b border-white/20 bg-white/[0.08] shadow-[0_8px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl backdrop-saturate-[1.8]"
-                : "border-t border-border bg-bg-secondary/95 backdrop-blur-xl"
-            }`}
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden md:hidden"
           >
-            <div className="space-y-4 px-6 py-5">
-              <div className="flex flex-col gap-1 text-sm font-semibold">
-                <Link to="/" onClick={(e) => { if (location.pathname === "/") { e.preventDefault(); scrollToTop(); } }} className="rounded-md px-3 py-2 text-text-secondary hover:bg-bg-surface hover:text-brand-primary">Home</Link>
-                <Link to="/#sponsors" className="rounded-md px-3 py-2 text-text-secondary hover:bg-bg-surface hover:text-brand-primary">Sponsors</Link>
-                <Link to="/#speakers" className="rounded-md px-3 py-2 text-text-secondary hover:bg-bg-surface hover:text-brand-primary">Speakers</Link>
-                <Link to="/#timeline" className="rounded-md px-3 py-2 text-text-secondary hover:bg-bg-surface hover:text-brand-primary">Timeline</Link>
-                <Link to="/#partners" className="rounded-md px-3 py-2 text-text-secondary hover:bg-bg-surface hover:text-brand-primary">Partners</Link>
-              </div>
+            <div
+              className={`mx-2.5 sm:mx-6 mt-1 rounded-2xl border border-white/[0.12] shadow-[0_16px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(0,245,200,0.04)] backdrop-blur-2xl backdrop-saturate-[1.8] ${
+                isFloating
+                  ? "bg-[#0a0a0a]/90"
+                  : "bg-[#0a0a0a]/95"
+              }`}
+            >
+              {/* Glass sheen */}
+              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-              <div className="border-t border-border pt-3">
-                <p className="mono-chip mb-2 px-3 text-[9px] uppercase tracking-[0.3em] text-text-muted">
-                  Sub-Events
-                </p>
-                <div className="grid gap-1">
-                  {subEvents.map((e) => {
-                    return (
+              <div className="px-4 py-4">
+                {/* Nav links — staggered entrance */}
+                <motion.div
+                  initial="hidden"
+                  animate="show"
+                  variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04, delayChildren: 0.06 } } }}
+                  className="flex flex-col gap-0.5"
+                >
+                  {[
+                    { label: "Home", to: "/", onClick: () => { if (location.pathname === "/") scrollToTop(); } },
+                    { label: "Sponsors", to: "/#sponsors" },
+                    { label: "Speakers", to: "/#speakers" },
+                    { label: "Timeline", to: "/#timeline" },
+                    { label: "Partners", to: "/#partners" },
+                  ].map((link) => (
+                    <motion.div
+                      key={link.label}
+                      variants={{ hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0, transition: { duration: 0.3 } } }}
+                    >
                       <Link
-                        key={e.id}
-                        to={`/events/${e.id}`}
-                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-bg-surface"
+                        to={link.to}
+                        onClick={link.onClick}
+                        className="flex items-center rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 transition-all duration-200 hover:bg-white/[0.06] hover:text-white active:bg-white/[0.10]"
                       >
-                        <img
-                          src={e.iconSrc}
-                          alt={e.name}
-                          className="h-9 w-9 shrink-0 object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.5)]"
-                        />
-                        <span className="space-y-0.5">
-                          <span className="block text-xs font-bold text-text-primary">{e.name}</span>
-                          <span className="block text-[10px] text-text-muted">{e.date}</span>
-                        </span>
+                        {link.label}
                       </Link>
-                    );
-                  })}
-                </div>
-              </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
 
-              <div className="flex flex-col gap-2 border-t border-border pt-4">
-                {isAuthenticating ? (
-                  <span className="mono-chip px-3 text-[10px] uppercase tracking-widest text-text-muted">sync…</span>
-                ) : isAuthenticated && user ? (
-                  <>
-                    <Link to={dashboardPath} className="w-full">
-                      <LiquidGlassButton label="Dashboard" className="w-full" />
-                    </Link>
-                    <LiquidGlassButton label="Sign Out" variant="destructive" onClick={() => setSignOutOpen(true)} icon={<LogOut className="h-3.5 w-3.5" />} className="w-full" />
-                  </>
-                ) : showLogin ? (
-                  <>
-                    <div className="flex justify-center">
-                      <LiquidGlassButton label="Log in" onClick={signInWithGoogle} />
+                {/* Sub-Events section */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.25, duration: 0.3 }}
+                  className="mt-3 border-t border-white/[0.08] pt-3"
+                >
+                  <p className="mono-chip mb-2 px-3 text-[9px] uppercase tracking-[0.3em] text-white/30">
+                    Sub-Events
+                  </p>
+                  <div className="flex flex-col gap-0.5">
+                    {subEvents.map((e, idx) => (
+                      <motion.div
+                        key={e.id}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + idx * 0.04, duration: 0.3 }}
+                      >
+                        <Link
+                          to={`/events/${e.id}`}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-200 hover:bg-white/[0.06] active:bg-white/[0.10]"
+                        >
+                          <img
+                            src={e.iconSrc}
+                            alt={e.name}
+                            className="h-8 w-8 shrink-0 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+                          />
+                          <div className="min-w-0">
+                            <span className="block text-xs font-bold text-white/80">{e.name}</span>
+                            <span className="block text-[10px] text-white/35">{e.date}</span>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Auth actions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                  className="mt-3 border-t border-white/[0.08] pt-3"
+                >
+                  {isAuthenticating ? (
+                    <span className="mono-chip px-3 text-[10px] uppercase tracking-widest text-white/30">sync…</span>
+                  ) : isAuthenticated && user ? (
+                    <div className="flex flex-col gap-2">
+                      <Link to={dashboardPath} className="w-full">
+                        <LiquidGlassButton label="Dashboard" className="w-full justify-center" />
+                      </Link>
+                      <LiquidGlassButton
+                        label="Sign Out"
+                        variant="destructive"
+                        onClick={() => setSignOutOpen(true)}
+                        icon={<LogOut className="h-3.5 w-3.5" />}
+                        className="w-full justify-center"
+                      />
                     </div>
-                    <div className="flex justify-center">
-                      <LiquidGlassButton label="Register" variant="register" onClick={signInWithGoogle} />
+                  ) : showLogin ? (
+                    <div className="flex flex-col gap-2">
+                      <LiquidGlassButton label="Log in" onClick={signInWithGoogle} className="w-full justify-center" />
+                      <LiquidGlassButton label="Register" variant="register" onClick={signInWithGoogle} className="w-full justify-center" />
                     </div>
-                  </>
-                ) : null}
+                  ) : null}
+                </motion.div>
               </div>
             </div>
           </motion.div>

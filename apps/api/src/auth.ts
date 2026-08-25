@@ -51,6 +51,7 @@ export const auth = betterAuth({
     "http://localhost:5173",
     "http://localhost:3001",
     "https://compsphere12.id",
+    "https://www.compsphere12.id",
     "https://api.compsphere12.id",
   ],
 });

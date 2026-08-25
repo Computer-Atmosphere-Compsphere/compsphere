@@ -7,7 +7,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { fileURLToPath } from "url";
+
 let PDFParse: typeof import("pdf-parse")["PDFParse"] | null = null;
 async function loadPDFParse() {
   if (!PDFParse) {
@@ -17,8 +17,6 @@ async function loadPDFParse() {
   return PDFParse;
 }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import { generateToken, hashToken } from "../lib/crypto";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "../services/audit.service";

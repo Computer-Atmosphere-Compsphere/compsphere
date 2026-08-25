@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/index.ts",
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.mjs --external:pg --external:postgres --external:multer --external:pdf-parse --external:node-cron",
-    "start": "node dist/index.mjs",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs --external:pg --external:postgres --external:multer --external:pdf-parse --external:node-cron",
+    "start": "node dist/index.cjs",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext .ts"
   },

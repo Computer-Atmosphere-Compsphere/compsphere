@@ -4,14 +4,14 @@
   "installCommand": "npm install",
   "builds": [
     {
-      "src": "apps/api/dist/index.mjs",
+      "src": "apps/api/dist/index.cjs",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "apps/api/dist/index.mjs"
+      "dest": "apps/api/dist/index.cjs"
     }
   ]
 }

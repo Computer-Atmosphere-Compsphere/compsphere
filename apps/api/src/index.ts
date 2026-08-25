@@ -3,9 +3,13 @@ import express from "express";
 import helmet from "helmet";
 import compression from "compression";
 import path from "path";
+import { fileURLToPath } from "url";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth";
 import { errorHandler } from "./middleware/error.middleware";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Routes
 import authRoutes from "./routes/auth.routes";

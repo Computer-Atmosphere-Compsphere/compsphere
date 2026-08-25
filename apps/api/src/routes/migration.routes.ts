@@ -7,7 +7,11 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
 import { PDFParse } from "pdf-parse";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { generateToken, hashToken } from "../lib/crypto";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "../services/audit.service";

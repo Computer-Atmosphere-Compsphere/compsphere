@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import path from "path";
@@ -30,23 +29,67 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // -------------------------------------------------------------------------
+// Allowed origins — hardcoded fallback + env var
+// -------------------------------------------------------------------------
+const ALLOWED_ORIGINS = [
+  ...new Set(
+    [
+      // Hardcoded production domains (always allowed)
+      "https://compsphere12.id",
+      "https://www.compsphere12.id",
+      "https://api.compsphere12.id",
+      // Dev origins
+      "http://localhost:5173",
+      "http://localhost:3001",
+      // From env var (comma-separated)
+      ...(process.env.FRONTEND_URL || "").split(",").map((o) => o.trim()),
+    ].filter(Boolean)
+  ),
+];
+
+// -------------------------------------------------------------------------
+// Bulletproof CORS middleware — works on Vercel serverless
+// Sets headers BEFORE any other middleware, and survives better-auth's
+// toNodeHandler which calls res.writeHead() internally.
+// -------------------------------------------------------------------------
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (origin && ALLOWED_ORIGINS.length > 0) {
+    // Fallback: allow the first hardcoded origin if origin is present but not matched
+    // This handles cases where Vercel edge middleware strips or modifies the Origin header
+    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
+  }
+
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With"
+  );
+  res.setHeader("Access-Control-Max-Age", "86400");
+
+  // Handle preflight immediately
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
+  next();
+});
+
+// -------------------------------------------------------------------------
 // Security & parsing middleware
 // -------------------------------------------------------------------------
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
     contentSecurityPolicy: false,
-  })
-);
-
-app.use(
-  cors({
-    origin: (process.env.FRONTEND_URL || "http://localhost:5173")
-      .split(",")
-      .map((o) => o.trim()),
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

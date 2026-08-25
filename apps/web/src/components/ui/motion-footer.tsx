@@ -254,10 +254,17 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
   const giantTextRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const linksRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!wrapperRef.current) return;
+
+    // Start with pointer-events disabled so the footer doesn't block clicks
+    // on elements above it (hero buttons, navbar, etc.)
+    if (contentRef.current) contentRef.current.style.pointerEvents = "none";
+    if (bottomBarRef.current) bottomBarRef.current.style.pointerEvents = "none";
 
     // React strict mode compatible GSAP context cleanup
     const ctx = gsap.context(() => {
@@ -296,6 +303,30 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
           },
         }
       );
+
+      // Toggle pointer-events: the fixed footer covers the whole viewport,
+      // so we only enable clicks when the footer is actually in view.
+      ScrollTrigger.create({
+        trigger: wrapperRef.current,
+        start: "top 70%",
+        end: "bottom top",
+        onEnter: () => {
+          if (contentRef.current) contentRef.current.style.pointerEvents = "auto";
+          if (bottomBarRef.current) bottomBarRef.current.style.pointerEvents = "auto";
+        },
+        onLeaveBack: () => {
+          if (contentRef.current) contentRef.current.style.pointerEvents = "none";
+          if (bottomBarRef.current) bottomBarRef.current.style.pointerEvents = "none";
+        },
+        onLeave: () => {
+          if (contentRef.current) contentRef.current.style.pointerEvents = "none";
+          if (bottomBarRef.current) bottomBarRef.current.style.pointerEvents = "none";
+        },
+        onEnterBack: () => {
+          if (contentRef.current) contentRef.current.style.pointerEvents = "auto";
+          if (bottomBarRef.current) bottomBarRef.current.style.pointerEvents = "auto";
+        },
+      });
     }, wrapperRef);
 
     return () => ctx.revert();
@@ -338,7 +369,7 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
           </div>
 
           {/* 2. Main Center Content */}
-          <div className="pointer-events-auto relative z-10 flex flex-1 flex-col items-center justify-center px-6 mt-0 w-full max-w-5xl mx-auto">
+          <div ref={contentRef} className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 mt-0 w-full max-w-5xl mx-auto">
             <img
               src="/compsphere-logo.png"
               alt="Compsphere"
@@ -402,7 +433,7 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
           </div>
 
           {/* 3. Bottom Bar / Credits */}
-          <div className="pointer-events-auto relative z-20 w-full pb-8 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div ref={bottomBarRef} className="relative z-20 w-full pb-8 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
 
             {/* Copyright */}
             <div className="text-muted-foreground text-[10px] md:text-xs font-semibold tracking-widest uppercase order-2 md:order-1">

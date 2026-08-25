@@ -5,6 +5,7 @@
   "type": "commonjs",
   "main": "src/index.ts",
   "scripts": {
+    "build": "echo 'No build needed'",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:studio": "drizzle-kit studio",

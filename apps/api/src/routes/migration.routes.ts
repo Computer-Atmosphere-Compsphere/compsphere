@@ -8,7 +8,14 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
-import { PDFParse } from "pdf-parse";
+let PDFParse: typeof import("pdf-parse")["PDFParse"] | null = null;
+async function loadPDFParse() {
+  if (!PDFParse) {
+    const mod = await import("pdf-parse");
+    PDFParse = mod.PDFParse;
+  }
+  return PDFParse;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -303,7 +310,8 @@ router.post("/extract-title", upload.single("file"), async (req, res, next) => {
     }
 
     const fileBuffer = fs.readFileSync(req.file.path);
-    const parser = new PDFParse({ data: new Uint8Array(fileBuffer) });
+    const PDFParseClass = await loadPDFParse();
+    const parser = new PDFParseClass({ data: new Uint8Array(fileBuffer) });
     const textResult = await parser.getText();
     await parser.destroy();
 
@@ -393,7 +401,8 @@ router.post("/submit-team", upload.single("proposalFile"), async (req, res, next
     if (!proposalTitle || !proposalTitle.trim()) {
       try {
         const fileBuffer = fs.readFileSync(req.file.path);
-        const innerParser = new PDFParse({ data: new Uint8Array(fileBuffer) });
+        const innerPDFParseClass = await loadPDFParse();
+        const innerParser = new innerPDFParseClass({ data: new Uint8Array(fileBuffer) });
         const innerResult = await innerParser.getText();
         await innerParser.destroy();
         const text = innerResult.text || "";

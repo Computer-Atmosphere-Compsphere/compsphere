@@ -118089,8 +118089,15 @@ import fs4 from "fs";
 import path5 from "path";
 import crypto5 from "crypto";
 import { fileURLToPath as fileURLToPath3 } from "url";
-import { PDFParse } from "pdf-parse";
 init_storage();
+var PDFParse = null;
+async function loadPDFParse() {
+  if (!PDFParse) {
+    const mod = await import("pdf-parse");
+    PDFParse = mod.PDFParse;
+  }
+  return PDFParse;
+}
 var __filename3 = fileURLToPath3(import.meta.url);
 var __dirname3 = path5.dirname(__filename3);
 var router17 = (0, import_express16.Router)();
@@ -118293,7 +118300,8 @@ router17.post("/extract-title", upload.single("file"), async (req, res, next) =>
       throw new AppError(400, "Only PDF files are allowed.");
     }
     const fileBuffer = fs4.readFileSync(req.file.path);
-    const parser = new PDFParse({ data: new Uint8Array(fileBuffer) });
+    const PDFParseClass = await loadPDFParse();
+    const parser = new PDFParseClass({ data: new Uint8Array(fileBuffer) });
     const textResult = await parser.getText();
     await parser.destroy();
     fs4.unlinkSync(req.file.path);
@@ -118350,7 +118358,8 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
     if (!proposalTitle || !proposalTitle.trim()) {
       try {
         const fileBuffer = fs4.readFileSync(req.file.path);
-        const innerParser = new PDFParse({ data: new Uint8Array(fileBuffer) });
+        const innerPDFParseClass = await loadPDFParse();
+        const innerParser = new innerPDFParseClass({ data: new Uint8Array(fileBuffer) });
         const innerResult = await innerParser.getText();
         await innerParser.destroy();
         const text2 = innerResult.text || "";
@@ -118543,6 +118552,59 @@ router17.get("/recent-teams", async (req, res, next) => {
 var migration_routes_default = router17;
 
 // src/index.ts
+if (typeof globalThis.DOMMatrix === "undefined") {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() {
+    }
+    static fromMatrix() {
+      return new DOMMatrix();
+    }
+    static fromFloat64Array() {
+      return new DOMMatrix();
+    }
+    static fromFloat32Array() {
+      return new DOMMatrix();
+    }
+  };
+}
+if (typeof globalThis.ImageData === "undefined") {
+  globalThis.ImageData = class ImageData {
+    constructor(data, width, height) {
+      this.data = data;
+      this.width = width;
+      this.height = height;
+    }
+    data;
+    width;
+    height;
+  };
+}
+if (typeof globalThis.Path2D === "undefined") {
+  globalThis.Path2D = class Path2D {
+    constructor() {
+    }
+    addPath() {
+    }
+    closePath() {
+    }
+    moveTo() {
+    }
+    lineTo() {
+    }
+    bezierCurveTo() {
+    }
+    quadraticCurveTo() {
+    }
+    arc() {
+    }
+    arcTo() {
+    }
+    rect() {
+    }
+    ellipse() {
+    }
+  };
+}
 var __filename4 = fileURLToPath4(import.meta.url);
 var __dirname4 = path6.dirname(__filename4);
 var app = (0, import_express17.default)();

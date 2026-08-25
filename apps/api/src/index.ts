@@ -1,4 +1,42 @@
 import "dotenv/config";
+
+// Polyfill DOMMatrix for pdfjs-dist (pdf-parse dependency) — must be before any pdf imports
+if (typeof globalThis.DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    constructor() {}
+    static fromMatrix() { return new DOMMatrix(); }
+    static fromFloat64Array() { return new DOMMatrix(); }
+    static fromFloat32Array() { return new DOMMatrix(); }
+  };
+}
+if (typeof globalThis.ImageData === "undefined") {
+  (globalThis as any).ImageData = class ImageData {
+    constructor(data: any, width: number, height: number) {
+      this.data = data;
+      this.width = width;
+      this.height = height;
+    }
+    data: any;
+    width: number;
+    height: number;
+  };
+}
+if (typeof globalThis.Path2D === "undefined") {
+  (globalThis as any).Path2D = class Path2D {
+    constructor() {}
+    addPath() {}
+    closePath() {}
+    moveTo() {}
+    lineTo() {}
+    bezierCurveTo() {}
+    quadraticCurveTo() {}
+    arc() {}
+    arcTo() {}
+    rect() {}
+    ellipse() {}
+  };
+}
+
 import express from "express";
 import helmet from "helmet";
 import compression from "compression";

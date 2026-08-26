@@ -22605,8 +22605,8 @@ var require_application = __commonJS({
           engines
         });
         if (!view.path) {
-          var dirs2 = Array.isArray(view.root) && view.root.length > 1 ? 'directories "' + view.root.slice(0, -1).join('", "') + '" or "' + view.root[view.root.length - 1] + '"' : 'directory "' + view.root + '"';
-          var err = new Error('Failed to lookup view "' + name + '" in views ' + dirs2);
+          var dirs = Array.isArray(view.root) && view.root.length > 1 ? 'directories "' + view.root.slice(0, -1).join('", "') + '" or "' + view.root[view.root.length - 1] + '"' : 'directory "' + view.root + '"';
+          var err = new Error('Failed to lookup view "' + name + '" in views ' + dirs);
           err.view = view;
           return done(err);
         }
@@ -79358,8 +79358,12 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
     return relativeKey;
   } else {
     const targetDir = import_path3.default.join(uploadsDir2, bucketName);
-    if (!import_fs2.default.existsSync(targetDir)) {
-      import_fs2.default.mkdirSync(targetDir, { recursive: true });
+    try {
+      if (!import_fs2.default.existsSync(targetDir)) {
+        import_fs2.default.mkdirSync(targetDir, { recursive: true });
+      }
+    } catch (e) {
+      console.warn(`[Storage] Could not create directory ${targetDir}:`, e);
     }
     const targetPath = import_path3.default.join(targetDir, fileName);
     if (import_fs2.default.existsSync(localTempPath)) {
@@ -79382,7 +79386,7 @@ var init_storage = __esm({
       process.env.SUPABASE_URL || "",
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ""
     ) : null;
-    uploadsDir2 = process.env.UPLOAD_DIR || import_path3.default.join(__dirname, "../../../uploads");
+    uploadsDir2 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path3.default.join(__dirname, "../../../uploads"));
   }
 });
 
@@ -116568,14 +116572,18 @@ var import_multer = __toESM(require("multer"));
 var import_path2 = __toESM(require("path"));
 var import_fs = __toESM(require("fs"));
 var import_crypto8 = __toESM(require("crypto"));
-var uploadsDir = process.env.UPLOAD_DIR || import_path2.default.join(__dirname, "../../uploads");
-var dirs = ["payments", "proposals", "presentations", "documents"];
-dirs.forEach((dir) => {
-  const fullPath = import_path2.default.join(uploadsDir, dir);
-  if (!import_fs.default.existsSync(fullPath)) {
-    import_fs.default.mkdirSync(fullPath, { recursive: true });
-  }
-});
+var uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path2.default.join(__dirname, "../../uploads"));
+try {
+  const dirs = ["payments", "proposals", "presentations", "documents"];
+  dirs.forEach((dir) => {
+    const fullPath = import_path2.default.join(uploadsDir, dir);
+    if (!import_fs.default.existsSync(fullPath)) {
+      import_fs.default.mkdirSync(fullPath, { recursive: true });
+    }
+  });
+} catch (e) {
+  console.warn("[Upload Middleware] Could not create upload directories:", e);
+}
 function createStorage(subDir) {
   return import_multer.default.diskStorage({
     destination: (_req, _file2, cb) => {
@@ -118395,7 +118403,7 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
     if (process.env.STORAGE_PROVIDER === "supabase") {
       storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);
     } else {
-      const uploadsDir4 = process.env.UPLOAD_DIR || import_path4.default.join(__dirname, "../../../uploads");
+      const uploadsDir4 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path4.default.join(__dirname, "../../../uploads"));
       const proposalsDir = import_path4.default.join(uploadsDir4, "proposals");
       import_fs3.default.mkdirSync(proposalsDir, { recursive: true });
       const targetPath = import_path4.default.join(proposalsDir, newFilename);
@@ -118653,7 +118661,7 @@ app.use(
 );
 app.use(import_express17.default.json({ limit: "10mb" }));
 app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
-var uploadsDir3 = process.env.UPLOAD_DIR || import_path5.default.join(__dirname, "../uploads");
+var uploadsDir3 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path5.default.join(__dirname, "../uploads"));
 var uploadServeHandler = async (req, res, next) => {
   const storageKey = req.params[0];
   if (process.env.STORAGE_PROVIDER === "supabase") {

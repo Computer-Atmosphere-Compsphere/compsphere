@@ -12,7 +12,7 @@ export const supabase = isSupabase
     )
   : null;
 
-const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, "../../../uploads");
+const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../../../uploads"));
 
 /**
  * Dynamically upload a local temporary file to either local disk or Supabase Storage.
@@ -62,8 +62,12 @@ export async function uploadFileToStorage(
   } else {
     // Local storage fallback
     const targetDir = path.join(uploadsDir, bucketName);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
+    try {
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+    } catch (e) {
+      console.warn(`[Storage] Could not create directory ${targetDir}:`, e);
     }
 
     const targetPath = path.join(targetDir, fileName);

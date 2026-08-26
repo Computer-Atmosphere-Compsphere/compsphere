@@ -147,7 +147,7 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, "../uploads");
+const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../uploads"));
 
 // Dynamic file-serving handler: redirects to Supabase Storage in production, or serves locally in dev
 const uploadServeHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {

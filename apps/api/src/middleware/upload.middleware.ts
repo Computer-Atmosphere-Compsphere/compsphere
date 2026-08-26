@@ -3,16 +3,20 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
-const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads");
+const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../../uploads"));
 
-// Ensure upload directories exist
-const dirs = ["payments", "proposals", "presentations", "documents"];
-dirs.forEach((dir) => {
-  const fullPath = path.join(uploadsDir, dir);
-  if (!fs.existsSync(fullPath)) {
-    fs.mkdirSync(fullPath, { recursive: true });
-  }
-});
+// Ensure upload directories exist (wrapped in try/catch for read-only environments like Vercel)
+try {
+  const dirs = ["payments", "proposals", "presentations", "documents"];
+  dirs.forEach((dir) => {
+    const fullPath = path.join(uploadsDir, dir);
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+  });
+} catch (e) {
+  console.warn("[Upload Middleware] Could not create upload directories:", e);
+}
 
 function createStorage(subDir: string) {
   return multer.diskStorage({

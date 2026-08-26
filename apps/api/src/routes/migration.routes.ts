@@ -454,7 +454,7 @@ router.post("/submit-team", upload.single("proposalFile"), async (req, res, next
     if (process.env.STORAGE_PROVIDER === "supabase") {
       storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);
     } else {
-      const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, "../../../uploads");
+      const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../../../uploads"));
       const proposalsDir = path.join(uploadsDir, "proposals");
       fs.mkdirSync(proposalsDir, { recursive: true });
       const targetPath = path.join(proposalsDir, newFilename);

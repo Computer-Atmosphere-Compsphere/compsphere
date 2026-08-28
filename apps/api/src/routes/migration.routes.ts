@@ -26,7 +26,22 @@ import { uploadFileToStorage } from "../lib/storage";
 
 const router = Router();
 
-const upload = multer({ dest: "uploads/temp/" });
+// Use lazy destination function so multer does NOT call mkdirp.sync() at module
+// load time — Vercel's /var/task/ is read-only; only /tmp/ is writable at runtime.
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const dest = process.env.VERCEL ? "/tmp/uploads/temp" : "uploads/temp/";
+      fs.mkdirSync(dest, { recursive: true });
+      cb(null, dest);
+    },
+    filename: (_req, file, cb) => {
+      // Keep multer's default random name behaviour
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      cb(null, `${file.fieldname}-${uniqueSuffix}`);
+    },
+  }),
+});
 
 // Secure all migration routes
 router.use(requireAuth, requireRole("ADMIN"));

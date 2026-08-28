@@ -125306,7 +125306,19 @@ async function loadPDFParse() {
   return PDFParse;
 }
 var router17 = (0, import_express16.Router)();
-var upload = (0, import_multer2.default)({ dest: "uploads/temp/" });
+var upload = (0, import_multer2.default)({
+  storage: import_multer2.default.diskStorage({
+    destination: (_req, _file2, cb) => {
+      const dest = process.env.VERCEL ? "/tmp/uploads/temp" : "uploads/temp/";
+      import_fs3.default.mkdirSync(dest, { recursive: true });
+      cb(null, dest);
+    },
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      cb(null, `${file.fieldname}-${uniqueSuffix}`);
+    }
+  })
+});
 router17.use(requireAuth, requireRole("ADMIN"));
 router17.post("/upload", upload.single("file"), async (req, res, next) => {
   try {

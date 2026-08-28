@@ -24,8 +24,8 @@ export function AuthCallback() {
     // Wait until both better-auth session AND compsphere profile query are resolved
     if (isAuthenticating || isLoading) return;
 
-    // Case 1: New user — Google session exists but no Compsphere profile yet → onboarding
-    if (hasGoogleSession && needsOnboarding) {
+    // Case 1: New user or profile query failed — Google session exists but no profile → onboarding
+    if (hasGoogleSession && (needsOnboarding || !user)) {
       navigate("/onboarding", { replace: true });
       return;
     }

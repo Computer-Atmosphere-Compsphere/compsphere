@@ -20,11 +20,12 @@ export function useAuth() {
         const data = await api.get<SessionUser>("/api/auth/session-info");
         return { user: data, needsOnboarding: false };
       } catch (err: unknown) {
-        // 403 PROFILE_NOT_FOUND = Google session exists but no Compsphere profile yet
-        if (err instanceof ApiError && err.status === 403 && err.data?.error === "PROFILE_NOT_FOUND") {
-          return { user: null, needsOnboarding: true };
-        }
-        return null;
+        // 403 PROFILE_NOT_FOUND = Google session exists but no Compsphere profile yet.
+        // Any other error (network, 500, server crash) also means we can't confirm a profile exists.
+        // The safest path for a Google-authenticated user is to send them to onboarding,
+        // which handles both new profiles and existing ones gracefully.
+        console.warn("[useAuth] session-info query failed, redirecting to onboarding:", err);
+        return { user: null, needsOnboarding: true };
       }
     },
     enabled: !!session.data?.user, // only query if better-auth session exists

@@ -176,12 +176,17 @@ const uploadServeHandler = async (req: express.Request, res: express.Response, n
       return next(err);
     }
   } else {
-    const filePath = path.join(uploadsDir, storageKey);
-    return res.sendFile(filePath, (err) => {
-      if (err) {
-        res.status(404).send("File not found");
-      }
-    });
+    try {
+      const filePath = path.resolve(uploadsDir, storageKey);
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          res.status(404).send("File not found");
+        }
+      });
+    } catch (err) {
+      // Prevent server crash from synchronous sendFile errors
+      return next(err);
+    }
   }
 };
 

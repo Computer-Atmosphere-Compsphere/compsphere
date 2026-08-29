@@ -293,259 +293,285 @@ export function ShaderBackground({ className }: { className?: string }) {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const gl = canvas.getContext("webgl", { antialias: false })
-    if (!gl || gl.isContextLost()) return
+    let gl: WebGLRenderingContext | null = null;
+    let buf: WebGLBuffer | null = null;
+    let program: WebGLProgram | null = null;
+    let disposed = false;
+    let raf = 0;
+    let resizeObserver: ResizeObserver | null = null;
+    let intersectionObserver: IntersectionObserver | null = null;
+    let onVisibilityChange: (() => void) | null = null;
+    let updateLayout: (() => void) | null = null;
+    let onPointerMove: ((event: PointerEvent) => void) | null = null;
+    let onPointerLeave: (() => void) | null = null;
 
-    const compile = (type: number, src: string) => {
-      const s = gl.createShader(type)!
-      gl.shaderSource(s, src)
-      gl.compileShader(s)
-      return s
-    }
-    const program = gl.createProgram()!
-    const vertexShader = compile(gl.VERTEX_SHADER, VERT)
-    const fragmentShader = compile(gl.FRAGMENT_SHADER, FRAG)
-    gl.attachShader(program, vertexShader)
-    gl.attachShader(program, fragmentShader)
-    gl.linkProgram(program)
-    gl.deleteShader(vertexShader)
-    gl.deleteShader(fragmentShader)
-    gl.useProgram(program)
+    try {
+      gl = canvas.getContext("webgl", { antialias: false })
+      if (!gl || gl.isContextLost()) return
 
-    const buf = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 3, -1, -1, 3]),
-      gl.STATIC_DRAW,
-    )
-    const loc = gl.getAttribLocation(program, "a_position")
-    gl.enableVertexAttribArray(loc)
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+      const compile = (type: number, src: string) => {
+        const s = gl!.createShader(type)
+        if (!s) throw new Error("Failed to create shader");
+        gl!.shaderSource(s, src)
+        gl!.compileShader(s)
+        if (!gl!.getShaderParameter(s, gl!.COMPILE_STATUS)) {
+          throw new Error("Shader compile failed: " + gl!.getShaderInfoLog(s));
+        }
+        return s
+      }
+      program = gl.createProgram()
+      if (!program) throw new Error("Failed to create program");
+      const vertexShader = compile(gl.VERTEX_SHADER, VERT)
+      const fragmentShader = compile(gl.FRAGMENT_SHADER, FRAG)
+      gl.attachShader(program, vertexShader)
+      gl.attachShader(program, fragmentShader)
+      gl.linkProgram(program)
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw new Error("Program link failed: " + gl.getProgramInfoLog(program));
+      }
+      gl.deleteShader(vertexShader)
+      gl.deleteShader(fragmentShader)
+      gl.useProgram(program)
 
-    const uni = {
-      colors: gl.getUniformLocation(program, "u_colors"),
-      scene: gl.getUniformLocation(program, "u_scene"),
-      shape: gl.getUniformLocation(program, "u_shape"),
-      surface: gl.getUniformLocation(program, "u_surface"),
-      finish: gl.getUniformLocation(program, "u_finish"),
-      transform: gl.getUniformLocation(program, "u_transform"),
-      space: gl.getUniformLocation(program, "u_space"),
-      cursor: gl.getUniformLocation(program, "u_cursor"),
-    }
-    gl.uniform3fv(uni.colors, new Float32Array(UNIFORMS.colors.flat()))
-    gl.uniform4f(
-      uni.shape,
-      UNIFORMS.scale,
-      UNIFORMS.intensity,
-      UNIFORMS.paramA,
-      UNIFORMS.warp,
-    )
-    gl.uniform4f(
-      uni.surface,
-      UNIFORMS.detail,
-      UNIFORMS.contrast,
-      UNIFORMS.brightness,
-      UNIFORMS.saturation,
-    )
-    gl.uniform4f(
-      uni.finish,
-      UNIFORMS.hue,
-      UNIFORMS.vignette,
-      UNIFORMS.blur,
-      UNIFORMS.grain,
-    )
-    gl.uniform4f(
-      uni.transform,
-      UNIFORMS.seed,
-      UNIFORMS.rotate,
-      UNIFORMS.drift,
-      UNIFORMS.oklab,
-    )
-    gl.uniform4f(
-      uni.cursor,
-      0,
-      UNIFORMS.cursorEffect,
-      UNIFORMS.cursorStrength,
-      UNIFORMS.cursorRadius,
-    )
-
-    let targetX = 0
-    let targetY = 0
-    let targetPresence = 0
-    let mouseX = 0
-    let mouseY = 0
-    let cursorPresence = 0
-    let pointerKnown = false
-    let pointerClientX = 0
-    let pointerClientY = 0
-    let bounds = canvas.getBoundingClientRect()
-    let raf = 0
-    let lastNow: number | null = null
-    let visible = document.visibilityState === "visible"
-    let inView = true
-    let disposed = false
-    const start = performance.now()
-    const timeAnimated = Math.abs(UNIFORMS.timeScale) > 0.0001
-
-    const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      const rawWidth = Math.max(1, Math.round(bounds.width * dpr))
-      const rawHeight = Math.max(1, Math.round(bounds.height * dpr))
-      const pixelScale = Math.min(
-        1,
-        Math.sqrt(2_000_000 / Math.max(1, rawWidth * rawHeight)),
+      buf = gl.createBuffer()
+      if (!buf) throw new Error("Failed to create buffer");
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 3, -1, -1, 3]),
+        gl.STATIC_DRAW,
       )
-      const width = Math.max(1, Math.round(rawWidth * pixelScale))
-      const height = Math.max(1, Math.round(rawHeight * pixelScale))
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width
-        canvas.height = height
-        gl.viewport(0, 0, width, height)
-      }
-    }
+      const loc = gl.getAttribLocation(program, "a_position")
+      gl.enableVertexAttribArray(loc)
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
 
-    const requestRender = () => {
-      if (!disposed && visible && inView && raf === 0) {
-        raf = requestAnimationFrame(render)
+      const uni = {
+        colors: gl.getUniformLocation(program, "u_colors"),
+        scene: gl.getUniformLocation(program, "u_scene"),
+        shape: gl.getUniformLocation(program, "u_shape"),
+        surface: gl.getUniformLocation(program, "u_surface"),
+        finish: gl.getUniformLocation(program, "u_finish"),
+        transform: gl.getUniformLocation(program, "u_transform"),
+        space: gl.getUniformLocation(program, "u_space"),
+        cursor: gl.getUniformLocation(program, "u_cursor"),
       }
-    }
-
-    const updatePointerTarget = () => {
-      if (!pointerKnown) return
-      if (bounds.width === 0 || bounds.height === 0) return
-      const inside =
-        pointerClientX >= bounds.left &&
-        pointerClientX <= bounds.right &&
-        pointerClientY >= bounds.top &&
-        pointerClientY <= bounds.bottom
-      if (!inside) {
-        targetPresence = 0
-        requestRender()
-        return
-      }
-      const nextX = ((pointerClientX - bounds.left) / bounds.width) * 2 - 1
-      const nextY = -(((pointerClientY - bounds.top) / bounds.height) * 2 - 1)
-      if (targetPresence === 0 && cursorPresence < 0.01) {
-        mouseX = nextX
-        mouseY = nextY
-      }
-      targetX = nextX
-      targetY = nextY
-      targetPresence = 1
-      requestRender()
-    }
-    const onPointerMove = (event: PointerEvent) => {
-      pointerKnown = true
-      pointerClientX = event.clientX
-      pointerClientY = event.clientY
-      bounds = canvas.getBoundingClientRect()
-      updatePointerTarget()
-    }
-    const onPointerLeave = () => {
-      pointerKnown = false
-      targetPresence = 0
-      requestRender()
-    }
-    const updateLayout = () => {
-      bounds = canvas.getBoundingClientRect()
-      resizeCanvas()
-      updatePointerTarget()
-      requestRender()
-    }
-    window.addEventListener("resize", updateLayout)
-    if (UNIFORMS.cursorEnabled) {
-      window.addEventListener("pointermove", onPointerMove, { passive: true })
-      window.addEventListener("pointercancel", onPointerLeave)
-      window.addEventListener("scroll", updateLayout, true)
-      window.addEventListener("blur", onPointerLeave)
-      document.documentElement.addEventListener("pointerleave", onPointerLeave)
-    }
-
-    const resizeObserver = new ResizeObserver(updateLayout)
-    resizeObserver.observe(canvas)
-    const intersectionObserver = new IntersectionObserver(([entry]) => {
-      inView = entry?.isIntersecting ?? true
-      if (inView) requestRender()
-      else if (raf !== 0) {
-        cancelAnimationFrame(raf)
-        raf = 0
-        lastNow = null
-      }
-    })
-    intersectionObserver.observe(canvas)
-    const onVisibilityChange = () => {
-      visible = document.visibilityState === "visible"
-      if (visible) requestRender()
-      else if (raf !== 0) {
-        cancelAnimationFrame(raf)
-        raf = 0
-        lastNow = null
-      }
-    }
-    document.addEventListener("visibilitychange", onVisibilityChange)
-
-    const render = (now: number) => {
-      raf = 0
-      if (disposed || !visible || !inView) return
-      const dt = lastNow === null ? 0 : Math.min((now - lastNow) / 1000, 0.1)
-      lastNow = now
-      const follow = 1 - Math.exp(-12 * dt)
-      mouseX += (targetX - mouseX) * follow
-      mouseY += (targetY - mouseY) * follow
-      cursorPresence += (targetPresence - cursorPresence) * follow
-      resizeCanvas()
-      const width = canvas.width
-      const height = canvas.height
+      gl.uniform3fv(uni.colors, new Float32Array(UNIFORMS.colors.flat()))
       gl.uniform4f(
-        uni.scene,
-        width,
-        height,
-        ((now - start) / 1000) * UNIFORMS.timeScale,
-        UNIFORMS.colorCount,
+        uni.shape,
+        UNIFORMS.scale,
+        UNIFORMS.intensity,
+        UNIFORMS.paramA,
+        UNIFORMS.warp,
       )
       gl.uniform4f(
-        uni.space,
-        UNIFORMS.offsetX,
-        UNIFORMS.offsetY,
-        mouseX,
-        mouseY,
+        uni.surface,
+        UNIFORMS.detail,
+        UNIFORMS.contrast,
+        UNIFORMS.brightness,
+        UNIFORMS.saturation,
+      )
+      gl.uniform4f(
+        uni.finish,
+        UNIFORMS.hue,
+        UNIFORMS.vignette,
+        UNIFORMS.blur,
+        UNIFORMS.grain,
+      )
+      gl.uniform4f(
+        uni.transform,
+        UNIFORMS.seed,
+        UNIFORMS.rotate,
+        UNIFORMS.drift,
+        UNIFORMS.oklab,
       )
       gl.uniform4f(
         uni.cursor,
-        UNIFORMS.cursorEnabled ? cursorPresence : 0,
+        0,
         UNIFORMS.cursorEffect,
         UNIFORMS.cursorStrength,
         UNIFORMS.cursorRadius,
       )
-      gl.drawArrays(gl.TRIANGLES, 0, 3)
-      const pointerSettling =
-        Math.abs(targetX - mouseX) > 0.001 ||
-        Math.abs(targetY - mouseY) > 0.001 ||
-        Math.abs(targetPresence - cursorPresence) > 0.001
-      if (timeAnimated || pointerSettling) requestRender()
-      else lastNow = null
+
+      let targetX = 0
+      let targetY = 0
+      let targetPresence = 0
+      let mouseX = 0
+      let mouseY = 0
+      let cursorPresence = 0
+      let pointerKnown = false
+      let pointerClientX = 0
+      let pointerClientY = 0
+      let bounds = canvas.getBoundingClientRect()
+      let lastNow: number | null = null
+      let visible = document.visibilityState === "visible"
+      let inView = true
+      const start = performance.now()
+      const timeAnimated = Math.abs(UNIFORMS.timeScale) > 0.0001
+
+      const resizeCanvas = () => {
+        if (!gl || !canvas) return
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        const rawWidth = Math.max(1, Math.round(bounds.width * dpr))
+        const rawHeight = Math.max(1, Math.round(bounds.height * dpr))
+        const pixelScale = Math.min(
+          1,
+          Math.sqrt(2_000_000 / Math.max(1, rawWidth * rawHeight)),
+        )
+        const width = Math.max(1, Math.round(rawWidth * pixelScale))
+        const height = Math.max(1, Math.round(rawHeight * pixelScale))
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width
+          canvas.height = height
+          gl.viewport(0, 0, width, height)
+        }
+      }
+
+      const requestRender = () => {
+        if (!disposed && visible && inView && raf === 0) {
+          raf = requestAnimationFrame(render)
+        }
+      }
+
+      const updatePointerTarget = () => {
+        if (!pointerKnown) return
+        if (bounds.width === 0 || bounds.height === 0) return
+        const inside =
+          pointerClientX >= bounds.left &&
+          pointerClientX <= bounds.right &&
+          pointerClientY >= bounds.top &&
+          pointerClientY <= bounds.bottom
+        if (!inside) {
+          targetPresence = 0
+          requestRender()
+          return
+        }
+        const nextX = ((pointerClientX - bounds.left) / bounds.width) * 2 - 1
+        const nextY = -(((pointerClientY - bounds.top) / bounds.height) * 2 - 1)
+        if (targetPresence === 0 && cursorPresence < 0.01) {
+          mouseX = nextX
+          mouseY = nextY
+        }
+        targetX = nextX
+        targetY = nextY
+        targetPresence = 1
+        requestRender()
+      }
+      onPointerMove = (event: PointerEvent) => {
+        pointerKnown = true
+        pointerClientX = event.clientX
+        pointerClientY = event.clientY
+        bounds = canvas.getBoundingClientRect()
+        updatePointerTarget()
+      }
+      onPointerLeave = () => {
+        pointerKnown = false
+        targetPresence = 0
+        requestRender()
+      }
+      updateLayout = () => {
+        bounds = canvas.getBoundingClientRect()
+        resizeCanvas()
+        updatePointerTarget()
+        requestRender()
+      }
+      window.addEventListener("resize", updateLayout)
+      if (UNIFORMS.cursorEnabled) {
+        window.addEventListener("pointermove", onPointerMove, { passive: true })
+        window.addEventListener("pointercancel", onPointerLeave)
+        window.addEventListener("scroll", updateLayout, true)
+        window.addEventListener("blur", onPointerLeave)
+        document.documentElement.addEventListener("pointerleave", onPointerLeave)
+      }
+
+      resizeObserver = new ResizeObserver(updateLayout)
+      resizeObserver.observe(canvas)
+      intersectionObserver = new IntersectionObserver(([entry]) => {
+        inView = entry?.isIntersecting ?? true
+        if (inView) requestRender()
+        else if (raf !== 0) {
+          cancelAnimationFrame(raf)
+          raf = 0
+          lastNow = null
+        }
+      })
+      intersectionObserver.observe(canvas)
+      onVisibilityChange = () => {
+        visible = document.visibilityState === "visible"
+        if (visible) requestRender()
+        else if (raf !== 0) {
+          cancelAnimationFrame(raf)
+          raf = 0
+          lastNow = null
+        }
+      }
+      document.addEventListener("visibilitychange", onVisibilityChange)
+
+      const render = (now: number) => {
+        raf = 0
+        if (disposed || !visible || !inView || !gl) return
+        const dt = lastNow === null ? 0 : Math.min((now - lastNow) / 1000, 0.1)
+        lastNow = now
+        const follow = 1 - Math.exp(-12 * dt)
+        mouseX += (targetX - mouseX) * follow
+        mouseY += (targetY - mouseY) * follow
+        cursorPresence += (targetPresence - cursorPresence) * follow
+        resizeCanvas()
+        const width = canvas.width
+        const height = canvas.height
+        gl.uniform4f(
+          uni.scene,
+          width,
+          height,
+          ((now - start) / 1000) * UNIFORMS.timeScale,
+          UNIFORMS.colorCount,
+        )
+        gl.uniform4f(
+          uni.space,
+          UNIFORMS.offsetX,
+          UNIFORMS.offsetY,
+          mouseX,
+          mouseY,
+        )
+        gl.uniform4f(
+          uni.cursor,
+          UNIFORMS.cursorEnabled ? cursorPresence : 0,
+          UNIFORMS.cursorEffect,
+          UNIFORMS.cursorStrength,
+          UNIFORMS.cursorRadius,
+        )
+        gl.drawArrays(gl.TRIANGLES, 0, 3)
+        const pointerSettling =
+          Math.abs(targetX - mouseX) > 0.001 ||
+          Math.abs(targetY - mouseY) > 0.001 ||
+          Math.abs(targetPresence - cursorPresence) > 0.001
+        if (timeAnimated || pointerSettling) requestRender()
+        else lastNow = null
+      }
+      requestRender()
+    } catch (e) {
+      console.error("[ShaderBackground] WebGL Init error:", e)
     }
-    requestRender()
+
     return () => {
       disposed = true
-      cancelAnimationFrame(raf)
-      resizeObserver.disconnect()
-      intersectionObserver.disconnect()
-      document.removeEventListener("visibilitychange", onVisibilityChange)
-      window.removeEventListener("resize", updateLayout)
-      if (UNIFORMS.cursorEnabled) {
+      if (raf !== 0) cancelAnimationFrame(raf)
+      if (resizeObserver) resizeObserver.disconnect()
+      if (intersectionObserver) intersectionObserver.disconnect()
+      if (onVisibilityChange) document.removeEventListener("visibilitychange", onVisibilityChange)
+      if (updateLayout) window.removeEventListener("resize", updateLayout)
+      if (UNIFORMS.cursorEnabled && onPointerMove && onPointerLeave && updateLayout) {
         window.removeEventListener("pointermove", onPointerMove)
         window.removeEventListener("pointercancel", onPointerLeave)
         window.removeEventListener("scroll", updateLayout, true)
         window.removeEventListener("blur", onPointerLeave)
-        document.documentElement.removeEventListener(
-          "pointerleave",
-          onPointerLeave,
-        )
+        document.documentElement.removeEventListener("pointerleave", onPointerLeave)
       }
-      gl.deleteBuffer(buf)
-      gl.deleteProgram(program)
+      try {
+        if (gl && buf) gl.deleteBuffer(buf)
+        if (gl && program) gl.deleteProgram(program)
+      } catch (err) {
+        // ignore
+      }
     }
   }, [])
 

@@ -144,7 +144,7 @@ export function SubEventsSection() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-700 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-250" />
           <Dialog.Content
-            className="fixed left-1/2 top-1/2 z-[80] w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-white/25 bg-gradient-to-b from-white/[0.09] to-white/[0.03] p-8 shadow-[0_24px_120px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.05)] backdrop-blur-3xl backdrop-saturate-[1.8] ring-1 ring-white/10 data-[state=open]:animate-modal-in data-[state=closed]:animate-modal-out"
+            className="fixed left-1/2 top-1/2 z-[80] w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-white/25 bg-gradient-to-b from-white/[0.09] to-white/[0.03] p-5 sm:p-8 shadow-[0_24px_120px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.05)] backdrop-blur-3xl backdrop-saturate-[1.8] ring-1 ring-white/10 data-[state=open]:animate-modal-in data-[state=closed]:animate-modal-out max-h-[90vh] overflow-y-auto"
             aria-describedby={undefined}
           >
             {renderEvent && (
@@ -155,37 +155,37 @@ export function SubEventsSection() {
                   <div className="absolute -bottom-32 -right-16 h-64 w-64 rounded-full bg-white/[0.05] blur-3xl" />
                   <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                 </div>
-
+ 
                 <Dialog.Close className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white">
                   <X className="h-4 w-4" />
                 </Dialog.Close>
-
-                <div className="relative grid items-center gap-10 sm:grid-cols-[auto_1fr]">
+ 
+                <div className="relative grid items-center gap-5 sm:gap-10 sm:grid-cols-[auto_1fr]">
                   {/* Icon — big, raw, floating */}
                   <div className="mx-auto sm:mx-0">
                     <img
                       src={renderEvent.iconSrc}
                       alt={renderEvent.name}
-                      className="h-64 w-64 object-contain drop-shadow-[0_20px_70px_rgba(255,255,255,0.08)] sm:h-80 sm:w-80"
+                      className="h-28 w-28 object-contain drop-shadow-[0_20px_70px_rgba(255,255,255,0.08)] sm:h-80 sm:w-80"
                     />
                   </div>
-
+ 
                   {/* Details */}
-                  <div className="min-w-0 space-y-4">
+                  <div className="min-w-0 space-y-3 sm:space-y-4">
                     <p className="mono-chip text-[10px] uppercase tracking-[0.35em] text-white/40">
                       {renderEvent.block} · {renderEvent.tag}
                     </p>
-
-                    <div className="space-y-2">
-                      <Dialog.Title className="font-display text-4xl font-black uppercase tracking-tight text-white">
+ 
+                    <div className="space-y-1">
+                      <Dialog.Title className="font-display text-2xl font-black uppercase tracking-tight text-white sm:text-4xl">
                         {renderEvent.name}
                       </Dialog.Title>
-                      <p className="text-sm font-medium text-white/60">{renderEvent.tagline}</p>
+                      <p className="text-xs sm:text-sm font-medium text-white/60">{renderEvent.tagline}</p>
                     </div>
-
-                    <p className="text-sm leading-relaxed text-white/70">{renderEvent.description}</p>
-
-                    <div className="space-y-1.5 pt-1 text-xs text-white/50">
+ 
+                    <p className="text-xs sm:text-sm leading-relaxed text-white/70">{renderEvent.description}</p>
+ 
+                    <div className="space-y-1 pt-1 text-xs text-white/50">
                       <p className="flex items-center gap-2">
                         <CalendarDays className="h-3.5 w-3.5 text-white/40" />
                         {renderEvent.date}
@@ -197,15 +197,15 @@ export function SubEventsSection() {
                     </div>
                   </div>
                 </div>
-
+ 
                 {/* Actions */}
-                <div className="relative mt-8 flex flex-col gap-3 sm:flex-row">
+                <div className="relative mt-5 sm:mt-8 flex flex-col gap-2 sm:gap-3 sm:flex-row">
                   <button
                     onClick={() => {
                       setOpenEvent(null);
                       navigate(`/events/${renderEvent.id}`);
                     }}
-                    className="group inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/15"
+                    className="group inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/15"
                   >
                     Explore {renderEvent.name}
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -215,11 +215,11 @@ export function SubEventsSection() {
                       setOpenEvent(null);
                       scrollToBlock(renderEvent.id);
                     }}
-                    className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/60 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white"
+                    className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-white/60 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white"
                   >
                     View in Timeline
                   </button>
-                  <Dialog.Close className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/60 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white">
+                  <Dialog.Close className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-white/60 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white">
                     Close
                   </Dialog.Close>
                 </div>

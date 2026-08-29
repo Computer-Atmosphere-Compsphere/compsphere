@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useMemo, useRef } from "react";
+import React, { useMemo, useRef, Component as ReactComponent } from "react";
 
 // ============================================================================
 // UTILITIES
@@ -133,6 +133,30 @@ function SparklesPlane({ speed = 1, intensity = 2.5, uvScale = 1.0 }: SparklesPl
   );
 }
 
+
+
+class GlitterErrorBoundary extends ReactComponent<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("[GlitterErrorBoundary] Canvas WebGL failed:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div className="absolute inset-0 w-full h-full bg-transparent pointer-events-none" />;
+    }
+    return this.props.children;
+  }
+}
+
 interface GlitterFinalProps {
   speed?: number;
   intensity?: number;
@@ -162,21 +186,23 @@ export function GlitterFinal({
       )}
       style={{ width: "100%", height: "100%", mixBlendMode: "screen", ...wrapperStyle }}
     >
-      <Canvas
-        camera={{ position: [0, 0, 8], fov: 35 }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 10,
-        }}
-        gl={{ powerPreference: "high-performance", alpha: true, antialias: false }}
-        dpr={[1, 1.5]}
-      >
-        <SparklesPlane speed={speed} intensity={intensity} uvScale={uvScale} />
-      </Canvas>
+      <GlitterErrorBoundary>
+        <Canvas
+          camera={{ position: [0, 0, 8], fov: 35 }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 10,
+          }}
+          gl={{ powerPreference: "high-performance", alpha: true, antialias: false }}
+          dpr={[1, 1.5]}
+        >
+          <SparklesPlane speed={speed} intensity={intensity} uvScale={uvScale} />
+        </Canvas>
+      </GlitterErrorBoundary>
     </div>
   );
 }

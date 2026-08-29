@@ -15,7 +15,9 @@ import type { SSEEvent } from "@compsphere/types";
 // Always use a relative URL so the Vite dev-proxy handles the request.
 // This avoids CORS + compression-buffering issues that plagued the old
 // direct-to-backend fetch (http://localhost:3001/api/sse).
-const SSE_URL = "/api/sse";
+const SSE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/sse` 
+  : "/api/sse";
 
 /**
  * SSE hook that uses fetch + ReadableStream instead of EventSource.
@@ -106,7 +108,9 @@ export function useSSE() {
     async function healthFallback() {
       if (unmounted) return;
       try {
-        const healthUrl = "/api/health";
+        const healthUrl = import.meta.env.VITE_API_URL 
+          ? `${import.meta.env.VITE_API_URL}/api/health` 
+          : "/api/health";
         const res = await fetch(healthUrl, { cache: "no-store" });
         if (res.ok) {
           console.log("[SSE] Health check passed — marking online (fallback).");

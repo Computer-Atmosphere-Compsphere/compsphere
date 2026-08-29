@@ -547,7 +547,7 @@ function HacksphereJoinBlock() {
           <ol className="space-y-4">
             {[
               { step: "01", title: "Create an Individual Account", desc: "Sign up at compsphere.id by filling out the identity form and verifying your email." },
-              { step: "02", title: "Form a Team & Register for Hacksphere", desc: "The team leader registers the team (max. 3 members), invites members via username/email, then completes the Rp75,000/team payment." },
+              { step: "02", title: "Form a Team & Register for Hacksphere", desc: "The team leader registers the team (max. 3 members) and invites members via username/email. Free entry for Phase 1." },
               { step: "03", title: "Download the Guidebook & Prepare Your Proposal", desc: "Download the official Guidebook and Idea Proposal Template (.docx) from Google Drive, then craft your proposal based on the given theme." },
               { step: "04", title: "Upload Proposal before Sep 18, 23:59 WIB", desc: "Submit your Idea Proposal (PDF) on your team dashboard before the submission portal closes automatically." },
               { step: "05", title: "Wait for Top 30 Announcement (Sep 26)", desc: "Selected teams will advance to the Offline Round at President University, Cikarang on Oct 10–11, 2026." },
@@ -568,7 +568,7 @@ function HacksphereJoinBlock() {
         </motion.div>
 
         {/* Action buttons */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 flex flex-col gap-3">
           {buttons.map((btn, i) => {
             const isAvailable = !isLoading && btn.url.length > 0;
             const ButtonWrapper = isAvailable ? "a" : "div";
@@ -579,60 +579,42 @@ function HacksphereJoinBlock() {
             return (
               <motion.div
                 key={btn.key}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={{ duration: 0.45, delay: i * 0.08 }}
               >
                 <ButtonWrapper
                   {...(wrapperProps as any)}
-                  className={`group relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-[22px] border ${
-                    btn.border
-                  } bg-gradient-to-b ${btn.color} p-7 text-center transition-all duration-500 ${
+                  className={`group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl px-5 py-3.5 transition-all duration-300 ${
                     isAvailable
-                      ? "cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(0,0,0,0.5)]"
-                      : "opacity-60 cursor-not-allowed"
+                      ? "cursor-pointer hover:bg-white/[0.08] hover:border-white/20"
+                      : "opacity-50 cursor-not-allowed"
                   }`}
-                  style={{
-                    boxShadow: `0 0 0 1px rgba(255,255,255,0.06) inset, 0 20px 60px rgba(0,0,0,0.5)`,
-                  }}
                 >
-                  {/* Glow */}
-                  <div
-                    className="pointer-events-none absolute inset-0 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                    style={{ background: `radial-gradient(circle at 50% 0%, ${btn.glow}, transparent 70%)` }}
-                  />
-                  {/* Top sheen */}
-                  <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
                   {/* Icon */}
                   <div
-                    className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-white"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06]"
                     style={{ color: btn.accentColor }}
                   >
                     {btn.icon}
                   </div>
 
-                  {/* Labels */}
-                  <div>
-                    <p className="font-display text-sm font-black uppercase tracking-wide text-white">
-                      {btn.label}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-white/50">{btn.sublabel}</p>
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white">{btn.label}</p>
+                    <p className="text-[11px] text-white/40">{btn.sublabel}</p>
                   </div>
 
-                  {/* Status badge */}
-                  {!isAvailable && !isLoading && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[9px] uppercase tracking-widest text-white/40">
-                      Coming Soon
+                  {/* Arrow / Badge */}
+                  {isAvailable && (
+                    <span className="text-xs text-white/30 group-hover:text-white/60 transition-colors shrink-0">
+                      →
                     </span>
                   )}
-                  {isAvailable && (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[9px] uppercase tracking-widest transition-colors duration-300 group-hover:bg-white/10"
-                      style={{ borderColor: `${btn.accentColor}40`, color: btn.accentColor }}
-                    >
-                      Open ↗
+                  {!isAvailable && !isLoading && (
+                    <span className="text-[9px] uppercase tracking-widest text-white/30 shrink-0">
+                      Soon
                     </span>
                   )}
                 </ButtonWrapper>

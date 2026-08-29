@@ -62,7 +62,7 @@ export async function requireAuth(
     }
 
     // Get the active role assignment
-    const roleAssignment = await db.query.roleAssignments.findFirst({
+    let roleAssignment = await db.query.roleAssignments.findFirst({
       where: and(
         eq(schema.roleAssignments.userId, profile.id),
         isNull(schema.roleAssignments.revokedAt)
@@ -70,19 +70,37 @@ export async function requireAuth(
       orderBy: (ra, { desc }) => [desc(ra.assignedAt)],
     });
 
-    // Get team membership if participant
+    // Get team membership if active
+    const membership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(schema.teamMembers.userId, profile.id),
+        eq(schema.teamMembers.status, "ACTIVE")
+      ),
+    });
+
+    let role: RoleType = (roleAssignment?.role as RoleType) ?? "USER";
     let teamId: string | null = null;
     let memberRole: MemberRole | null = null;
-    if (roleAssignment?.role === "PARTICIPANT") {
-      const membership = await db.query.teamMembers.findFirst({
-        where: and(
-          eq(schema.teamMembers.userId, profile.id),
-          eq(schema.teamMembers.status, "ACTIVE")
-        ),
-      });
-      if (membership) {
-        teamId = membership.teamId;
-        memberRole = membership.role;
+
+    if (membership) {
+      teamId = membership.teamId;
+      memberRole = membership.role;
+      role = "PARTICIPANT";
+
+      // Auto-fix missing role assignment in DB (e.g. for users created via manual team submission/migration)
+      if (!roleAssignment || roleAssignment.role !== "PARTICIPANT") {
+        console.log(`[requireAuth] Auto-fixing missing PARTICIPANT role assignment for profile ${profile.id}`);
+        try {
+          const [newRoleAssignment] = await db.insert(schema.roleAssignments).values({
+            userId: profile.id,
+            role: "PARTICIPANT",
+            source: "team_token",
+            teamId,
+          }).returning();
+          roleAssignment = newRoleAssignment;
+        } catch (err) {
+          console.error(`[requireAuth] Failed to auto-fix role assignment for profile ${profile.id}:`, err);
+        }
       }
     }
 
@@ -92,7 +110,7 @@ export async function requireAuth(
       email: profile.email,
       fullName: profile.fullName,
       avatarUrl: profile.avatarUrl,
-      role: (roleAssignment?.role as RoleType) ?? "USER",
+      role,
       teamId,
       memberRole,
       onboardingStatus: profile.onboardingStatus,

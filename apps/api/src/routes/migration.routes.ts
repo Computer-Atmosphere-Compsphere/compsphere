@@ -556,8 +556,6 @@ router.post("/submit-team", upload.single("proposalFile"), async (req, res, next
             eq(schema.teamMembers.status, "ACTIVE")
           ),
         });
-        console.log(`[submit-team] Existing membership for ${profile.id}:`, existingMembership ? "FOUND (skipping)" : "NONE (will create)");
-
         if (!existingMembership) {
           await tx.insert(schema.teamMembers).values({
             teamId: team.id,
@@ -567,6 +565,24 @@ router.post("/submit-team", upload.single("proposalFile"), async (req, res, next
             verifiedAt: new Date(),
           });
           console.log(`[submit-team] Created team_member: team=${team.id} user=${profile.id} role=${i === 0 ? "TEAM_LEADER" : "TEAM_MEMBER"}`);
+        }
+
+        // Ensure active role assignment exists
+        const existingRole = await tx.query.roleAssignments.findFirst({
+          where: and(
+            eq(schema.roleAssignments.userId, profile.id),
+            eq(schema.roleAssignments.role, "PARTICIPANT"),
+            isNull(schema.roleAssignments.revokedAt)
+          ),
+        });
+        if (!existingRole) {
+          await tx.insert(schema.roleAssignments).values({
+            userId: profile.id,
+            role: "PARTICIPANT",
+            source: "team_token",
+            teamId: team.id,
+          });
+          console.log(`[submit-team] Created role assignment for user=${profile.id}`);
         }
       }
 

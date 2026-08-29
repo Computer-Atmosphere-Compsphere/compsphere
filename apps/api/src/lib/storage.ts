@@ -34,20 +34,29 @@ export async function uploadFileToStorage(
 
   if (isSupabase && supabase) {
     if (!fs.existsSync(localTempPath)) {
-      throw new Error(`Temp file not found at ${localTempPath}`);
+      throw new Error(`[Storage] Temp file not found at ${localTempPath}`);
     }
 
     const fileBuffer = fs.readFileSync(localTempPath);
-    
+    console.log(`[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Supabase bucket "${bucketName}"...`);
+
+    // Auto-create bucket if it doesn't exist yet
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (!listError && buckets && !buckets.some((b) => b.name === bucketName)) {
+      console.log(`[Storage] Bucket "${bucketName}" missing — creating...`);
+      const { error: createErr } = await supabase.storage.createBucket(bucketName, { public: false });
+      if (createErr) {
+        console.error(`[Storage] Failed to create bucket "${bucketName}":`, JSON.stringify(createErr));
+        throw createErr;
+      }
+    }
+
     const { error } = await supabase.storage
       .from(bucketName)
-      .upload(fileName, fileBuffer, {
-        contentType: mimeType,
-        upsert: true,
-      });
+      .upload(fileName, fileBuffer, { contentType: mimeType, upsert: true });
 
     if (error) {
-      console.error(`[Supabase Storage Error] Failed to upload ${fileName} to bucket ${bucketName}:`, error);
+      console.error(`[Storage] Supabase upload failed for "${fileName}" in bucket "${bucketName}":`, JSON.stringify(error));
       throw error;
     }
 

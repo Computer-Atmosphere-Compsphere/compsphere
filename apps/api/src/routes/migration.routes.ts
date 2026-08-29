@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
 import { db, schema } from "@compsphere/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, sql } from "drizzle-orm";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
@@ -462,20 +462,12 @@ router.post("/submit-team", upload.single("proposalFile"), async (req, res, next
       throw new AppError(400, "Invalid category option.");
     }
 
-    // Move file to permanent storage: apps/api/uploads/proposals/ (dynamically)
+    // Move file to permanent storage via the shared storage abstraction.
+    // On Vercel with STORAGE_PROVIDER=supabase → uploads to Supabase Storage.
+    // Locally or when STORAGE_PROVIDER is unset → moves to local uploads dir.
     let storageKey: string;
     const newFilename = `${req.file.filename}.pdf`;
-
-    if (process.env.STORAGE_PROVIDER === "supabase") {
-      storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);
-    } else {
-      const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../../../uploads"));
-      const proposalsDir = path.join(uploadsDir, "proposals");
-      fs.mkdirSync(proposalsDir, { recursive: true });
-      const targetPath = path.join(proposalsDir, newFilename);
-      fs.renameSync(req.file.path, targetPath);
-      storageKey = `proposals/${newFilename}`;
-    }
+    storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);
 
     const result = await db.transaction(async (tx) => {
       // 1. Calculate next rank

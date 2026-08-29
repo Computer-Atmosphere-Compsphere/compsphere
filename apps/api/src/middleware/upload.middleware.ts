@@ -23,7 +23,13 @@ try {
 function createStorage(subDir: string) {
   return multer.diskStorage({
     destination: (_req, _file, cb) => {
-      cb(null, path.join(uploadsDir, subDir));
+      const dest = path.join(uploadsDir, subDir);
+      try {
+        fs.mkdirSync(dest, { recursive: true });
+      } catch (e) {
+        console.warn(`[Upload Middleware] Failed to create directory: ${dest}`, e);
+      }
+      cb(null, dest);
     },
     filename: (_req, file, cb) => {
       const uniqueId = crypto.randomBytes(16).toString("hex");

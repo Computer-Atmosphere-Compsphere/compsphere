@@ -34,18 +34,8 @@ export function Payment() {
         ? "/api/payments/submit-document"
         : "/api/payments/submit";
 
-      // Use direct fetch to avoid api wrapper header issues with FormData
-      const res = await fetch(endpoint, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || `Upload failed (HTTP ${res.status})`);
-      }
-      return json.data;
+      const res = await api.post<any>(endpoint, formData);
+      return res;
     },
     onSuccess: () => {
       setSuccessMsg("Payment proof submitted successfully! The committee will review it shortly.");

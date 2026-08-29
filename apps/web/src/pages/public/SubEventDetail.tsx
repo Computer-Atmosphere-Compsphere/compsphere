@@ -490,38 +490,42 @@ function HacksphereJoinBlock() {
       label: "Register on Devpost",
       sublabel: "Join the hackathon",
       url: devpostUrl,
-      icon: <DevpostIcon className="h-6 w-6" />,
-      color: "from-[#003E54] to-[#0d3349]",
-      border: "border-[#00a4d3]/30",
-      glow: "rgba(0,164,211,0.15)",
-      accentColor: "#00a4d3",
+      icon: <DevpostIcon className="h-5 w-5" />,
+      accentColor: "#00c8ff",
+      glowColor: "rgba(0,200,255,0.15)",
+      gradientFrom: "from-[#00c8ff]/10",
+      borderColor: "border-[#00c8ff]/20",
+      hoverBorder: "hover:border-[#00c8ff]/40",
     },
     {
       key: "discord",
       label: "Join Discord",
       sublabel: "Community & updates",
       url: discordUrl,
-      icon: <DiscordIcon className="h-6 w-6" />,
-      color: "from-[#1e1f4b] to-[#2b2d6e]",
-      border: "border-[#5865F2]/30",
-      glow: "rgba(88,101,242,0.15)",
-      accentColor: "#5865F2",
+      icon: <DiscordIcon className="h-5 w-5" />,
+      accentColor: "#7c6aff",
+      glowColor: "rgba(124,106,255,0.15)",
+      gradientFrom: "from-[#7c6aff]/10",
+      borderColor: "border-[#7c6aff]/20",
+      hoverBorder: "hover:border-[#7c6aff]/40",
     },
     {
       key: "guidebook",
       label: "Guidebook & Proposal",
       sublabel: "Download from Drive",
       url: guidebookUrl,
-      icon: <GoogleDriveIcon className="h-6 w-6" />,
-      color: "from-[#1a2640] to-[#0f1e35]",
-      border: "border-white/10",
-      glow: "rgba(255,186,0,0.10)",
-      accentColor: "#FFBA00",
+      icon: <GoogleDriveIcon className="h-5 w-5" />,
+      accentColor: "#f0b400",
+      glowColor: "rgba(240,180,0,0.12)",
+      gradientFrom: "from-[#f0b400]/8",
+      borderColor: "border-[#f0b400]/18",
+      hoverBorder: "hover:border-[#f0b400]/35",
     },
   ];
 
   return (
     <motion.section
+      id="how-to-join"
       variants={fadeUp}
       initial="hidden"
       whileInView="show"
@@ -579,41 +583,47 @@ function HacksphereJoinBlock() {
             return (
               <motion.div
                 key={btn.key}
-                initial={{ opacity: 0, y: 14 }}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: i * 0.08 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
               >
                 <ButtonWrapper
                   {...(wrapperProps as any)}
-                  className={`group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl px-4 py-3 transition-all duration-300 ${
+                  className={`group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border ${btn.borderColor} bg-gradient-to-br ${btn.gradientFrom} to-transparent backdrop-blur-xl px-4 py-3.5 transition-all duration-400 ${
                     isAvailable
-                      ? "cursor-pointer hover:bg-white/[0.08] hover:border-white/20"
+                      ? `cursor-pointer ${btn.hoverBorder} hover:bg-white/[0.06] hover:shadow-[0_0_30px_${btn.glowColor}]`
                       : "opacity-50 cursor-not-allowed"
                   }`}
                 >
+                  {/* Animated glow dot */}
+                  <div
+                    className="absolute -top-12 -right-12 h-24 w-24 rounded-full opacity-0 group-hover:opacity-100 blur-[40px] transition-opacity duration-500"
+                    style={{ background: btn.accentColor }}
+                  />
+
                   {/* Icon */}
                   <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06]"
+                    className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] backdrop-blur-sm transition-all duration-300 group-hover:bg-white/[0.12] group-hover:scale-105"
                     style={{ color: btn.accentColor }}
                   >
                     {btn.icon}
                   </div>
 
                   {/* Text */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white">{btn.label}</p>
-                    <p className="text-[11px] text-white/40">{btn.sublabel}</p>
+                  <div className="relative flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white/90 group-hover:text-white transition-colors">{btn.label}</p>
+                    <p className="text-[11px] text-white/35 group-hover:text-white/50 transition-colors">{btn.sublabel}</p>
                   </div>
 
                   {/* Arrow / Badge */}
                   {isAvailable && (
-                    <span className="text-xs text-white/30 group-hover:text-white/60 transition-colors shrink-0">
+                    <span className="relative text-sm text-white/20 group-hover:text-white/60 transition-all duration-300 group-hover:translate-x-0.5 shrink-0">
                       →
                     </span>
                   )}
                   {!isAvailable && !isLoading && (
-                    <span className="text-[9px] uppercase tracking-widest text-white/30 shrink-0">
+                    <span className="relative text-[9px] uppercase tracking-widest text-white/25 shrink-0">
                       Soon
                     </span>
                   )}
@@ -1063,7 +1073,7 @@ function CtaBlock({ eventId, eventName, tagline }: { eventId: string; eventName:
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/#home"
+              to={eventId === "hacksphere" ? "#how-to-join" : "/#home"}
               className="group inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/80 backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/[0.10]"
             >
               Register Now

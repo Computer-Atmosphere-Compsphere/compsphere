@@ -352,10 +352,16 @@ export function Config() {
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {cat.keys.map((key) => {
                       const cfg = configsByKey[key];
-                      if (!cfg) return null;
+                      // For hacksphere link keys, always render with empty default
+                      // so admins can fill them without needing to seed first
+                      const fallback = cat.id === "hacksphere_links"
+                        ? { key, value: "", type: "STRING", updatedAt: undefined }
+                        : null;
+                      if (!cfg && !fallback) return null;
+                      const effectiveCfg = cfg ?? fallback!;
                       const isDirty =
-                        edits[key] !== undefined && edits[key] !== cfg.value;
-                      const displayValue = formatValue(key, edits[key] ?? cfg.value);
+                        edits[key] !== undefined && edits[key] !== effectiveCfg.value;
+                      const displayValue = formatValue(key, edits[key] ?? effectiveCfg.value);
 
                       return (
                         <div
@@ -384,7 +390,7 @@ export function Config() {
                           {key.includes("enabled") || key.includes("show_login") ? (
                             <button
                               onClick={() => {
-                                const currentVal = edits[key] ?? cfg.value;
+                                const currentVal = edits[key] ?? effectiveCfg.value;
                                 const newVal = currentVal === "true" ? "false" : "true";
                                 setEdits((prev) => ({ ...prev, [key]: newVal }));
                                 // Auto-save immediately for toggles
@@ -393,24 +399,24 @@ export function Config() {
                               disabled={updateMutation.isPending}
                               className={cn(
                                 "w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all",
-                                (edits[key] ?? cfg.value) === "true"
+                                (edits[key] ?? effectiveCfg.value) === "true"
                                   ? "bg-green-950/30 border-green-900/50 hover:bg-green-950/50"
                                   : "bg-bg-surface border-border/40 hover:bg-bg-surface/80"
                               )}
                             >
                               <span className={cn(
                                 "text-xs font-bold",
-                                (edits[key] ?? cfg.value) === "true" ? "text-green-400" : "text-text-muted"
+                                (edits[key] ?? effectiveCfg.value) === "true" ? "text-green-400" : "text-text-muted"
                               )}>
-                                {(edits[key] ?? cfg.value) === "true" ? "ON — Active" : "OFF — Inactive"}
+                                {(edits[key] ?? effectiveCfg.value) === "true" ? "ON — Active" : "OFF — Inactive"}
                               </span>
                               <div className={cn(
                                 "w-10 h-5 rounded-full transition-colors relative",
-                                (edits[key] ?? cfg.value) === "true" ? "bg-green-500/40" : "bg-bg-surface"
+                                (edits[key] ?? effectiveCfg.value) === "true" ? "bg-green-500/40" : "bg-bg-surface"
                               )}>
                                 <div className={cn(
                                   "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-                                  (edits[key] ?? cfg.value) === "true"
+                                  (edits[key] ?? effectiveCfg.value) === "true"
                                     ? "left-[22px] bg-green-400"
                                     : "left-0.5 bg-text-muted"
                                 )} />
@@ -427,13 +433,13 @@ export function Config() {
                               <div className="flex gap-2 items-center">
                                 <input
                                   type="text"
-                                  value={edits[key] ?? cfg.value}
+                                  value={edits[key] ?? effectiveCfg.value}
                                   onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
                                   className="flex-1 min-w-0 px-3 py-1.5 rounded bg-bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus:border-brand-primary"
                                 />
                                 <NeonButton
                                   onClick={() => handleSave(key)}
-                                  disabled={updateMutation.isPending || edits[key] === undefined || edits[key] === cfg.value}
+                                  disabled={updateMutation.isPending || edits[key] === undefined || edits[key] === effectiveCfg.value}
                                   size="sm"
                                   className="shrink-0"
                                 >

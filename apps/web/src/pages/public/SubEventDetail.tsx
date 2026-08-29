@@ -388,7 +388,7 @@ function SpeakersBlock({ speakers }: { speakers: NonNullable<typeof subEvents[nu
                               className={`font-display font-extrabold leading-tight tracking-tight ${idx === 1
                                 ? "text-[10px] text-text-primary sm:text-sm md:text-lg"
                                 : "text-[9px] text-text-secondary sm:text-xs md:text-sm"
-                              }`}
+                                }`}
                             >
                               {s.name}
                             </h3>
@@ -468,12 +468,12 @@ function DiscordIcon({ className }: { className?: string }) {
 function GoogleDriveIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-      <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-      <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-      <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-      <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-      <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+      <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+      <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47" />
+      <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335" />
+      <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d" />
+      <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc" />
+      <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
     </svg>
   );
 }
@@ -551,10 +551,10 @@ function HacksphereJoinBlock() {
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
           <ol className="space-y-4">
             {[
-              { step: "01", title: "Create an Individual Account", desc: "Sign up at compsphere.id by filling out the identity form and verifying your email." },
+              { step: "01", title: "Create an Individual Account", desc: "Sign up at https://compsphere12.devpost.com by filling out the identity form and verifying your email." },
               { step: "02", title: "Form a Team & Register for Hacksphere", desc: "The team leader registers the team (max. 3 members) and invites members via username/email. Free entry for Phase 1." },
               { step: "03", title: "Download the Guidebook & Prepare Your Proposal", desc: "Download the official Guidebook and Idea Proposal Template (.docx) from Google Drive, then craft your proposal based on the given theme." },
-              { step: "04", title: "Upload Proposal before Sep 18, 23:59 WIB", desc: "Submit your Idea Proposal (PDF) on your team dashboard before the submission portal closes automatically." },
+              { step: "04", title: "Upload Proposal before Sep 18, 23:59 WIB", desc: "Submit your Idea Proposal (PDF) on https://compsphere12.devpost.com/ before the submission portal closes automatically." },
               { step: "05", title: "Wait for Top 30 Announcement (Sep 26)", desc: "Selected teams will advance to the Offline Round at President University, Cikarang on Oct 10–11, 2026." },
             ].map((s, i) => (
               <li key={s.step} className="flex items-start gap-4">

@@ -24,6 +24,7 @@ import AdmitOneTicket from "@/components/ui/admit-one-ticket";
 import { FeatureCard } from "@/components/ui/grid-feature-cards";
 import { Rocket, Handshake, Trophy, Globe, Mic, Lightbulb, Network, Award, Music, PartyPopper } from "lucide-react";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
+import { cn } from "@/lib/utils";
 
 // ── Animation variants ──────────────────────────────────────────────────────
 const container = {
@@ -490,36 +491,33 @@ function HacksphereJoinBlock() {
       label: "Register on Devpost",
       sublabel: "Join the hackathon",
       url: devpostUrl,
-      icon: <DevpostIcon className="h-5 w-5" />,
-      accentColor: "#00c8ff",
-      glowColor: "rgba(0,200,255,0.15)",
-      gradientFrom: "from-[#00c8ff]/10",
-      borderColor: "border-[#00c8ff]/20",
-      hoverBorder: "hover:border-[#00c8ff]/40",
+      icon: <DevpostIcon className="h-4 w-4" />,
+      hoverGlow: "rgba(56,189,248,0.25)",
+      blobColor: "bg-sky-300/30",
+      hoverBorder: "hover:border-sky-300/40",
+      hoverShadow: "hover:shadow-[0_4px_24px_rgba(56,189,248,0.15),inset_0_1px_0_rgba(255,255,255,0.3)]",
     },
     {
       key: "discord",
       label: "Join Discord",
       sublabel: "Community & updates",
       url: discordUrl,
-      icon: <DiscordIcon className="h-5 w-5" />,
-      accentColor: "#7c6aff",
-      glowColor: "rgba(124,106,255,0.15)",
-      gradientFrom: "from-[#7c6aff]/10",
-      borderColor: "border-[#7c6aff]/20",
-      hoverBorder: "hover:border-[#7c6aff]/40",
+      icon: <DiscordIcon className="h-4 w-4" />,
+      hoverGlow: "rgba(124,106,255,0.25)",
+      blobColor: "bg-indigo-300/30",
+      hoverBorder: "hover:border-indigo-300/40",
+      hoverShadow: "hover:shadow-[0_4px_24px_rgba(124,106,255,0.15),inset_0_1px_0_rgba(255,255,255,0.3)]",
     },
     {
       key: "guidebook",
       label: "Guidebook & Proposal",
       sublabel: "Download from Drive",
       url: guidebookUrl,
-      icon: <GoogleDriveIcon className="h-5 w-5" />,
-      accentColor: "#f0b400",
-      glowColor: "rgba(240,180,0,0.12)",
-      gradientFrom: "from-[#f0b400]/8",
-      borderColor: "border-[#f0b400]/18",
-      hoverBorder: "hover:border-[#f0b400]/35",
+      icon: <GoogleDriveIcon className="h-4 w-4" />,
+      hoverGlow: "rgba(250,204,21,0.20)",
+      blobColor: "bg-yellow-300/25",
+      hoverBorder: "hover:border-yellow-300/35",
+      hoverShadow: "hover:shadow-[0_4px_24px_rgba(250,204,21,0.12),inset_0_1px_0_rgba(255,255,255,0.3)]",
     },
   ];
 
@@ -583,47 +581,46 @@ function HacksphereJoinBlock() {
             return (
               <motion.div
                 key={btn.key}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={{ duration: 0.45, delay: i * 0.07 }}
               >
                 <ButtonWrapper
                   {...(wrapperProps as any)}
-                  className={`group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border ${btn.borderColor} bg-gradient-to-br ${btn.gradientFrom} to-transparent backdrop-blur-xl px-4 py-3.5 transition-all duration-400 ${
+                  className={cn(
+                    "group relative inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-full",
+                    "border border-white/15 bg-white/[0.07] backdrop-blur-2xl backdrop-saturate-150",
+                    "shadow-[0_2px_16px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.18)]",
+                    "transition-all duration-300 ease-out",
                     isAvailable
-                      ? `cursor-pointer ${btn.hoverBorder} hover:bg-white/[0.06] hover:shadow-[0_0_30px_${btn.glowColor}]`
-                      : "opacity-50 cursor-not-allowed"
-                  }`}
+                      ? [btn.hoverBorder, btn.hoverShadow, "hover:-translate-y-0.5 cursor-pointer"]
+                      : "opacity-50 cursor-not-allowed",
+                    "active:translate-y-0 active:scale-[0.97]",
+                    "px-5 py-3 text-xs",
+                  )}
                 >
-                  {/* Animated glow dot */}
-                  <div
-                    className="absolute -top-12 -right-12 h-24 w-24 rounded-full opacity-0 group-hover:opacity-100 blur-[40px] transition-opacity duration-500"
-                    style={{ background: btn.accentColor }}
-                  />
+                  {/* Top sheen */}
+                  <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                  {/* Liquid highlight blob */}
+                  <span className={cn(
+                    "pointer-events-none absolute -top-8 left-1/2 h-16 w-24 -translate-x-1/2 rounded-full blur-2xl transition-all duration-500 group-hover:bg-white/30",
+                    btn.blobColor,
+                  )} />
 
                   {/* Icon */}
-                  <div
-                    className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] backdrop-blur-sm transition-all duration-300 group-hover:bg-white/[0.12] group-hover:scale-105"
-                    style={{ color: btn.accentColor }}
-                  >
+                  <span className="relative flex shrink-0 items-center justify-center text-white/70 group-hover:text-white/90 transition-colors">
                     {btn.icon}
-                  </div>
+                  </span>
 
-                  {/* Text */}
-                  <div className="relative flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white/90 group-hover:text-white transition-colors">{btn.label}</p>
-                    <p className="text-[11px] text-white/35 group-hover:text-white/50 transition-colors">{btn.sublabel}</p>
-                  </div>
+                  {/* Label */}
+                  <span className="relative text-[13px] font-semibold text-white/80 group-hover:text-white transition-colors">
+                    {btn.label}
+                  </span>
 
-                  {/* Arrow / Badge */}
-                  {isAvailable && (
-                    <span className="relative text-sm text-white/20 group-hover:text-white/60 transition-all duration-300 group-hover:translate-x-0.5 shrink-0">
-                      →
-                    </span>
-                  )}
+                  {/* Coming Soon badge */}
                   {!isAvailable && !isLoading && (
-                    <span className="relative text-[9px] uppercase tracking-widest text-white/25 shrink-0">
+                    <span className="relative text-[9px] uppercase tracking-widest text-white/30">
                       Soon
                     </span>
                   )}
@@ -1072,13 +1069,27 @@ function CtaBlock({ eventId, eventName, tagline }: { eventId: string; eventName:
             {tagline}. Be part of the best journey with Compsphere 2026.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to={eventId === "hacksphere" ? "#how-to-join" : "/#home"}
-              className="group inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/80 backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/[0.10]"
-            >
-              Register Now
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
+            {eventId === "hacksphere" ? (
+              <a
+                href="#how-to-join"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("how-to-join")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="group inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/80 backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/[0.10]"
+              >
+                Register Now
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </a>
+            ) : (
+              <Link
+                to="/#home"
+                className="group inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/80 backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/[0.10]"
+              >
+                Register Now
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            )}
             <Link
               to="/#events"
               className="inline-flex items-center gap-1.5 text-xs text-white/35 transition-colors hover:text-white/60"

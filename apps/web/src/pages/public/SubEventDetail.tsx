@@ -568,7 +568,7 @@ function HacksphereJoinBlock() {
         </motion.div>
 
         {/* Action buttons */}
-        <div className="mt-8 flex flex-col gap-3">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {buttons.map((btn, i) => {
             const isAvailable = !isLoading && btn.url.length > 0;
             const ButtonWrapper = isAvailable ? "a" : "div";
@@ -586,7 +586,7 @@ function HacksphereJoinBlock() {
               >
                 <ButtonWrapper
                   {...(wrapperProps as any)}
-                  className={`group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl px-5 py-3.5 transition-all duration-300 ${
+                  className={`group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl px-4 py-3 transition-all duration-300 ${
                     isAvailable
                       ? "cursor-pointer hover:bg-white/[0.08] hover:border-white/20"
                       : "opacity-50 cursor-not-allowed"

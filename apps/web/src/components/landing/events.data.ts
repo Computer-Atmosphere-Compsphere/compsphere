@@ -248,10 +248,10 @@ export const subEvents: SubEvent[] = [
       { label: "Build Hours", value: "24H" },
     ],
     benefits: [
-      { icon: "🌍", title: "Kompetisi Internasional", desc: "Bersaing dengan tim dari 15+ negara dalam satu arena hackathon." },
-      { icon: "💰", title: "Total Hadiah 20 Juta IDR", desc: "Prize pool kompetitif untuk 3 tim terbaik babak offline." },
-      { icon: "🧠", title: "Live Mentorship 24 Jam", desc: "Akses ke mentor berpengalaman sepanjang sesi coding 24 jam." },
-      { icon: "📦", title: "Bangun Produk Nyata", desc: "Pulang dengan produk jadi yang siap masuk portofolio dan dipresentasikan ke dunia." },
+      { icon: "🌍", title: "International Competition", desc: "Compete with teams from 15+ countries in one hackathon arena." },
+      { icon: "💰", title: "IDR 20 Million Prize Pool", desc: "Competitive prize pool for the top 3 teams of the offline round." },
+      { icon: "🧠", title: "24-Hour Live Mentorship", desc: "Access experienced mentors throughout the entire 24-hour coding session." },
+      { icon: "📦", title: "Build a Real Product", desc: "Leave with a finished product ready for your portfolio and the world stage." },
     ],
   },
   {

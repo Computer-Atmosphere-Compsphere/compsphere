@@ -14,7 +14,16 @@ const router = Router();
  */
 router.get("/public", async (req, res, next) => {
   try {
-    const keys = ["countdown_compsphere_enabled", "countdown_talksphere_enabled", "countdown_enabled", "countdown_24h_enabled", "show_login_buttons"];
+    const keys = [
+      "countdown_compsphere_enabled",
+      "countdown_talksphere_enabled",
+      "countdown_enabled",
+      "countdown_24h_enabled",
+      "show_login_buttons",
+      "hacksphere_devpost_url",
+      "hacksphere_discord_url",
+      "hacksphere_guidebook_url",
+    ];
     const configs = await db.query.systemConfig.findMany();
     const publicConfigs = configs
       .filter((c) => keys.includes(c.key))
@@ -42,7 +51,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 });
 
 /**
- * Update system configurations (Admin only)
+ * Update (upsert) system configurations (Admin only)
  * PUT /api/config
  */
 router.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
@@ -60,13 +69,22 @@ router.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
     await db.transaction(async (tx) => {
       for (const update of updates) {
         await tx
-          .update(schema.systemConfig)
-          .set({
+          .insert(schema.systemConfig)
+          .values({
+            key: update.key,
             value: update.value,
+            type: "STRING",
             updatedAt: new Date(),
             updatedBy: admin.profileId,
           })
-          .where(eq(schema.systemConfig.key, update.key));
+          .onConflictDoUpdate({
+            target: schema.systemConfig.key,
+            set: {
+              value: update.value,
+              updatedAt: new Date(),
+              updatedBy: admin.profileId,
+            },
+          });
       }
 
       await auditService.log(tx, {
@@ -87,4 +105,43 @@ router.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   }
 });
 
+/**
+ * Seed missing config keys with defaults (Admin only, idempotent)
+ * POST /api/config/seed-missing
+ */
+router.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const defaultConfigs = [
+      { key: "hacksphere_devpost_url", value: "", type: "STRING" as const },
+      { key: "hacksphere_discord_url", value: "", type: "STRING" as const },
+      { key: "hacksphere_guidebook_url", value: "", type: "STRING" as const },
+    ];
+
+    const inserted: string[] = [];
+    const skipped: string[] = [];
+
+    for (const config of defaultConfigs) {
+      const existing = await db.query.systemConfig.findFirst({
+        where: eq(schema.systemConfig.key, config.key),
+      });
+      if (!existing) {
+        await db.insert(schema.systemConfig).values(config);
+        inserted.push(config.key);
+      } else {
+        skipped.push(config.key);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Inserted ${inserted.length} new config keys, skipped ${skipped.length} existing.`,
+      inserted,
+      skipped,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+

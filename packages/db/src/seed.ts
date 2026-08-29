@@ -50,6 +50,9 @@ async function seed() {
     { key: "countdown_enabled", value: "false", type: "BOOLEAN" as const },
     { key: "countdown_24h_enabled", value: "false", type: "BOOLEAN" as const },
     { key: "show_login_buttons", value: "true", type: "BOOLEAN" as const },
+    { key: "hacksphere_devpost_url", value: "", type: "STRING" as const },
+    { key: "hacksphere_discord_url", value: "", type: "STRING" as const },
+    { key: "hacksphere_guidebook_url", value: "", type: "STRING" as const },
   ];
 
   for (const config of configs) {

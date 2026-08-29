@@ -37623,7 +37623,7 @@ function isNumber(obj) {
 function isBoolean(obj) {
   return typeof obj === "boolean";
 }
-function isNull(obj) {
+function isNull2(obj) {
   return obj === null;
 }
 function isDate(obj) {
@@ -38863,7 +38863,7 @@ function parseValueExpression(exp) {
   return ValueNode.create(exp);
 }
 function isSafeImmediateValue(value) {
-  return isNumber(value) || isBoolean(value) || isNull(value);
+  return isNumber(value) || isBoolean(value) || isNull2(value);
 }
 function parseSafeImmediateValue(value) {
   if (!isSafeImmediateValue(value)) {
@@ -38945,7 +38945,7 @@ function isIsOperator(operator) {
   return operator === "is" || operator === "is not";
 }
 function needsIsOperator(value) {
-  return isNull(value) || isBoolean(value);
+  return isNull2(value) || isBoolean(value);
 }
 function parseBinaryOperator(operator) {
   if (isBinaryOperator(operator)) {
@@ -54650,7 +54650,7 @@ var init_default_query_compiler = __esm({
           this.appendStringLiteral(value);
         } else if (isNumber(value) || isBoolean(value) || isBigInt(value)) {
           this.append(value.toString());
-        } else if (isNull(value)) {
+        } else if (isNull2(value)) {
           this.append("null");
         } else if (isDate(value)) {
           this.appendImmediateValue(value.toISOString());
@@ -56161,7 +56161,7 @@ var init_mssql_driver = __esm({
         });
       }
       #getTediousDataType(value) {
-        if (isNull(value) || isUndefined(value) || isString2(value)) {
+        if (isNull2(value) || isUndefined(value) || isString2(value)) {
           return this.#tedious.TYPES.NVarChar;
         }
         if (isBigInt(value) || isNumber(value) && value % 1 === 0) {
@@ -62300,10 +62300,10 @@ var require_util = __commonJS({
       return typeof arg === "boolean";
     }
     exports2.isBoolean = isBoolean2;
-    function isNull7(arg) {
+    function isNull8(arg) {
       return arg === null;
     }
-    exports2.isNull = isNull7;
+    exports2.isNull = isNull8;
     function isNullOrUndefined(arg) {
       return arg == null;
     }
@@ -111644,7 +111644,7 @@ function notInArray(column, values) {
   }
   return sql2`${column} not in ${bindIfParam(values, column)}`;
 }
-function isNull2(value) {
+function isNull3(value) {
   return sql2`${value} is null`;
 }
 function isNotNull(value) {
@@ -113309,7 +113309,7 @@ function getOperators() {
     gte,
     ilike,
     inArray,
-    isNull: isNull2,
+    isNull: isNull3,
     isNotNull,
     like,
     lt,
@@ -113623,7 +113623,7 @@ var drizzleAdapter = (db2, config4) => {
         const conditions = [];
         for (const [key, val] of Object.entries(data)) {
           if (val === void 0 || !schemaModel[key]) continue;
-          conditions.push(val === null ? isNull2(schemaModel[key]) : eq(schemaModel[key], val));
+          conditions.push(val === null ? isNull3(schemaModel[key]) : eq(schemaModel[key], val));
         }
         if (conditions.length > 0) {
           const combined = and(...conditions);
@@ -113680,7 +113680,7 @@ var drizzleAdapter = (db2, config4) => {
         }
         if (w.operator === "gt") return [gt(schemaModel[field], w.value)];
         if (w.operator === "gte") return [gte(schemaModel[field], w.value)];
-        if (w.value === null) return [isNull2(schemaModel[field])];
+        if (w.value === null) return [isNull3(schemaModel[field])];
         if (isInsensitive && typeof w.value === "string") return [insensitiveEq2(schemaModel[field], w.value)];
         return [eq(schemaModel[field], w.value)];
       }
@@ -113723,7 +113723,7 @@ var drizzleAdapter = (db2, config4) => {
           if (isInsensitive && typeof w.value === "string") return insensitiveNe2(schemaModel[field], w.value);
           return ne(schemaModel[field], w.value);
         }
-        if (w.value === null) return isNull2(schemaModel[field]);
+        if (w.value === null) return isNull3(schemaModel[field]);
         if (isInsensitive && typeof w.value === "string") return insensitiveEq2(schemaModel[field], w.value);
         return eq(schemaModel[field], w.value);
       }));
@@ -113765,7 +113765,7 @@ var drizzleAdapter = (db2, config4) => {
           if (isInsensitive && typeof w.value === "string") return insensitiveNe2(schemaModel[field], w.value);
           return ne(schemaModel[field], w.value);
         }
-        if (w.value === null) return isNull2(schemaModel[field]);
+        if (w.value === null) return isNull3(schemaModel[field]);
         if (isInsensitive && typeof w.value === "string") return insensitiveEq2(schemaModel[field], w.value);
         return eq(schemaModel[field], w.value);
       }));
@@ -118332,7 +118332,8 @@ var auth = betterAuth({
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      prompt: "select_account"
     }
   },
   session: {
@@ -122485,25 +122486,39 @@ async function requireAuth(req, res, next) {
       });
       return;
     }
-    const roleAssignment = await db.query.roleAssignments.findFirst({
+    let roleAssignment = await db.query.roleAssignments.findFirst({
       where: and(
         eq(schema_exports.roleAssignments.userId, profile.id),
-        isNull2(schema_exports.roleAssignments.revokedAt)
+        isNull3(schema_exports.roleAssignments.revokedAt)
       ),
       orderBy: (ra, { desc: desc6 }) => [desc6(ra.assignedAt)]
     });
+    const membership = await db.query.teamMembers.findFirst({
+      where: and(
+        eq(schema_exports.teamMembers.userId, profile.id),
+        eq(schema_exports.teamMembers.status, "ACTIVE")
+      )
+    });
+    let role = roleAssignment?.role ?? "USER";
     let teamId = null;
     let memberRole = null;
-    if (roleAssignment?.role === "PARTICIPANT") {
-      const membership = await db.query.teamMembers.findFirst({
-        where: and(
-          eq(schema_exports.teamMembers.userId, profile.id),
-          eq(schema_exports.teamMembers.status, "ACTIVE")
-        )
-      });
-      if (membership) {
-        teamId = membership.teamId;
-        memberRole = membership.role;
+    if (membership) {
+      teamId = membership.teamId;
+      memberRole = membership.role;
+      role = "PARTICIPANT";
+      if (!roleAssignment || roleAssignment.role !== "PARTICIPANT") {
+        console.log(`[requireAuth] Auto-fixing missing PARTICIPANT role assignment for profile ${profile.id}`);
+        try {
+          const [newRoleAssignment] = await db.insert(schema_exports.roleAssignments).values({
+            userId: profile.id,
+            role: "PARTICIPANT",
+            source: "team_token",
+            teamId
+          }).returning();
+          roleAssignment = newRoleAssignment;
+        } catch (err) {
+          console.error(`[requireAuth] Failed to auto-fix role assignment for profile ${profile.id}:`, err);
+        }
       }
     }
     req.sessionUser = {
@@ -122512,7 +122527,7 @@ async function requireAuth(req, res, next) {
       email: profile.email,
       fullName: profile.fullName,
       avatarUrl: profile.avatarUrl,
-      role: roleAssignment?.role ?? "USER",
+      role,
       teamId,
       memberRole,
       onboardingStatus: profile.onboardingStatus
@@ -123184,7 +123199,7 @@ var tokenService = {
         where: and(
           eq(schema_exports.roleAssignments.userId, profileId),
           eq(schema_exports.roleAssignments.role, requestedRole),
-          isNull2(schema_exports.roleAssignments.revokedAt)
+          isNull3(schema_exports.roleAssignments.revokedAt)
         )
       });
       if (existing) {
@@ -123193,7 +123208,7 @@ var tokenService = {
       await tx.update(schema_exports.roleAssignments).set({ revokedAt: /* @__PURE__ */ new Date() }).where(
         and(
           eq(schema_exports.roleAssignments.userId, profileId),
-          isNull2(schema_exports.roleAssignments.revokedAt)
+          isNull3(schema_exports.roleAssignments.revokedAt)
         )
       );
       await tx.insert(schema_exports.roleAssignments).values({
@@ -125159,7 +125174,7 @@ router13.post("/read", requireAuth, async (req, res, next) => {
     if (user.teamId) {
       whereClause = or(whereClause, eq(schema_exports.notifications.teamId, user.teamId));
     }
-    await db.update(schema_exports.notifications).set({ readAt: /* @__PURE__ */ new Date() }).where(and(whereClause, isNull2(schema_exports.notifications.readAt)));
+    await db.update(schema_exports.notifications).set({ readAt: /* @__PURE__ */ new Date() }).where(and(whereClause, isNull3(schema_exports.notifications.readAt)));
     res.json({
       success: true,
       message: "Notifications marked as read."
@@ -125175,7 +125190,16 @@ var import_express13 = __toESM(require_express2());
 var router14 = (0, import_express13.Router)();
 router14.get("/public", async (req, res, next) => {
   try {
-    const keys = ["countdown_compsphere_enabled", "countdown_talksphere_enabled", "countdown_enabled", "countdown_24h_enabled", "show_login_buttons"];
+    const keys = [
+      "countdown_compsphere_enabled",
+      "countdown_talksphere_enabled",
+      "countdown_enabled",
+      "countdown_24h_enabled",
+      "show_login_buttons",
+      "hacksphere_devpost_url",
+      "hacksphere_discord_url",
+      "hacksphere_guidebook_url"
+    ];
     const configs = await db.query.systemConfig.findMany();
     const publicConfigs = configs.filter((c) => keys.includes(c.key)).reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {});
     res.json({ success: true, data: publicConfigs });
@@ -125206,11 +125230,20 @@ router14.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
     const updates = bodySchema.parse(req.body);
     await db.transaction(async (tx) => {
       for (const update of updates) {
-        await tx.update(schema_exports.systemConfig).set({
+        await tx.insert(schema_exports.systemConfig).values({
+          key: update.key,
           value: update.value,
+          type: "STRING",
           updatedAt: /* @__PURE__ */ new Date(),
           updatedBy: admin.profileId
-        }).where(eq(schema_exports.systemConfig.key, update.key));
+        }).onConflictDoUpdate({
+          target: schema_exports.systemConfig.key,
+          set: {
+            value: update.value,
+            updatedAt: /* @__PURE__ */ new Date(),
+            updatedBy: admin.profileId
+          }
+        });
       }
       await auditService.log(tx, {
         actorId: admin.profileId,
@@ -125223,6 +125256,36 @@ router14.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
     res.json({
       success: true,
       message: "Configurations updated successfully."
+    });
+  } catch (error3) {
+    next(error3);
+  }
+});
+router14.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const defaultConfigs = [
+      { key: "hacksphere_devpost_url", value: "", type: "STRING" },
+      { key: "hacksphere_discord_url", value: "", type: "STRING" },
+      { key: "hacksphere_guidebook_url", value: "", type: "STRING" }
+    ];
+    const inserted = [];
+    const skipped = [];
+    for (const config4 of defaultConfigs) {
+      const existing = await db.query.systemConfig.findFirst({
+        where: eq(schema_exports.systemConfig.key, config4.key)
+      });
+      if (!existing) {
+        await db.insert(schema_exports.systemConfig).values(config4);
+        inserted.push(config4.key);
+      } else {
+        skipped.push(config4.key);
+      }
+    }
+    res.json({
+      success: true,
+      message: `Inserted ${inserted.length} new config keys, skipped ${skipped.length} existing.`,
+      inserted,
+      skipped
     });
   } catch (error3) {
     next(error3);
@@ -125680,7 +125743,6 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
             eq(schema_exports.teamMembers.status, "ACTIVE")
           )
         });
-        console.log(`[submit-team] Existing membership for ${profile.id}:`, existingMembership ? "FOUND (skipping)" : "NONE (will create)");
         if (!existingMembership) {
           await tx.insert(schema_exports.teamMembers).values({
             teamId: team.id,
@@ -125690,6 +125752,22 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
             verifiedAt: /* @__PURE__ */ new Date()
           });
           console.log(`[submit-team] Created team_member: team=${team.id} user=${profile.id} role=${i === 0 ? "TEAM_LEADER" : "TEAM_MEMBER"}`);
+        }
+        const existingRole = await tx.query.roleAssignments.findFirst({
+          where: and(
+            eq(schema_exports.roleAssignments.userId, profile.id),
+            eq(schema_exports.roleAssignments.role, "PARTICIPANT"),
+            isNull(schema_exports.roleAssignments.revokedAt)
+          )
+        });
+        if (!existingRole) {
+          await tx.insert(schema_exports.roleAssignments).values({
+            userId: profile.id,
+            role: "PARTICIPANT",
+            source: "team_token",
+            teamId: team.id
+          });
+          console.log(`[submit-team] Created role assignment for user=${profile.id}`);
         }
       }
       const rawToken = generateToken(32);

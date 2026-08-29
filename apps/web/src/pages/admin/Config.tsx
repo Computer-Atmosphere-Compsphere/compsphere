@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   EyeOff,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +122,14 @@ const CATEGORIES: ConfigCategory[] = [
     color: "text-orange-400",
     keys: ["battle_royale_enabled"],
   },
+  {
+    id: "hacksphere_links",
+    label: "Hacksphere Links",
+    description: "Dynamic URLs shown on the Hacksphere sub-event page (Devpost, Discord, Guidebook)",
+    icon: <Link2 className="w-4 h-4" />,
+    color: "text-green-400",
+    keys: ["hacksphere_devpost_url", "hacksphere_discord_url", "hacksphere_guidebook_url"],
+  },
 ];
 
 /** Friendly label for each config key */
@@ -150,6 +159,9 @@ const KEY_LABELS: Record<string, string> = {
   countdown_24h_enabled: "24-Hour Hackathon (Oct 10–11)",
   battle_royale_enabled: "Battle Royale",
   show_login_buttons: "Show Login & Register",
+  hacksphere_devpost_url: "Devpost URL",
+  hacksphere_discord_url: "Discord URL",
+  hacksphere_guidebook_url: "Guidebook & Proposal URL",
 };
 
 /** Description for each config key */
@@ -179,6 +191,9 @@ const KEY_DESCRIPTIONS: Record<string, string> = {
   countdown_24h_enabled: "Show 24-hour hackathon timer (Oct 10 → Oct 11) on the landing page",
   battle_royale_enabled: "Enable Battle Royale slot claiming for waitlisted teams (true/false)",
   show_login_buttons: "Show the Login and Register buttons on the landing page. When disabled, buttons are hidden and a discreet login link appears in the footer.",
+  hacksphere_devpost_url: "Full URL to the Hacksphere Devpost registration page (e.g. https://hacksphere2026.devpost.com). Leave empty to show Coming Soon.",
+  hacksphere_discord_url: "Full URL to the official Compsphere Discord server invite (e.g. https://discord.gg/xxx). Leave empty to show Coming Soon.",
+  hacksphere_guidebook_url: "Full URL to the Google Drive folder/file containing the Hacksphere Guidebook and Proposal Template. Leave empty to show Coming Soon.",
 };
 
 /** Format value for display */
@@ -229,6 +244,15 @@ export function Config() {
     },
   });
 
+  const seedMissingMutation = useMutation({
+    mutationFn: () => api.post("/api/config/seed-missing", {}),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-config"] });
+      alert(`✅ ${data.message}`);
+    },
+    onError: () => alert("❌ Failed to seed missing configs."),
+  });
+
   const handleSave = (key: string) => {
     if (edits[key] !== undefined) {
       updateMutation.mutate({ key, value: edits[key] });
@@ -257,6 +281,15 @@ export function Config() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <NeonButton
+            onClick={() => seedMissingMutation.mutate()}
+            disabled={seedMissingMutation.isPending}
+            variant="ghost"
+            size="sm"
+            title="Insert any missing config keys into the database with default values"
+          >
+            {seedMissingMutation.isPending ? "Seeding..." : "Seed Missing Config"}
+          </NeonButton>
           {totalChanges > 0 && (
             <>
               <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">

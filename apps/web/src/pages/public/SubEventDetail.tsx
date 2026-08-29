@@ -23,6 +23,7 @@ import { GlobeAnalytics } from "@/components/ui/cobe-globe-analytics";
 import AdmitOneTicket from "@/components/ui/admit-one-ticket";
 import { FeatureCard } from "@/components/ui/grid-feature-cards";
 import { Rocket, Handshake, Trophy, Globe, Mic, Lightbulb, Network, Award, Music, PartyPopper } from "lucide-react";
+import { usePublicConfig } from "@/hooks/usePublicConfig";
 
 // ── Animation variants ──────────────────────────────────────────────────────
 const container = {
@@ -162,6 +163,9 @@ export function SubEventDetail() {
           )}
           {event.id === "hacksphere" && event.globalStats && (
             <GlobeBlock />
+          )}
+          {event.id === "hacksphere" && (
+            <HacksphereJoinBlock />
           )}
           {event.id === "exposphere" && event.partnerPerks && (
             <PartnerBlock perks={event.partnerPerks} />
@@ -431,6 +435,210 @@ function GlobeBlock() {
 
         <div className="mt-10 flex justify-center">
           <GlobeAnalytics className="w-full max-w-[420px]" speed={0.004} />
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SPECIAL: Hacksphere — How to Join Section
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** Devpost SVG logo */
+function DevpostIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 0C22.4 0 0 22.4 0 50s22.4 50 50 50 50-22.4 50-50S77.6 0 50 0zm-8.3 67.5H28.3V32.5h13.4c9.8 0 17.8 7.9 17.8 17.5s-8 17.5-17.8 17.5zm0-27.1h-5.6v19.1h5.6c5.3 0 9.6-4.3 9.6-9.6s-4.3-9.5-9.6-9.5zm29.1 27.1H58.4V32.5h12.4c9.8 0 17.8 7.9 17.8 17.5s-8 17.5-17.8 17.5zm0-27.1h-4.4v19.1h4.4c5.3 0 9.6-4.3 9.6-9.6s-4.3-9.5-9.6-9.5z" />
+    </svg>
+  );
+}
+
+/** Discord SVG logo */
+function DiscordIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963.021-.04.001-.088-.041-.104a13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z" />
+    </svg>
+  );
+}
+
+/** Google Drive SVG logo */
+function GoogleDriveIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 87.3 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+      <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+      <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+      <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+      <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+      <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+    </svg>
+  );
+}
+
+function HacksphereJoinBlock() {
+  const { data: publicConfig, isLoading } = usePublicConfig();
+
+  const devpostUrl = publicConfig?.hacksphere_devpost_url || "";
+  const discordUrl = publicConfig?.hacksphere_discord_url || "";
+  const guidebookUrl = publicConfig?.hacksphere_guidebook_url || "";
+
+  const buttons = [
+    {
+      key: "devpost",
+      label: "Register on Devpost",
+      sublabel: "Join the hackathon",
+      url: devpostUrl,
+      icon: <DevpostIcon className="h-6 w-6" />,
+      color: "from-[#003E54] to-[#0d3349]",
+      border: "border-[#00a4d3]/30",
+      glow: "rgba(0,164,211,0.15)",
+      accentColor: "#00a4d3",
+    },
+    {
+      key: "discord",
+      label: "Join Discord",
+      sublabel: "Community & updates",
+      url: discordUrl,
+      icon: <DiscordIcon className="h-6 w-6" />,
+      color: "from-[#1e1f4b] to-[#2b2d6e]",
+      border: "border-[#5865F2]/30",
+      glow: "rgba(88,101,242,0.15)",
+      accentColor: "#5865F2",
+    },
+    {
+      key: "guidebook",
+      label: "Guidebook & Proposal",
+      sublabel: "Download from Drive",
+      url: guidebookUrl,
+      icon: <GoogleDriveIcon className="h-6 w-6" />,
+      color: "from-[#1a2640] to-[#0f1e35]",
+      border: "border-white/10",
+      glow: "rgba(255,186,0,0.10)",
+      accentColor: "#FFBA00",
+    },
+  ];
+
+  return (
+    <motion.section
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.1 }}
+      className="relative overflow-hidden py-24"
+    >
+      <GlitterFinal speed={0.6} intensity={5} uvScale={2.0} />
+      <div className="relative z-10 mx-auto max-w-5xl px-6">
+        <SectionHeading
+          title="HOW TO JOIN HACKSPHERE"
+          subtitle="Daftarkan timmu, unduh panduan, dan bergabung ke komunitas Discord kami untuk update terkini seputar Hacksphere 2026."
+        />
+
+        {/* Steps summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.55, delay: 0.1 }}
+          className="mt-10 rounded-[24px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 backdrop-blur-xl"
+        >
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+          <ol className="space-y-4">
+            {[
+              { step: "01", title: "Buat Akun Individu", desc: "Daftar di compsphere.id dengan mengisi form identitas dan verifikasi email kamu." },
+              { step: "02", title: "Bentuk Tim & Daftarkan Hacksphere", desc: "Ketua tim registrasi tim (maks. 3 orang), undang anggota via username/email, lalu lakukan pembayaran Rp75.000/tim." },
+              { step: "03", title: "Unduh Guidebook & Susun Proposal", desc: "Unduh Guidebook resmi dan Template Proposal Idea (.docx) dari Google Drive, lalu kerjakan proposal berdasarkan tema yang tersedia." },
+              { step: "04", title: "Upload Proposal sebelum 18 Sept 23:59 WIB", desc: "Submit Proposal Idea (PDF) di dashboard tim kamu sebelum portal pengumpulan ditutup otomatis." },
+              { step: "05", title: "Tunggu Pengumuman Top 30 (26 Sept)", desc: "Tim terpilih akan lolos ke Babak Offline di President University, Cikarang pada 10–11 Oktober 2026." },
+            ].map((s, i) => (
+              <li key={s.step} className="flex items-start gap-4">
+                <span
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-primary/30 bg-brand-primary/10 font-mono text-[10px] font-bold text-brand-primary"
+                >
+                  {s.step}
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-white">{s.title}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-white/50">{s.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </motion.div>
+
+        {/* Action buttons */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {buttons.map((btn, i) => {
+            const isAvailable = !isLoading && btn.url.length > 0;
+            const ButtonWrapper = isAvailable ? "a" : "div";
+            const wrapperProps = isAvailable
+              ? { href: btn.url, target: "_blank", rel: "noopener noreferrer" }
+              : {};
+
+            return (
+              <motion.div
+                key={btn.key}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+              >
+                <ButtonWrapper
+                  {...(wrapperProps as any)}
+                  className={`group relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-[22px] border ${
+                    btn.border
+                  } bg-gradient-to-b ${btn.color} p-7 text-center transition-all duration-500 ${
+                    isAvailable
+                      ? "cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+                      : "opacity-60 cursor-not-allowed"
+                  }`}
+                  style={{
+                    boxShadow: `0 0 0 1px rgba(255,255,255,0.06) inset, 0 20px 60px rgba(0,0,0,0.5)`,
+                  }}
+                >
+                  {/* Glow */}
+                  <div
+                    className="pointer-events-none absolute inset-0 rounded-[22px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{ background: `radial-gradient(circle at 50% 0%, ${btn.glow}, transparent 70%)` }}
+                  />
+                  {/* Top sheen */}
+                  <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+                  {/* Icon */}
+                  <div
+                    className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-white"
+                    style={{ color: btn.accentColor }}
+                  >
+                    {btn.icon}
+                  </div>
+
+                  {/* Labels */}
+                  <div>
+                    <p className="font-display text-sm font-black uppercase tracking-wide text-white">
+                      {btn.label}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-white/50">{btn.sublabel}</p>
+                  </div>
+
+                  {/* Status badge */}
+                  {!isAvailable && !isLoading && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[9px] uppercase tracking-widest text-white/40">
+                      Coming Soon
+                    </span>
+                  )}
+                  {isAvailable && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[9px] uppercase tracking-widest transition-colors duration-300 group-hover:bg-white/10"
+                      style={{ borderColor: `${btn.accentColor}40`, color: btn.accentColor }}
+                    >
+                      Open ↗
+                    </span>
+                  )}
+                </ButtonWrapper>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </motion.section>

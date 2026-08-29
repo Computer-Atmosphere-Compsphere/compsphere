@@ -73,20 +73,20 @@ export function HeroSection() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto max-w-4xl px-6 py-24 text-center"
+        className="relative z-10 mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24 text-center"
       >
         {/* Logo */}
-        <motion.div variants={item} className="mb-6 flex justify-center">
+        <motion.div variants={item} className="mb-4 sm:mb-6 flex justify-center">
           <img
             src="/compsphere-logo.png"
             alt="Compsphere"
-            className="h-24 w-auto drop-shadow-[0_6px_30px_rgba(0,0,0,0.55)] sm:h-28"
+            className="h-16 w-auto drop-shadow-[0_6px_30px_rgba(0,0,0,0.55)] sm:h-28"
           />
         </motion.div>
 
         <motion.h1
           variants={item}
-          className="font-display text-6xl font-black uppercase tracking-tight sm:text-7xl md:text-8xl"
+          className="font-display text-4xl font-black uppercase tracking-tight sm:text-7xl md:text-8xl"
         >
           <span className="bg-white-gradient bg-clip-text text-transparent drop-shadow-[0_2px_20px_rgba(255,255,255,0.15)]">
             COMPSPHERE
@@ -95,14 +95,14 @@ export function HeroSection() {
 
         <motion.p
           variants={item}
-          className="mt-5 font-display text-lg font-bold uppercase tracking-[0.35em] text-text-secondary sm:text-xl"
+          className="mt-3 font-display text-xs font-bold uppercase tracking-[0.2em] text-text-secondary sm:mt-5 sm:text-xl sm:tracking-[0.35em]"
         >
           International <span className="text-brand-accent">Web3</span> Hackathon
         </motion.p>
 
         {/* Countdown Timers */}
         {showCompsphere && (
-          <motion.div variants={item} className="mt-8">
+          <motion.div variants={item} className="mt-6 sm:mt-8">
             <CountdownTimer
               targetDate={COMPSPHERE_DATE}
               label="Compsphere"
@@ -112,7 +112,7 @@ export function HeroSection() {
         )}
 
         {showTalkSphere && (
-          <motion.div variants={item} className="mt-5">
+          <motion.div variants={item} className="mt-3 sm:mt-5">
             <CountdownTimer
               targetDate={TALKSPHERE_DATE}
               label="TalkSphere"
@@ -122,7 +122,7 @@ export function HeroSection() {
         )}
 
         {showHacksphere && (
-          <motion.div variants={item} className="mt-5">
+          <motion.div variants={item} className="mt-3 sm:mt-5">
             <CountdownTimer
               targetDate={HACKSPHERE_DATE}
               label="Hacksphere"
@@ -132,7 +132,7 @@ export function HeroSection() {
         )}
 
         {show24hTimer && (
-          <motion.div variants={item} className="mt-5">
+          <motion.div variants={item} className="mt-3 sm:mt-5">
             <CountdownTimer
               targetDate={HACKATHON_24H_END}
               label="24-Hour Hackathon"
@@ -144,7 +144,7 @@ export function HeroSection() {
         {/* CTAs */}
         <motion.div
           variants={item}
-          className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           {isAuthenticated && consolePath ? (
             <Link to={consolePath} className="w-full sm:w-auto">

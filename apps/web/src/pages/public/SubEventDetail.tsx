@@ -90,19 +90,19 @@ export function SubEventDetail() {
           variants={container}
           initial="hidden"
           animate="show"
-          className="relative z-10 mx-auto w-full max-w-4xl px-6 py-28 text-center"
+          className="relative z-10 mx-auto w-full max-w-4xl px-4 py-14 sm:px-6 sm:py-28 text-center"
         >
-          <motion.div variants={item} className="mb-8 flex justify-center">
+          <motion.div variants={item} className="mb-4 sm:mb-8 flex justify-center">
             <img
               src={event.iconSrc}
               alt={event.name}
-              className="h-20 w-auto object-contain drop-shadow-[0_10px_60px_rgba(0,0,0,0.7)] sm:h-28 md:h-36"
+              className="h-14 w-auto object-contain drop-shadow-[0_10px_60px_rgba(0,0,0,0.7)] sm:h-28 md:h-36"
             />
           </motion.div>
 
           <motion.h1
             variants={item}
-            className="font-display text-4xl font-black uppercase tracking-tight sm:text-6xl md:text-8xl"
+            className="font-display text-3xl font-black uppercase tracking-tight sm:text-6xl md:text-8xl"
           >
             <span className="bg-white-gradient bg-clip-text text-transparent drop-shadow-[0_2px_20px_rgba(255,255,255,0.12)]">
               {event.name}
@@ -111,14 +111,14 @@ export function SubEventDetail() {
 
           <motion.p
             variants={item}
-            className="mt-4 font-display text-base font-bold uppercase tracking-[0.3em] text-text-secondary sm:text-lg"
+            className="mt-3 font-display text-xs font-bold uppercase tracking-[0.2em] text-text-secondary sm:mt-4 sm:text-lg sm:tracking-[0.3em]"
           >
             {event.tagline}
           </motion.p>
 
           <motion.div
             variants={item}
-            className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/50"
+            className="mt-4 sm:mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/50"
           >
             <span className="flex items-center gap-1.5">
               <CalendarDays className="h-3.5 w-3.5 text-white/35" />

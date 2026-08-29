@@ -8,6 +8,8 @@ import { z } from "zod";
 
 const router = Router();
 
+
+
 /**
  * Get public countdown config (no auth required)
  * GET /api/config/public

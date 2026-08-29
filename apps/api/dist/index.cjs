@@ -37623,7 +37623,7 @@ function isNumber(obj) {
 function isBoolean(obj) {
   return typeof obj === "boolean";
 }
-function isNull2(obj) {
+function isNull(obj) {
   return obj === null;
 }
 function isDate(obj) {
@@ -38863,7 +38863,7 @@ function parseValueExpression(exp) {
   return ValueNode.create(exp);
 }
 function isSafeImmediateValue(value) {
-  return isNumber(value) || isBoolean(value) || isNull2(value);
+  return isNumber(value) || isBoolean(value) || isNull(value);
 }
 function parseSafeImmediateValue(value) {
   if (!isSafeImmediateValue(value)) {
@@ -38945,7 +38945,7 @@ function isIsOperator(operator) {
   return operator === "is" || operator === "is not";
 }
 function needsIsOperator(value) {
-  return isNull2(value) || isBoolean(value);
+  return isNull(value) || isBoolean(value);
 }
 function parseBinaryOperator(operator) {
   if (isBinaryOperator(operator)) {
@@ -54650,7 +54650,7 @@ var init_default_query_compiler = __esm({
           this.appendStringLiteral(value);
         } else if (isNumber(value) || isBoolean(value) || isBigInt(value)) {
           this.append(value.toString());
-        } else if (isNull2(value)) {
+        } else if (isNull(value)) {
           this.append("null");
         } else if (isDate(value)) {
           this.appendImmediateValue(value.toISOString());
@@ -56161,7 +56161,7 @@ var init_mssql_driver = __esm({
         });
       }
       #getTediousDataType(value) {
-        if (isNull2(value) || isUndefined(value) || isString2(value)) {
+        if (isNull(value) || isUndefined(value) || isString2(value)) {
           return this.#tedious.TYPES.NVarChar;
         }
         if (isBigInt(value) || isNumber(value) && value % 1 === 0) {
@@ -62300,10 +62300,10 @@ var require_util = __commonJS({
       return typeof arg === "boolean";
     }
     exports2.isBoolean = isBoolean2;
-    function isNull8(arg) {
+    function isNull7(arg) {
       return arg === null;
     }
-    exports2.isNull = isNull8;
+    exports2.isNull = isNull7;
     function isNullOrUndefined(arg) {
       return arg == null;
     }
@@ -86543,15 +86543,22 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
   const relativeKey = `${bucketName}/${fileName}`;
   if (isSupabase && supabase) {
     if (!import_fs2.default.existsSync(localTempPath)) {
-      throw new Error(`Temp file not found at ${localTempPath}`);
+      throw new Error(`[Storage] Temp file not found at ${localTempPath}`);
     }
     const fileBuffer = import_fs2.default.readFileSync(localTempPath);
-    const { error: error3 } = await supabase.storage.from(bucketName).upload(fileName, fileBuffer, {
-      contentType: mimeType,
-      upsert: true
-    });
+    console.log(`[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Supabase bucket "${bucketName}"...`);
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (!listError && buckets && !buckets.some((b) => b.name === bucketName)) {
+      console.log(`[Storage] Bucket "${bucketName}" missing \u2014 creating...`);
+      const { error: createErr } = await supabase.storage.createBucket(bucketName, { public: false });
+      if (createErr) {
+        console.error(`[Storage] Failed to create bucket "${bucketName}":`, JSON.stringify(createErr));
+        throw createErr;
+      }
+    }
+    const { error: error3 } = await supabase.storage.from(bucketName).upload(fileName, fileBuffer, { contentType: mimeType, upsert: true });
     if (error3) {
-      console.error(`[Supabase Storage Error] Failed to upload ${fileName} to bucket ${bucketName}:`, error3);
+      console.error(`[Storage] Supabase upload failed for "${fileName}" in bucket "${bucketName}":`, JSON.stringify(error3));
       throw error3;
     }
     try {
@@ -111644,7 +111651,7 @@ function notInArray(column, values) {
   }
   return sql2`${column} not in ${bindIfParam(values, column)}`;
 }
-function isNull3(value) {
+function isNull2(value) {
   return sql2`${value} is null`;
 }
 function isNotNull(value) {
@@ -113309,7 +113316,7 @@ function getOperators() {
     gte,
     ilike,
     inArray,
-    isNull: isNull3,
+    isNull: isNull2,
     isNotNull,
     like,
     lt,
@@ -113623,7 +113630,7 @@ var drizzleAdapter = (db2, config4) => {
         const conditions = [];
         for (const [key, val] of Object.entries(data)) {
           if (val === void 0 || !schemaModel[key]) continue;
-          conditions.push(val === null ? isNull3(schemaModel[key]) : eq(schemaModel[key], val));
+          conditions.push(val === null ? isNull2(schemaModel[key]) : eq(schemaModel[key], val));
         }
         if (conditions.length > 0) {
           const combined = and(...conditions);
@@ -113680,7 +113687,7 @@ var drizzleAdapter = (db2, config4) => {
         }
         if (w.operator === "gt") return [gt(schemaModel[field], w.value)];
         if (w.operator === "gte") return [gte(schemaModel[field], w.value)];
-        if (w.value === null) return [isNull3(schemaModel[field])];
+        if (w.value === null) return [isNull2(schemaModel[field])];
         if (isInsensitive && typeof w.value === "string") return [insensitiveEq2(schemaModel[field], w.value)];
         return [eq(schemaModel[field], w.value)];
       }
@@ -113723,7 +113730,7 @@ var drizzleAdapter = (db2, config4) => {
           if (isInsensitive && typeof w.value === "string") return insensitiveNe2(schemaModel[field], w.value);
           return ne(schemaModel[field], w.value);
         }
-        if (w.value === null) return isNull3(schemaModel[field]);
+        if (w.value === null) return isNull2(schemaModel[field]);
         if (isInsensitive && typeof w.value === "string") return insensitiveEq2(schemaModel[field], w.value);
         return eq(schemaModel[field], w.value);
       }));
@@ -113765,7 +113772,7 @@ var drizzleAdapter = (db2, config4) => {
           if (isInsensitive && typeof w.value === "string") return insensitiveNe2(schemaModel[field], w.value);
           return ne(schemaModel[field], w.value);
         }
-        if (w.value === null) return isNull3(schemaModel[field]);
+        if (w.value === null) return isNull2(schemaModel[field]);
         if (isInsensitive && typeof w.value === "string") return insensitiveEq2(schemaModel[field], w.value);
         return eq(schemaModel[field], w.value);
       }));
@@ -122489,7 +122496,7 @@ async function requireAuth(req, res, next) {
     let roleAssignment = await db.query.roleAssignments.findFirst({
       where: and(
         eq(schema_exports.roleAssignments.userId, profile.id),
-        isNull3(schema_exports.roleAssignments.revokedAt)
+        isNull2(schema_exports.roleAssignments.revokedAt)
       ),
       orderBy: (ra, { desc: desc6 }) => [desc6(ra.assignedAt)]
     });
@@ -123199,7 +123206,7 @@ var tokenService = {
         where: and(
           eq(schema_exports.roleAssignments.userId, profileId),
           eq(schema_exports.roleAssignments.role, requestedRole),
-          isNull3(schema_exports.roleAssignments.revokedAt)
+          isNull2(schema_exports.roleAssignments.revokedAt)
         )
       });
       if (existing) {
@@ -123208,7 +123215,7 @@ var tokenService = {
       await tx.update(schema_exports.roleAssignments).set({ revokedAt: /* @__PURE__ */ new Date() }).where(
         and(
           eq(schema_exports.roleAssignments.userId, profileId),
-          isNull3(schema_exports.roleAssignments.revokedAt)
+          isNull2(schema_exports.roleAssignments.revokedAt)
         )
       );
       await tx.insert(schema_exports.roleAssignments).values({
@@ -125174,7 +125181,7 @@ router13.post("/read", requireAuth, async (req, res, next) => {
     if (user.teamId) {
       whereClause = or(whereClause, eq(schema_exports.notifications.teamId, user.teamId));
     }
-    await db.update(schema_exports.notifications).set({ readAt: /* @__PURE__ */ new Date() }).where(and(whereClause, isNull3(schema_exports.notifications.readAt)));
+    await db.update(schema_exports.notifications).set({ readAt: /* @__PURE__ */ new Date() }).where(and(whereClause, isNull2(schema_exports.notifications.readAt)));
     res.json({
       success: true,
       message: "Notifications marked as read."
@@ -125264,6 +125271,31 @@ router14.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
 router14.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
     const defaultConfigs = [
+      { key: "competition_name", value: "COMPSPHERE 2026", type: "STRING" },
+      { key: "competition_phase", value: "2", type: "NUMBER" },
+      { key: "countdown_compsphere_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_talksphere_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_24h_enabled", value: "false", type: "BOOLEAN" },
+      { key: "show_login_buttons", value: "true", type: "BOOLEAN" },
+      { key: "confirmation_window_hours", value: "48", type: "NUMBER" },
+      { key: "submission_deadline", value: "2026-10-11T10:00:00+07:00", type: "STRING" },
+      { key: "qr_token_expiry_hours", value: "72", type: "NUMBER" },
+      { key: "invite_expiry_hours", value: "48", type: "NUMBER" },
+      { key: "payment_amount_national", value: "120000", type: "NUMBER" },
+      { key: "payment_amount_mix", value: "120000", type: "NUMBER" },
+      { key: "payment_amount_international", value: "0", type: "NUMBER" },
+      { key: "top30_total_slots", value: "30", type: "NUMBER" },
+      { key: "allocation_national_mix_ratio", value: "0.8", type: "NUMBER" },
+      { key: "allocation_international_ratio", value: "0.2", type: "NUMBER" },
+      { key: "max_team_members", value: "5", type: "NUMBER" },
+      { key: "scoring_weight_mvp", value: "0.35", type: "NUMBER" },
+      { key: "scoring_weight_impact", value: "0.30", type: "NUMBER" },
+      { key: "scoring_weight_creative", value: "0.20", type: "NUMBER" },
+      { key: "scoring_weight_pitch", value: "0.15", type: "NUMBER" },
+      { key: "score_min", value: "1", type: "NUMBER" },
+      { key: "score_max", value: "100", type: "NUMBER" },
+      { key: "battle_royale_enabled", value: "false", type: "BOOLEAN" },
       { key: "hacksphere_devpost_url", value: "", type: "STRING" },
       { key: "hacksphere_discord_url", value: "", type: "STRING" },
       { key: "hacksphere_guidebook_url", value: "", type: "STRING" }
@@ -125680,16 +125712,7 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
     }
     let storageKey;
     const newFilename = `${req.file.filename}.pdf`;
-    if (process.env.STORAGE_PROVIDER === "supabase") {
-      storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);
-    } else {
-      const uploadsDir4 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path4.default.join(__dirname, "../../../uploads"));
-      const proposalsDir = import_path4.default.join(uploadsDir4, "proposals");
-      import_fs3.default.mkdirSync(proposalsDir, { recursive: true });
-      const targetPath = import_path4.default.join(proposalsDir, newFilename);
-      import_fs3.default.renameSync(req.file.path, targetPath);
-      storageKey = `proposals/${newFilename}`;
-    }
+    storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);
     const result = await db.transaction(async (tx) => {
       const maxRankResult = await tx.select({ maxRank: sql2`max(original_rank)` }).from(schema_exports.competitionTeams);
       const nextRank = (maxRankResult[0]?.maxRank ?? 0) + 1;
@@ -125757,7 +125780,7 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
           where: and(
             eq(schema_exports.roleAssignments.userId, profile.id),
             eq(schema_exports.roleAssignments.role, "PARTICIPANT"),
-            isNull(schema_exports.roleAssignments.revokedAt)
+            isNull2(schema_exports.roleAssignments.revokedAt)
           )
         });
         if (!existingRole) {

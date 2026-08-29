@@ -4,11 +4,30 @@ import path from "path";
 
 export const isSupabase = process.env.STORAGE_PROVIDER === "supabase";
 
+function getJwtRole(token: string): string {
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const payload = Buffer.from(parts[1], "base64").toString("utf-8");
+      const claims = JSON.parse(payload);
+      return claims.role || "unknown";
+    }
+  } catch (e) {
+    return "error";
+  }
+  return "invalid";
+}
+
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+if (isSupabase && supabaseKey) {
+  console.log(`[Storage Init] Supabase URL: ${process.env.SUPABASE_URL}, Role of key: ${getJwtRole(supabaseKey)}`);
+}
+
 // We initialize the supabase client conditionally to prevent errors if variables are not provided in local dev
 export const supabase = isSupabase
   ? createClient(
       process.env.SUPABASE_URL || "",
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ""
+      supabaseKey
     )
   : null;
 

@@ -57,16 +57,18 @@ export async function uploadFileToStorage(
     }
 
     const fileBuffer = fs.readFileSync(localTempPath);
-    console.log(`[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Supabase bucket "${bucketName}"...`);
+    const keyRole = getJwtRole(supabaseKey);
+    console.log(`[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to bucket "${bucketName}" using role="${keyRole}"...`);
 
     // Auto-create bucket if it doesn't exist yet
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    console.log(`[Storage] listBuckets result: ${listError ? `error=${JSON.stringify(listError)}` : `found ${buckets?.length ?? 0} buckets`}`);
     if (!listError && buckets && !buckets.some((b) => b.name === bucketName)) {
       console.log(`[Storage] Bucket "${bucketName}" missing — creating...`);
-      const { error: createErr } = await supabase.storage.createBucket(bucketName, { public: false });
+      const { error: createErr } = await supabase.storage.createBucket(bucketName, { public: true });
       if (createErr) {
         console.error(`[Storage] Failed to create bucket "${bucketName}":`, JSON.stringify(createErr));
-        throw createErr;
+        // Don't throw — try upload anyway, bucket may exist with different config
       }
     }
 
@@ -75,8 +77,8 @@ export async function uploadFileToStorage(
       .upload(fileName, fileBuffer, { contentType: mimeType, upsert: true });
 
     if (error) {
-      console.error(`[Storage] Supabase upload failed for "${fileName}" in bucket "${bucketName}":`, JSON.stringify(error));
-      throw error;
+      console.error(`[Storage] Upload failed (role="${keyRole}"): ${JSON.stringify(error)}`);
+      throw new Error(`Supabase Storage upload failed (role=${keyRole}): ${error.message}`);
     }
 
     // Clean up temporary local file after successful upload to Supabase

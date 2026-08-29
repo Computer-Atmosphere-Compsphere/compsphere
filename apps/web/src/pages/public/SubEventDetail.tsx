@@ -489,35 +489,38 @@ function HacksphereJoinBlock() {
     {
       key: "devpost",
       label: "Register on Devpost",
-      sublabel: "Join the hackathon",
       url: devpostUrl,
       icon: <DevpostIcon className="h-4 w-4" />,
-      hoverGlow: "rgba(56,189,248,0.25)",
-      blobColor: "bg-sky-300/30",
-      hoverBorder: "hover:border-sky-300/40",
-      hoverShadow: "hover:shadow-[0_4px_24px_rgba(56,189,248,0.15),inset_0_1px_0_rgba(255,255,255,0.3)]",
+      iconColor: "#00b4d8",
+      bgTint: "bg-[#00b4d8]/[0.08]",
+      borderTint: "border-[#00b4d8]/[0.18]",
+      hoverBorder: "hover:border-[#00b4d8]/[0.35]",
+      hoverShadow: "hover:shadow-[0_4px_24px_rgba(0,180,216,0.12),inset_0_1px_0_rgba(255,255,255,0.25)]",
+      blobColor: "bg-[#00b4d8]/[0.20]",
     },
     {
       key: "discord",
       label: "Join Discord",
-      sublabel: "Community & updates",
       url: discordUrl,
       icon: <DiscordIcon className="h-4 w-4" />,
-      hoverGlow: "rgba(124,106,255,0.25)",
-      blobColor: "bg-indigo-300/30",
-      hoverBorder: "hover:border-indigo-300/40",
-      hoverShadow: "hover:shadow-[0_4px_24px_rgba(124,106,255,0.15),inset_0_1px_0_rgba(255,255,255,0.3)]",
+      iconColor: "#7c5cfc",
+      bgTint: "bg-[#7c5cfc]/[0.08]",
+      borderTint: "border-[#7c5cfc]/[0.18]",
+      hoverBorder: "hover:border-[#7c5cfc]/[0.35]",
+      hoverShadow: "hover:shadow-[0_4px_24px_rgba(124,92,252,0.12),inset_0_1px_0_rgba(255,255,255,0.25)]",
+      blobColor: "bg-[#7c5cfc]/[0.20]",
     },
     {
       key: "guidebook",
       label: "Guidebook & Proposal",
-      sublabel: "Download from Drive",
       url: guidebookUrl,
       icon: <GoogleDriveIcon className="h-4 w-4" />,
-      hoverGlow: "rgba(250,204,21,0.20)",
-      blobColor: "bg-yellow-300/25",
-      hoverBorder: "hover:border-yellow-300/35",
-      hoverShadow: "hover:shadow-[0_4px_24px_rgba(250,204,21,0.12),inset_0_1px_0_rgba(255,255,255,0.3)]",
+      iconColor: "#e6a817",
+      bgTint: "bg-[#e6a817]/[0.07]",
+      borderTint: "border-[#e6a817]/[0.16]",
+      hoverBorder: "hover:border-[#e6a817]/[0.30]",
+      hoverShadow: "hover:shadow-[0_4px_24px_rgba(230,168,23,0.10),inset_0_1px_0_rgba(255,255,255,0.25)]",
+      blobColor: "bg-[#e6a817]/[0.18]",
     },
   ];
 
@@ -590,8 +593,9 @@ function HacksphereJoinBlock() {
                   {...(wrapperProps as any)}
                   className={cn(
                     "group relative inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-full",
-                    "border border-white/15 bg-white/[0.07] backdrop-blur-2xl backdrop-saturate-150",
-                    "shadow-[0_2px_16px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.18)]",
+                    btn.borderTint, btn.bgTint,
+                    "backdrop-blur-2xl backdrop-saturate-150",
+                    "shadow-[0_2px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.15)]",
                     "transition-all duration-300 ease-out",
                     isAvailable
                       ? [btn.hoverBorder, btn.hoverShadow, "hover:-translate-y-0.5 cursor-pointer"]
@@ -601,15 +605,15 @@ function HacksphereJoinBlock() {
                   )}
                 >
                   {/* Top sheen */}
-                  <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                  <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
                   {/* Liquid highlight blob */}
                   <span className={cn(
-                    "pointer-events-none absolute -top-8 left-1/2 h-16 w-24 -translate-x-1/2 rounded-full blur-2xl transition-all duration-500 group-hover:bg-white/30",
+                    "pointer-events-none absolute -top-8 left-1/2 h-16 w-24 -translate-x-1/2 rounded-full blur-2xl transition-all duration-500 group-hover:opacity-100 opacity-60",
                     btn.blobColor,
                   )} />
 
-                  {/* Icon */}
-                  <span className="relative flex shrink-0 items-center justify-center text-white/70 group-hover:text-white/90 transition-colors">
+                  {/* Icon — always colored */}
+                  <span className="relative flex shrink-0 items-center justify-center transition-colors" style={{ color: btn.iconColor }}>
                     {btn.icon}
                   </span>
 

@@ -75,6 +75,14 @@ const CATEGORIES: ConfigCategory[] = [
     ],
   },
   {
+    id: "hacksphere_links",
+    label: "Hacksphere Links",
+    description: "Dynamic URLs shown on the Hacksphere sub-event page (Devpost, Discord, Guidebook)",
+    icon: <Link2 className="w-4 h-4" />,
+    color: "text-green-400",
+    keys: ["hacksphere_devpost_url", "hacksphere_discord_url", "hacksphere_guidebook_url"],
+  },
+  {
     id: "payment",
     label: "Payment & Fees",
     description: "Slot confirmation fees per team category",
@@ -121,14 +129,6 @@ const CATEGORIES: ConfigCategory[] = [
     icon: <Zap className="w-4 h-4" />,
     color: "text-orange-400",
     keys: ["battle_royale_enabled"],
-  },
-  {
-    id: "hacksphere_links",
-    label: "Hacksphere Links",
-    description: "Dynamic URLs shown on the Hacksphere sub-event page (Devpost, Discord, Guidebook)",
-    icon: <Link2 className="w-4 h-4" />,
-    color: "text-green-400",
-    keys: ["hacksphere_devpost_url", "hacksphere_discord_url", "hacksphere_guidebook_url"],
   },
 ];
 
@@ -244,15 +244,6 @@ export function Config() {
     },
   });
 
-  const seedMissingMutation = useMutation({
-    mutationFn: () => api.post("/api/config/seed-missing", {}),
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-config"] });
-      alert(`✅ ${data.message}`);
-    },
-    onError: () => alert("❌ Failed to seed missing configs."),
-  });
-
   const handleSave = (key: string) => {
     if (edits[key] !== undefined) {
       updateMutation.mutate({ key, value: edits[key] });
@@ -281,15 +272,6 @@ export function Config() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <NeonButton
-            onClick={() => seedMissingMutation.mutate()}
-            disabled={seedMissingMutation.isPending}
-            variant="ghost"
-            size="sm"
-            title="Insert any missing config keys into the database with default values"
-          >
-            {seedMissingMutation.isPending ? "Seeding..." : "Seed Missing Config"}
-          </NeonButton>
           {totalChanges > 0 && (
             <>
               <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">

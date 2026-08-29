@@ -123777,7 +123777,7 @@ var import_multer = __toESM(require_multer());
 var import_path2 = __toESM(require("path"));
 var import_fs = __toESM(require("fs"));
 var import_crypto8 = __toESM(require("crypto"));
-var uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path2.default.join(__dirname, "../../uploads"));
+var uploadsDir = process.env.VERCEL ? "/tmp/uploads" : process.env.UPLOAD_DIR || import_path2.default.join(__dirname, "../../uploads");
 try {
   const dirs = ["payments", "proposals", "presentations", "documents"];
   dirs.forEach((dir) => {

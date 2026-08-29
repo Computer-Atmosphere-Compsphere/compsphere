@@ -3,7 +3,9 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
-const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../../uploads"));
+const uploadsDir = process.env.VERCEL
+  ? "/tmp/uploads"
+  : (process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads"));
 
 // Ensure upload directories exist (wrapped in try/catch for read-only environments like Vercel)
 try {

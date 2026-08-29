@@ -532,7 +532,7 @@ function HacksphereJoinBlock() {
       <div className="relative z-10 mx-auto max-w-5xl px-6">
         <SectionHeading
           title="HOW TO JOIN HACKSPHERE"
-          subtitle="Daftarkan timmu, unduh panduan, dan bergabung ke komunitas Discord kami untuk update terkini seputar Hacksphere 2026."
+          subtitle="Register your team, download the guidebook, and join our Discord community for the latest updates on Hacksphere 2026."
         />
 
         {/* Steps summary */}
@@ -546,11 +546,11 @@ function HacksphereJoinBlock() {
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
           <ol className="space-y-4">
             {[
-              { step: "01", title: "Buat Akun Individu", desc: "Daftar di compsphere.id dengan mengisi form identitas dan verifikasi email kamu." },
-              { step: "02", title: "Bentuk Tim & Daftarkan Hacksphere", desc: "Ketua tim registrasi tim (maks. 3 orang), undang anggota via username/email, lalu lakukan pembayaran Rp75.000/tim." },
-              { step: "03", title: "Unduh Guidebook & Susun Proposal", desc: "Unduh Guidebook resmi dan Template Proposal Idea (.docx) dari Google Drive, lalu kerjakan proposal berdasarkan tema yang tersedia." },
-              { step: "04", title: "Upload Proposal sebelum 18 Sept 23:59 WIB", desc: "Submit Proposal Idea (PDF) di dashboard tim kamu sebelum portal pengumpulan ditutup otomatis." },
-              { step: "05", title: "Tunggu Pengumuman Top 30 (26 Sept)", desc: "Tim terpilih akan lolos ke Babak Offline di President University, Cikarang pada 10–11 Oktober 2026." },
+              { step: "01", title: "Create an Individual Account", desc: "Sign up at compsphere.id by filling out the identity form and verifying your email." },
+              { step: "02", title: "Form a Team & Register for Hacksphere", desc: "The team leader registers the team (max. 3 members), invites members via username/email, then completes the Rp75,000/team payment." },
+              { step: "03", title: "Download the Guidebook & Prepare Your Proposal", desc: "Download the official Guidebook and Idea Proposal Template (.docx) from Google Drive, then craft your proposal based on the given theme." },
+              { step: "04", title: "Upload Proposal before Sep 18, 23:59 WIB", desc: "Submit your Idea Proposal (PDF) on your team dashboard before the submission portal closes automatically." },
+              { step: "05", title: "Wait for Top 30 Announcement (Sep 26)", desc: "Selected teams will advance to the Offline Round at President University, Cikarang on Oct 10–11, 2026." },
             ].map((s, i) => (
               <li key={s.step} className="flex items-start gap-4">
                 <span

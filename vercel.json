@@ -7,6 +7,8 @@
       "src": "apps/api/dist/index.cjs",
       "use": "@vercel/node",
       "config": {
+        "memory": 1024,
+        "maxDuration": 30,
         "includeFiles": [
           "node_modules/pg/**",
           "node_modules/pg-types/**",
@@ -18,12 +20,6 @@
       }
     }
   ],
-  "functions": {
-    "apps/api/dist/index.cjs": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
   "routes": [
     {
       "src": "/(.*)",

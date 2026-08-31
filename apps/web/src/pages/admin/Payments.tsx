@@ -17,6 +17,7 @@ import {
   FileText,
   XCircleIcon,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ export function Payments() {
   const queryClient = useQueryClient();
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [viewerFile, setViewerFile] = useState<{ url: string; name: string } | null>(null);
+  const [approveTarget, setApproveTarget] = useState<any | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<any | null>(null);
 
   const { data: queueData, isLoading } = useQuery<any>({
     queryKey: ["admin-payments-queue"],
@@ -35,6 +38,8 @@ export function Payments() {
     mutationFn: ({ paymentId, action, rejectionReason }: any) =>
       api.post("/api/payments/verify", { paymentId, action, rejectionReason }),
     onSuccess: () => {
+      setApproveTarget(null);
+      setRejectTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-payments-queue"] });
       queryClient.invalidateQueries({ queryKey: ["admin-metrics"] });
     },
@@ -191,22 +196,14 @@ export function Payments() {
                   />
                   <div className="flex gap-3">
                     <NeonButton
-                      onClick={() =>
-                        verifyMutation.mutate({ paymentId: payment.id, action: "APPROVE" })
-                      }
+                      onClick={() => setApproveTarget(payment)}
                       disabled={verifyMutation.isPending}
                       className="flex-1 flex items-center justify-center gap-1.5"
                     >
                       <CheckCircle2 className="w-4 h-4" /> Approve
                     </NeonButton>
                     <NeonButton
-                      onClick={() =>
-                        verifyMutation.mutate({
-                          paymentId: payment.id,
-                          action: "REJECT",
-                          rejectionReason: rejectionReasons[payment.id],
-                        })
-                      }
+                      onClick={() => setRejectTarget(payment)}
                       disabled={verifyMutation.isPending || !rejectionReasons[payment.id]}
                       variant="destructive"
                       className="flex-1 flex items-center justify-center gap-1.5"
@@ -319,6 +316,134 @@ export function Payments() {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* ── Approve Payment Confirmation Modal ── */}
+      {approveTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setApproveTarget(null)}
+        >
+          <div
+            className="w-full max-w-md mx-4 rounded-xl border border-green-900/40 bg-bg-secondary shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-950/60 border border-green-900/50 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-text-primary">Approve Payment?</h3>
+                  <p className="text-xs text-green-400/80">This will approve the payment and mark the team as VERIFIED.</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-bg-surface/50 p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Team</span>
+                  <span className="text-xs font-bold text-text-primary">{approveTarget.team?.teamName || approveTarget.teamId}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Code</span>
+                  <span className="text-xs font-mono text-brand-primary">{approveTarget.team?.teamCode}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Amount</span>
+                  <span className="text-xs text-text-secondary">{approveTarget.amount === 0 ? "Document / ID Letter" : `Rp${approveTarget.amount.toLocaleString("id-ID")}`}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Status</span>
+                  <StatusBadge status={approveTarget.status} />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setApproveTarget(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-xs font-bold text-text-secondary hover:text-text-primary hover:border-text-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    verifyMutation.mutate({ paymentId: approveTarget.id, action: "APPROVE" })
+                  }
+                  disabled={verifyMutation.isPending}
+                  className="flex-1 py-2.5 rounded-lg border border-green-900/50 bg-green-950/40 text-xs font-bold text-green-400 hover:bg-green-900/40 hover:text-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {verifyMutation.isPending ? "Approving..." : "Yes, Approve"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reject Payment Confirmation Modal ── */}
+      {rejectTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setRejectTarget(null)}
+        >
+          <div
+            className="w-full max-w-md mx-4 rounded-xl border border-red-900/40 bg-bg-secondary shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-950/60 border border-red-900/50 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-text-primary">Reject Payment?</h3>
+                  <p className="text-xs text-red-400/80">The team will need to re-submit their proof before the deadline.</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-bg-surface/50 p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Team</span>
+                  <span className="text-xs font-bold text-text-primary">{rejectTarget.team?.teamName || rejectTarget.teamId}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Code</span>
+                  <span className="text-xs font-mono text-brand-primary">{rejectTarget.team?.teamCode}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Amount</span>
+                  <span className="text-xs text-text-secondary">{rejectTarget.amount === 0 ? "Document / ID Letter" : `Rp${rejectTarget.amount.toLocaleString("id-ID")}`}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Rejection Reason</span>
+                  <span className="text-xs font-bold text-red-400">{rejectionReasons[rejectTarget.id] || "—"}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setRejectTarget(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-xs font-bold text-text-secondary hover:text-text-primary hover:border-text-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    verifyMutation.mutate({
+                      paymentId: rejectTarget.id,
+                      action: "REJECT",
+                      rejectionReason: rejectionReasons[rejectTarget.id],
+                    })
+                  }
+                  disabled={verifyMutation.isPending}
+                  className="flex-1 py-2.5 rounded-lg border border-red-900/50 bg-red-950/40 text-xs font-bold text-red-400 hover:bg-red-900/40 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {verifyMutation.isPending ? "Rejecting..." : "Yes, Reject"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -372,12 +372,51 @@ export const teamService = {
         updatedAt: new Date(),
       }).where(eq(schema.competitionTeams.id, teamId));
 
+      // Auto-approve any PENDING payment for this team
+      const pendingPayment = await tx.query.payments.findFirst({
+        where: and(
+          eq(schema.payments.teamId, teamId),
+          eq(schema.payments.status, "PENDING")
+        ),
+      });
+
+      let paymentAutoApproved = false;
+      if (pendingPayment) {
+        await tx.update(schema.payments).set({
+          status: "APPROVED",
+          verifiedBy: adminId,
+          verifiedAt: new Date(),
+        }).where(eq(schema.payments.id, pendingPayment.id));
+
+        paymentAutoApproved = true;
+
+        await auditService.log(tx, {
+          actorId: adminId,
+          action: "PAYMENT_APPROVED",
+          entityType: "payment",
+          entityId: pendingPayment.id,
+          metadata: { teamId, autoApproved: true, reason: "Team verified by admin" },
+        });
+
+        await tx.insert(schema.notifications).values({
+          teamId,
+          type: "PAYMENT_APPROVED",
+          title: "Payment Approved! 💳",
+          message: "Your payment verification was approved. Your team status is now VERIFIED.",
+        });
+
+        sseService.sendToTeam(teamId, "payment:verified", {
+          paymentId: pendingPayment.id,
+          teamId,
+        });
+      }
+
       await auditService.log(tx, {
         actorId: adminId,
         action: "TEAM_VERIFIED",
         entityType: "team",
         entityId: teamId,
-        metadata: { previousStatus: team.status },
+        metadata: { previousStatus: team.status, paymentAutoApproved },
       });
 
       // Notify team
@@ -393,7 +432,7 @@ export const teamService = {
         newStatus: "VERIFIED",
       });
 
-      return { teamId, newStatus: "VERIFIED" };
+      return { teamId, newStatus: "VERIFIED", paymentAutoApproved };
     });
   },
 

@@ -13,6 +13,7 @@ import {
   ArrowUpDown,
   ChevronRight,
   ShieldAlert,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TeamStatus, TeamCategory } from "@compsphere/types";
@@ -35,6 +36,7 @@ export function Teams() {
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [dropTarget, setDropTarget] = useState<any | null>(null);
+  const [approveTarget, setApproveTarget] = useState<any | null>(null);
 
   const { data: teamsList, isLoading } = useQuery<any[]>({
     queryKey: ["admin-teams", search, category, status],
@@ -59,6 +61,7 @@ export function Teams() {
   const verifyTeamMutation = useMutation({
     mutationFn: (teamId: string) => api.post("/api/admin/verify-team", { teamId }),
     onSuccess: () => {
+      setApproveTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
       queryClient.invalidateQueries({ queryKey: ["admin-metrics"] });
     },
@@ -251,7 +254,7 @@ export function Teams() {
                     >
                       {team.status === "VERIFICATION_PENDING" && (
                         <NeonButton
-                          onClick={() => verifyTeamMutation.mutate(team.id)}
+                          onClick={() => setApproveTarget(team)}
                           disabled={verifyTeamMutation.isPending}
                           size="sm"
                         >
@@ -362,7 +365,7 @@ export function Teams() {
                         <div className="flex items-center justify-end gap-2">
                           {team.status === "VERIFICATION_PENDING" && (
                             <NeonButton
-                              onClick={() => verifyTeamMutation.mutate(team.id)}
+                              onClick={() => setApproveTarget(team)}
                               disabled={verifyTeamMutation.isPending}
                               size="sm"
                             >
@@ -464,6 +467,73 @@ export function Teams() {
                   className="flex-1 py-2.5 rounded-lg border border-red-900/50 bg-red-950/40 text-xs font-bold text-red-400 hover:bg-red-900/40 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {dropTeamMutation.isPending ? "Dropping..." : "Yes, Drop Team"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Approve Team Confirmation Modal ── */}
+      {approveTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setApproveTarget(null)}
+        >
+          <div
+            className="w-full max-w-md mx-4 rounded-xl border border-green-900/40 bg-bg-secondary shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-5">
+              {/* Icon + Title */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-950/60 border border-green-900/50 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-text-primary">Approve Team?</h3>
+                  <p className="text-xs text-green-400/80">This will verify the team and approve their payment submission automatically.</p>
+                </div>
+              </div>
+
+              {/* Team Summary */}
+              <div className="rounded-lg border border-border/60 bg-bg-surface/50 p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Team</span>
+                  <span className="text-xs font-bold text-text-primary">{approveTarget.teamName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Code</span>
+                  <span className="text-xs font-mono text-brand-primary">{approveTarget.teamCode}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Rank</span>
+                  <span className="text-xs font-mono text-text-secondary">#{approveTarget.originalRank}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Category</span>
+                  <span className="text-xs text-text-secondary">{approveTarget.category}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Status</span>
+                  <StatusBadge status={approveTarget.status as TeamStatus} />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setApproveTarget(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-xs font-bold text-text-secondary hover:text-text-primary hover:border-text-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => verifyTeamMutation.mutate(approveTarget.id)}
+                  disabled={verifyTeamMutation.isPending}
+                  className="flex-1 py-2.5 rounded-lg border border-green-900/50 bg-green-950/40 text-xs font-bold text-green-400 hover:bg-green-900/40 hover:text-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {verifyTeamMutation.isPending ? "Approving..." : "Yes, Approve Team"}
                 </button>
               </div>
             </div>

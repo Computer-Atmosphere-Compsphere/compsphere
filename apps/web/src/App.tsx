@@ -12,6 +12,7 @@ import { Guidebook } from "@/pages/public/Guidebook";
 import { Timeline } from "@/pages/public/Timeline";
 import { Announcements } from "@/pages/public/Announcements";
 import { SubEventDetail } from "@/pages/public/SubEventDetail";
+import { JoinTeam } from "@/pages/public/JoinTeam";
 
 // Auth
 import { AuthCallback } from "@/pages/auth/AuthCallback";
@@ -104,8 +105,10 @@ export default function App() {
         <Route path="/events/:id" element={<SubEventDetail />} />
       </Route>
 
-      {/* ── Auth callback ────────────────────────────── */}
+      {/* ── Auth callback & Team Invite ──────────────── */}
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/join" element={<JoinTeam />} />
+      <Route path="/invite/:token" element={<JoinTeam />} />
 
       {/* ── Onboarding ───────────────────────────────── */}
       <Route

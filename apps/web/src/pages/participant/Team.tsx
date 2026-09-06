@@ -21,7 +21,7 @@ export function Team() {
     mutationFn: () => api.post<any>("/api/members/invite"),
     onSuccess: (data) => {
       const origin = window.location.origin;
-      setInviteUrl(`${origin}/onboarding/participant?invite=${data.token}`);
+      setInviteUrl(`${origin}/join?invite=${data.token}`);
       queryClient.invalidateQueries({ queryKey: ["my-team"] });
     },
   });

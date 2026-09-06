@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { NeonButton } from "@/components/compsphere/NeonButton";
 import { api } from "@/lib/api";
@@ -26,12 +26,20 @@ interface TeamPreview {
 }
 
 export function OnboardingParticipant() {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState<"token" | "preview">("token");
   const [preview, setPreview] = useState<TeamPreview | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { refetch } = useAuth();
+
+  useEffect(() => {
+    const inviteToken = searchParams.get("invite");
+    if (inviteToken) {
+      navigate(`/join?invite=${inviteToken}`, { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const {
     register,

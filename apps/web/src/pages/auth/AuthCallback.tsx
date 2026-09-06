@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
 
 export function AuthCallback() {
   const { isAuthenticated, isAuthenticating, isLoading, hasGoogleSession, needsOnboarding, user, refetch } = useAuth();
@@ -23,6 +24,32 @@ export function AuthCallback() {
   useEffect(() => {
     // Wait until both better-auth session AND compsphere profile query are resolved
     if (isAuthenticating || isLoading) return;
+
+    // Check for pending team invite token from invitation link
+    const pendingInvite = sessionStorage.getItem("compsphere_pending_invite") || localStorage.getItem("compsphere_pending_invite");
+
+    if (hasGoogleSession && pendingInvite) {
+      console.log("[AuthCallback] Redeeming pending team invite token...");
+      api.post("/api/members/redeem-invite", { token: pendingInvite })
+        .then(async () => {
+          sessionStorage.removeItem("compsphere_pending_invite");
+          localStorage.removeItem("compsphere_pending_invite");
+          await refetch();
+          navigate("/dashboard", { replace: true });
+        })
+        .catch(async (err: any) => {
+          sessionStorage.removeItem("compsphere_pending_invite");
+          localStorage.removeItem("compsphere_pending_invite");
+          console.warn("[AuthCallback] Pending invite redemption error:", err);
+          await refetch();
+          if (needsOnboarding || !user) {
+            navigate("/onboarding", { replace: true });
+          } else {
+            navigate("/dashboard", { replace: true });
+          }
+        });
+      return;
+    }
 
     // Case 1: New user or profile query failed — Google session exists but no profile → onboarding
     if (hasGoogleSession && (needsOnboarding || !user)) {
@@ -51,7 +78,7 @@ export function AuthCallback() {
     } else {
       navigate("/", { replace: true }); // USER role with COMPLETE onboarding -> landing page
     }
-  }, [isAuthenticated, isAuthenticating, isLoading, hasGoogleSession, needsOnboarding, user, navigate]);
+  }, [isAuthenticated, isAuthenticating, isLoading, hasGoogleSession, needsOnboarding, user, navigate, refetch]);
 
   return (
     <div className="flex h-screen items-center justify-center bg-bg-primary text-text-primary">

@@ -22,7 +22,7 @@ export function RankingCard({
         </div>
         <div>
           <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-            Devpost Rank
+            Phase 1 Rank
           </h4>
           <span className="text-2xl font-black font-mono text-text-primary">
             #{originalRank}

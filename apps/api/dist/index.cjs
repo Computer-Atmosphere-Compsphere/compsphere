@@ -101464,9 +101464,7 @@ var teamService = {
       where: eq(schema_exports.judgeScores.teamId, teamId)
     });
     const judgeCount = judgeScores2.length;
-    const isPhase2 = competitionPhase === "2";
-    const isPhase1JudgedBy2Judges = team.status === "JUDGED" && judgeCount >= 2 && team.originalRank <= 30;
-    const canShowRank = isPhase2 || isPhase1JudgedBy2Judges;
+    const canShowRank = judgeCount >= 2 && team.status === "JUDGED";
     return {
       team: {
         ...team,

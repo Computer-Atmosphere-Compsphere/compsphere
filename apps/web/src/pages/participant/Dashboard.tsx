@@ -50,7 +50,7 @@ export function Dashboard() {
   // Derive latest payment & submission from the arrays the API returns
   const payment = payments?.[0] ?? null;
   const submission = submissions?.[0] ?? null;
-  const canShowRank = Boolean(myTeam?.canShowRank ?? team?.canShowRank);
+  const canShowRank = Boolean(myTeam?.canShowRank === true && team?.status === "JUDGED");
 
   return (
     <div className="space-y-8">

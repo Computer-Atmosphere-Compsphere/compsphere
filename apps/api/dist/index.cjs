@@ -64996,8 +64996,10 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
       );
     }
     const fileBuffer = import_fs2.default.readFileSync(localTempPath);
+    const fileObj = typeof File !== "undefined" ? new File([fileBuffer], fileName, { type: mimeType }) : new Blob([fileBuffer], { type: mimeType });
     const form = new FormData();
-    form.append("file", new Blob([fileBuffer], { type: mimeType }), fileName);
+    form.append("file", fileObj, fileName);
+    form.append("filename", fileName);
     form.append("folder", bucketName);
     console.log(
       `[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Hostinger folder="${bucketName}"...`

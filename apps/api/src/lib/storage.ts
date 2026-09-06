@@ -41,8 +41,14 @@ export async function uploadFileToStorage(
     }
 
     const fileBuffer = fs.readFileSync(localTempPath);
+    const fileObj =
+      typeof File !== "undefined"
+        ? new File([fileBuffer], fileName, { type: mimeType })
+        : new Blob([fileBuffer], { type: mimeType });
+
     const form = new FormData();
-    form.append("file", new Blob([fileBuffer], { type: mimeType }), fileName);
+    form.append("file", fileObj, fileName);
+    form.append("filename", fileName);
     form.append("folder", bucketName);
 
     console.log(

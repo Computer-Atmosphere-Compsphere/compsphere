@@ -64984,7 +64984,8 @@ __export(storage_exports, {
   uploadFileToStorage: () => uploadFileToStorage
 });
 async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType) {
-  if (isHostinger) {
+  const checkHostinger = process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
+  if (checkHostinger) {
     if (!import_fs2.default.existsSync(localTempPath)) {
       throw new Error(`[Storage] Temp file not found at: ${localTempPath}`);
     }
@@ -64992,7 +64993,7 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
     const uploadToken = process.env.HOSTINGER_UPLOAD_TOKEN;
     if (!storageUrl || !uploadToken) {
       throw new Error(
-        "[Storage] HOSTINGER_STORAGE_URL or HOSTINGER_UPLOAD_TOKEN is not set"
+        "[Storage] HOSTINGER_STORAGE_URL or HOSTINGER_UPLOAD_TOKEN is not set in environment variables."
       );
     }
     const fileBuffer = import_fs2.default.readFileSync(localTempPath);
@@ -65004,11 +65005,18 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
     console.log(
       `[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Hostinger folder="${bucketName}"...`
     );
-    const response = await fetch(`${storageUrl}?action=upload`, {
-      method: "POST",
-      headers: { "X-Storage-Token": uploadToken },
-      body: form
-    });
+    let response;
+    try {
+      response = await fetch(`${storageUrl}?action=upload`, {
+        method: "POST",
+        headers: { "X-Storage-Token": uploadToken },
+        body: form
+      });
+    } catch (fetchErr) {
+      throw new Error(
+        `[Storage] Could not reach Hostinger storage at ${storageUrl}: ${fetchErr?.message || fetchErr}`
+      );
+    }
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(
@@ -65035,7 +65043,12 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
   }
   const targetPath = import_path3.default.join(targetDir, fileName);
   if (import_fs2.default.existsSync(localTempPath)) {
-    import_fs2.default.renameSync(localTempPath, targetPath);
+    try {
+      import_fs2.default.copyFileSync(localTempPath, targetPath);
+      import_fs2.default.unlinkSync(localTempPath);
+    } catch (copyErr) {
+      import_fs2.default.renameSync(localTempPath, targetPath);
+    }
   } else {
     throw new Error(
       `[Storage] Temp file not found at ${localTempPath} for local storage fallback`
@@ -65063,7 +65076,7 @@ var init_storage = __esm({
     import_fs2 = __toESM(require("fs"));
     import_path3 = __toESM(require("path"));
     import_crypto9 = __toESM(require("crypto"));
-    isHostinger = process.env.STORAGE_PROVIDER === "hostinger";
+    isHostinger = process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
     uploadsDir2 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path3.default.join(__dirname, "../../../uploads"));
   }
 });
@@ -100930,7 +100943,8 @@ function errorHandler(err, req, res, _next) {
   console.error("[ERROR]", err);
   res.status(500).json({
     success: false,
-    error: "Internal server error"
+    error: err.message || "Internal server error",
+    details: err.stack ? err.stack.split("\n").slice(0, 3).join(" ") : void 0
   });
 }
 

@@ -60,6 +60,7 @@ export function errorHandler(
   console.error("[ERROR]", err);
   res.status(500).json({
     success: false,
-    error: "Internal server error",
+    error: err.message || "Internal server error",
+    details: err.stack ? err.stack.split("\n").slice(0, 3).join(" ") : undefined,
   });
 }

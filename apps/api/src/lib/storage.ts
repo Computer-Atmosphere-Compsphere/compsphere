@@ -2,7 +2,8 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
-export const isHostinger = process.env.STORAGE_PROVIDER === "hostinger";
+export const isHostinger =
+  process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
 
 const uploadsDir =
   process.env.UPLOAD_DIR ||
@@ -26,7 +27,10 @@ export async function uploadFileToStorage(
   fileName: string,
   mimeType: string
 ): Promise<string> {
-  if (isHostinger) {
+  const checkHostinger =
+    process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
+
+  if (checkHostinger) {
     if (!fs.existsSync(localTempPath)) {
       throw new Error(`[Storage] Temp file not found at: ${localTempPath}`);
     }
@@ -36,7 +40,7 @@ export async function uploadFileToStorage(
 
     if (!storageUrl || !uploadToken) {
       throw new Error(
-        "[Storage] HOSTINGER_STORAGE_URL or HOSTINGER_UPLOAD_TOKEN is not set"
+        "[Storage] HOSTINGER_STORAGE_URL or HOSTINGER_UPLOAD_TOKEN is not set in environment variables."
       );
     }
 
@@ -55,11 +59,18 @@ export async function uploadFileToStorage(
       `[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Hostinger folder="${bucketName}"...`
     );
 
-    const response = await fetch(`${storageUrl}?action=upload`, {
-      method: "POST",
-      headers: { "X-Storage-Token": uploadToken },
-      body: form,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${storageUrl}?action=upload`, {
+        method: "POST",
+        headers: { "X-Storage-Token": uploadToken },
+        body: form,
+      });
+    } catch (fetchErr: any) {
+      throw new Error(
+        `[Storage] Could not reach Hostinger storage at ${storageUrl}: ${fetchErr?.message || fetchErr}`
+      );
+    }
 
     if (!response.ok) {
       const errText = await response.text();
@@ -95,7 +106,12 @@ export async function uploadFileToStorage(
 
   const targetPath = path.join(targetDir, fileName);
   if (fs.existsSync(localTempPath)) {
-    fs.renameSync(localTempPath, targetPath);
+    try {
+      fs.copyFileSync(localTempPath, targetPath);
+      fs.unlinkSync(localTempPath);
+    } catch (copyErr) {
+      fs.renameSync(localTempPath, targetPath);
+    }
   } else {
     throw new Error(
       `[Storage] Temp file not found at ${localTempPath} for local storage fallback`

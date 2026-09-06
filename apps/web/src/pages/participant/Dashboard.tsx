@@ -50,7 +50,7 @@ export function Dashboard() {
   // Derive latest payment & submission from the arrays the API returns
   const payment = payments?.[0] ?? null;
   const submission = submissions?.[0] ?? null;
-  const deadlineExpired = team.confirmationDeadline ? new Date() >= new Date(team.confirmationDeadline) : false;
+  const canShowRank = Boolean(myTeam?.canShowRank ?? team?.canShowRank);
 
   return (
     <div className="space-y-8">
@@ -67,9 +67,9 @@ export function Dashboard() {
       </div>
 
       {/* Grid of SLA Countdown / Rank / Alerts */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className={canShowRank ? "grid md:grid-cols-2 gap-6" : "grid grid-cols-1 gap-6"}>
         <CountdownCard deadline={team.confirmationDeadline} className="w-full" />
-        <RankingCard originalRank={team.originalRank} className="w-full" />
+        {canShowRank && <RankingCard originalRank={team.originalRank} className="w-full" />}
       </div>
 
       {/* Main Grid Options */}

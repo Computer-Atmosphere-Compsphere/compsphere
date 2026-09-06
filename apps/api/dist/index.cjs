@@ -101456,14 +101456,32 @@ var teamService = {
     const { tokenHash: _omit, ...tokenMeta } = latestToken ?? {
       tokenHash: void 0
     };
+    const phaseConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema_exports.systemConfig.key, "competition_phase")
+    });
+    const competitionPhase = phaseConfig?.value || "1";
+    const judgeScores2 = await db.query.judgeScores.findMany({
+      where: eq(schema_exports.judgeScores.teamId, teamId)
+    });
+    const judgeCount = judgeScores2.length;
+    const isPhase2 = competitionPhase === "2";
+    const isPhase1Qualified = judgeCount >= 2 && team.originalRank <= 30 && ["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status);
+    const canShowRank = isPhase2 || isPhase1Qualified;
     return {
-      team,
+      team: {
+        ...team,
+        canShowRank,
+        judgeCount,
+        competitionPhase
+      },
       members,
       proposal: proposal ? { ...proposal, files: proposalFiles2 } : null,
       payments: payments2,
       submissions: submissions2,
       attendance: attendance2,
-      token: latestToken ? tokenMeta : null
+      token: latestToken ? tokenMeta : null,
+      canShowRank,
+      competitionPhase
     };
   },
   /**

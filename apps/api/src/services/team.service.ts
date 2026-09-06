@@ -281,14 +281,45 @@ export const teamService = {
       tokenHash: undefined,
     };
 
+    // Check competition phase config
+    const phaseConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema.systemConfig.key, "competition_phase"),
+    });
+    const competitionPhase = phaseConfig?.value || "1";
+
+    // Check Phase 1 judging scores count for this team
+    const judgeScores = await db.query.judgeScores.findMany({
+      where: eq(schema.judgeScores.teamId, teamId),
+    });
+    const judgeCount = judgeScores.length;
+
+    // Rule: Hide Devpost rank on participant dashboard unless:
+    // 1. Competition is in Phase 2
+    // OR
+    // 2. Team passed Phase 1, evaluated by at least 2 judges in Phase 1, and ranked in top 30
+    const isPhase2 = competitionPhase === "2";
+    const isPhase1Qualified =
+      judgeCount >= 2 &&
+      team.originalRank <= 30 &&
+      ["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status);
+
+    const canShowRank = isPhase2 || isPhase1Qualified;
+
     return {
-      team,
+      team: {
+        ...team,
+        canShowRank,
+        judgeCount,
+        competitionPhase,
+      },
       members,
       proposal: proposal ? { ...proposal, files: proposalFiles } : null,
       payments,
       submissions,
       attendance,
       token: latestToken ? tokenMeta : null,
+      canShowRank,
+      competitionPhase,
     };
   },
 

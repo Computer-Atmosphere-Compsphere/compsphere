@@ -25,6 +25,8 @@ import {
   ScanLine,
   AlertCircle,
   ShieldAlert,
+  Eye,
+  FileImage,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -648,47 +650,99 @@ export function TeamDetail() {
               Payments & Documents
             </h3>
             {payments.length > 0 ? (
-              <div className="space-y-2">
-                {payments.map((p: any) => (
-                  <div
-                    key={p.id}
-                    className="p-3 rounded bg-bg-surface border border-border/60 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-text-primary font-semibold">
-                        {p.amount === 0
-                          ? "Document / ID letter"
-                          : `Rp${p.amount.toLocaleString("id-ID")}`}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase",
-                          PAYMENT_STATUS_STYLE[p.status as PaymentStatus]
-                        )}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-                    {p.proofFilename && p.proofStorageKey && (
-                      <button
-                        onClick={() => setViewerFile({ url: getUploadUrl(p.proofStorageKey), name: p.proofFilename })}
-                        className="flex items-center gap-1.5 text-[10px] text-brand-primary hover:underline truncate"
-                      >
-                        <FileText className="w-3 h-3" />
-                        {p.proofFilename}
-                        <span className="text-text-muted">(preview)</span>
-                      </button>
-                    )}
-                    <p className="text-[10px] text-text-muted">
-                      Submitted {formatDate(p.submittedAt)}
-                    </p>
-                    {p.rejectionReason && (
-                      <p className="text-[10px] text-red-400 italic">
-                        Rejected: {p.rejectionReason}
+              <div className="space-y-3">
+                {payments.map((p: any) => {
+                  const fileUrl = p.proofStorageKey ? getUploadUrl(p.proofStorageKey) : null;
+                  const fileName = p.proofFilename || "Payment Proof";
+                  const isPdf = fileName.toLowerCase().endsWith(".pdf") || (p.proofStorageKey || "").toLowerCase().endsWith(".pdf");
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="p-3.5 rounded-lg bg-bg-surface border border-border/60 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-text-primary font-bold">
+                          {p.amount === 0
+                            ? "Document / ID letter"
+                            : `Rp${p.amount.toLocaleString("id-ID")}`}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase",
+                            PAYMENT_STATUS_STYLE[p.status as PaymentStatus]
+                          )}
+                        >
+                          {p.status}
+                        </span>
+                      </div>
+
+                      {p.proofStorageKey && fileUrl && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] text-text-muted">
+                            <span className="truncate max-w-[180px] font-medium">{fileName}</span>
+                            <button
+                              onClick={() => setViewerFile({ url: fileUrl, name: fileName })}
+                              className="text-brand-primary hover:underline font-semibold flex items-center gap-1 shrink-0"
+                            >
+                              <Eye className="w-3 h-3" /> Full View
+                            </button>
+                          </div>
+
+                          {isPdf ? (
+                            <button
+                              onClick={() => setViewerFile({ url: fileUrl, name: fileName })}
+                              className="w-full flex items-center gap-2.5 p-2.5 rounded bg-bg-surface/80 border border-border/80 hover:border-brand-primary/40 transition-colors text-left"
+                            >
+                              <FileText className="w-4 h-4 text-red-400 shrink-0" />
+                              <span className="text-xs text-text-primary font-medium truncate flex-1">{fileName}</span>
+                              <Eye className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                            </button>
+                          ) : (
+                            <div
+                              onClick={() => setViewerFile({ url: fileUrl, name: fileName })}
+                              className="relative group cursor-pointer overflow-hidden rounded border border-border/80 bg-neutral-950/80 max-h-48 flex items-center justify-center transition-all hover:border-brand-primary/50"
+                            >
+                              <img
+                                src={fileUrl}
+                                alt={fileName}
+                                className="w-full max-h-48 object-contain rounded transition-transform duration-300 group-hover:scale-[1.02]"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    const fallback = parent.querySelector(".img-fallback") as HTMLElement;
+                                    if (fallback) fallback.style.display = "flex";
+                                  }
+                                }}
+                              />
+                              <div className="img-fallback hidden flex-col items-center justify-center p-4 text-center text-text-muted space-y-1">
+                                <FileText className="w-6 h-6 text-brand-primary" />
+                                <p className="text-xs font-bold text-text-primary">{fileName}</p>
+                                <span className="text-[10px] text-brand-primary">Click to view</span>
+                              </div>
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold backdrop-blur-[2px]">
+                                <Eye className="w-3.5 h-3.5 text-brand-primary" />
+                                <span>View Image</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-text-muted">
+                        Submitted {formatDate(p.submittedAt)}
                       </p>
-                    )}
-                  </div>
-                ))}
+                      {p.rejectionReason && (
+                        <p className="text-[10px] text-red-400 italic bg-red-950/30 p-2 rounded border border-red-900/40">
+                          Rejected: {p.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-text-muted">No payments or documents submitted.</p>
@@ -1073,18 +1127,18 @@ export function TeamDetail() {
             </div>
             {/* Content */}
             <div className="flex-1 min-h-0">
-              {viewerFile.name.toLowerCase().endsWith(".pdf") ? (
+              {(viewerFile.name.toLowerCase().endsWith(".pdf") || viewerFile.url.toLowerCase().includes(".pdf")) ? (
                 <iframe
                   src={viewerFile.url}
                   className="w-full h-full border-0"
                   title={viewerFile.name}
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-4 overflow-auto bg-neutral-950/60">
+                <div className="w-full h-full flex flex-col items-center justify-center p-4 overflow-auto bg-neutral-950/80">
                   <img
                     src={viewerFile.url}
                     alt={viewerFile.name}
-                    className="max-w-full max-h-full object-contain rounded"
+                    className="max-w-full max-h-full object-contain rounded shadow-2xl"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = "none";
@@ -1093,15 +1147,15 @@ export function TeamDetail() {
                     }}
                   />
                   <div className="hidden flex-col items-center gap-2 text-text-muted">
-                    <FileText className="w-10 h-10" />
-                    <p className="text-sm font-bold">Cannot preview this file</p>
+                    <FileText className="w-10 h-10 text-brand-primary" />
+                    <p className="text-sm font-bold text-white">Cannot preview image directly</p>
                     <a
                       href={viewerFile.url}
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs text-brand-primary hover:underline"
                     >
-                      Download instead
+                      Open in new tab / Download
                     </a>
                   </div>
                 </div>

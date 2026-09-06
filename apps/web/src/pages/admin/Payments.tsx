@@ -171,17 +171,76 @@ export function Payments() {
                   </div>
                 )}
 
-                {/* Proof file */}
-                {payment.proofStorageKey && (
-                  <button
-                    onClick={() => setViewerFile({ url: getUploadUrl(payment.proofStorageKey), name: payment.proofFilename || "Payment Proof" })}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded bg-bg-surface border border-border/60 hover:border-brand-primary/40 transition-colors text-left"
-                  >
-                    <FileImage className="w-4 h-4 text-brand-primary shrink-0" />
-                    <span className="text-xs text-text-primary">{payment.proofFilename || "View Proof / Document"}</span>
-                    <Eye className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                  </button>
-                )}
+                {/* Proof file preview */}
+                {payment.proofStorageKey && (() => {
+                  const fileUrl = getUploadUrl(payment.proofStorageKey);
+                  const fileName = payment.proofFilename || "Payment Proof";
+                  const isPdf = fileName.toLowerCase().endsWith(".pdf") || payment.proofStorageKey.toLowerCase().endsWith(".pdf");
+
+                  return (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold flex items-center gap-1.5">
+                          <FileImage className="w-3.5 h-3.5 text-brand-primary" />
+                          Payment Proof Preview
+                        </span>
+                        <button
+                          onClick={() => setViewerFile({ url: fileUrl, name: fileName })}
+                          className="text-[11px] text-brand-primary hover:underline font-semibold flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" />
+                          Full View
+                        </button>
+                      </div>
+
+                      {isPdf ? (
+                        <button
+                          onClick={() => setViewerFile({ url: fileUrl, name: fileName })}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-bg-surface/80 border border-border/80 hover:border-brand-primary/50 transition-colors text-left group"
+                        >
+                          <div className="w-10 h-10 rounded bg-red-950/40 border border-red-900/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                            <FileText className="w-5 h-5 text-red-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-text-primary truncate">{fileName}</p>
+                            <p className="text-[10px] text-text-muted">PDF Document · Click to view full document</p>
+                          </div>
+                          <Eye className="w-4 h-4 text-text-muted group-hover:text-brand-primary shrink-0 transition-colors" />
+                        </button>
+                      ) : (
+                        <div
+                          onClick={() => setViewerFile({ url: fileUrl, name: fileName })}
+                          className="relative group cursor-pointer overflow-hidden rounded-lg border border-border/80 bg-neutral-950/80 max-h-64 sm:max-h-80 flex items-center justify-center transition-all hover:border-brand-primary/50"
+                        >
+                          <img
+                            src={fileUrl}
+                            alt={fileName}
+                            className="w-full max-h-64 sm:max-h-80 object-contain rounded transition-transform duration-300 group-hover:scale-[1.02]"
+                            loading="lazy"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const parent = target.parentElement;
+                              if (parent) {
+                                const fallback = parent.querySelector(".img-fallback") as HTMLElement;
+                                if (fallback) fallback.style.display = "flex";
+                              }
+                            }}
+                          />
+                          <div className="img-fallback hidden flex-col items-center justify-center p-6 text-center text-text-muted space-y-2">
+                            <FileText className="w-8 h-8 text-brand-primary" />
+                            <p className="text-xs font-bold text-text-primary">{fileName}</p>
+                            <span className="text-[10px] text-brand-primary hover:underline">Click to view document</span>
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-bold backdrop-blur-[2px]">
+                            <Eye className="w-4 h-4 text-brand-primary" />
+                            <span>Click to View Full Size</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Action buttons */}
                 <div className="space-y-2 pt-3 border-t border-border/40">
@@ -288,14 +347,14 @@ export function Payments() {
               </div>
             </div>
             <div className="flex-1 min-h-0">
-              {viewerFile.name.toLowerCase().endsWith(".pdf") ? (
+              {(viewerFile.name.toLowerCase().endsWith(".pdf") || viewerFile.url.toLowerCase().includes(".pdf")) ? (
                 <iframe src={viewerFile.url} className="w-full h-full border-0" title={viewerFile.name} />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-4 overflow-auto bg-neutral-950/60">
+                <div className="w-full h-full flex flex-col items-center justify-center p-4 overflow-auto bg-neutral-950/80">
                   <img
                     src={viewerFile.url}
                     alt={viewerFile.name}
-                    className="max-w-full max-h-full object-contain rounded"
+                    className="max-w-full max-h-full object-contain rounded shadow-2xl"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = "none";
@@ -304,10 +363,10 @@ export function Payments() {
                     }}
                   />
                   <div className="hidden flex-col items-center gap-2 text-text-muted">
-                    <FileText className="w-10 h-10" />
-                    <p className="text-sm font-bold">Cannot preview this file</p>
+                    <FileText className="w-10 h-10 text-brand-primary" />
+                    <p className="text-sm font-bold text-white">Cannot preview image directly</p>
                     <a href={viewerFile.url} target="_blank" rel="noreferrer" className="text-xs text-brand-primary hover:underline">
-                      Download instead
+                      Open in new tab / Download
                     </a>
                   </div>
                 </div>

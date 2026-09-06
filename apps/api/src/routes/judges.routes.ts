@@ -86,10 +86,11 @@ router.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res,
     const user = req.sessionUser!;
     const bodySchema = z.object({
       teamId: z.string().uuid(),
-      mvpScore: z.number().min(1).max(100),
-      impactScore: z.number().min(1).max(100),
-      creativeScore: z.number().min(1).max(100),
-      pitchScore: z.number().min(1).max(100),
+      technicalScore: z.number().min(1).max(100),
+      problemScore: z.number().min(1).max(100),
+      innovationScore: z.number().min(1).max(100),
+      marketScore: z.number().min(1).max(100),
+      documentScore: z.number().min(1).max(100),
       notes: z.string().optional(),
     });
 
@@ -104,10 +105,11 @@ router.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res,
     }
 
     const result = await scoringService.submitScore(user.profileId, parsed.teamId, {
-      mvpScore: parsed.mvpScore,
-      impactScore: parsed.impactScore,
-      creativeScore: parsed.creativeScore,
-      pitchScore: parsed.pitchScore,
+      technicalScore: parsed.technicalScore,
+      problemScore: parsed.problemScore,
+      innovationScore: parsed.innovationScore,
+      marketScore: parsed.marketScore,
+      documentScore: parsed.documentScore,
     });
 
     res.json({

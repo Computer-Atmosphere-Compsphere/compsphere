@@ -196,10 +196,12 @@ export interface JudgeScore {
   id: string;
   judgeId: string;
   teamId: string;
-  mvpScore: number;
-  impactScore: number;
-  creativeScore: number;
-  pitchScore: number;
+  // Phase 1 Judging Criteria
+  technicalScore: number;  // Technical Architecture & Feasibility — 30%
+  problemScore: number;    // Problem Relevance & Solution Fit — 20%
+  innovationScore: number; // Innovation & Value Proposition — 25%
+  marketScore: number;     // Market & Impact Viability — 15%
+  documentScore: number;   // Document Clarity & Structure — 10%
   finalScore: number;
   submittedAt: string;
   updatedAt: string;
@@ -365,10 +367,12 @@ export interface BattleRoyaleStatus {
 // Judging
 export interface SubmitScoreRequest {
   teamId: string;
-  mvpScore: number;
-  impactScore: number;
-  creativeScore: number;
-  pitchScore: number;
+  // Phase 1 Judging Criteria
+  technicalScore: number;  // Technical Architecture & Feasibility — 30%
+  problemScore: number;    // Problem Relevance & Solution Fit — 20%
+  innovationScore: number; // Innovation & Value Proposition — 25%
+  marketScore: number;     // Market & Impact Viability — 15%
+  documentScore: number;   // Document Clarity & Structure — 10%
 }
 
 // QR Scan
@@ -422,22 +426,36 @@ export interface SSEEvent<T = unknown> {
   timestamp: string;
 }
 
-// Scoring weights (configurable via system_config)
+// Scoring weights (configurable via system_config) — Phase 1 Criteria
 export interface ScoringWeights {
-  mvp: number;       // default: 0.35
-  impact: number;    // default: 0.30
-  creative: number;  // default: 0.20
-  pitch: number;     // default: 0.15
+  technical: number; // Technical Architecture & Feasibility — default: 0.30
+  problem: number;   // Problem Relevance & Solution Fit   — default: 0.20
+  innovation: number;// Innovation & Value Proposition      — default: 0.25
+  market: number;   // Market & Impact Viability           — default: 0.15
+  document: number;  // Document Clarity & Structure        — default: 0.10
 }
 
 export function calculateFinalScore(
-  scores: { mvpScore: number; impactScore: number; creativeScore: number; pitchScore: number },
-  weights: ScoringWeights = { mvp: 0.35, impact: 0.30, creative: 0.20, pitch: 0.15 }
+  scores: {
+    technicalScore: number;
+    problemScore: number;
+    innovationScore: number;
+    marketScore: number;
+    documentScore: number;
+  },
+  weights: ScoringWeights = {
+    technical: 0.30,
+    problem: 0.20,
+    innovation: 0.25,
+    market: 0.15,
+    document: 0.10,
+  }
 ): number {
   return (
-    scores.mvpScore * weights.mvp +
-    scores.impactScore * weights.impact +
-    scores.creativeScore * weights.creative +
-    scores.pitchScore * weights.pitch
+    scores.technicalScore  * weights.technical  +
+    scores.problemScore    * weights.problem    +
+    scores.innovationScore * weights.innovation +
+    scores.marketScore     * weights.market     +
+    scores.documentScore   * weights.document
   );
 }

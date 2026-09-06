@@ -6,14 +6,22 @@ import { calculateFinalScore } from "@compsphere/types";
 
 export const scoringService = {
   /**
-   * Get the judging weights from system config, or defaults.
+   * Get Phase 1 judging weights from system config, or defaults.
+   *
+   * Phase 1 — Babak Penyisihan Online Criteria:
+   *   technical  : Technical Architecture & Feasibility  — 30%
+   *   problem    : Problem Relevance & Solution Fit       — 20%
+   *   innovation : Innovation & Value Proposition         — 25%
+   *   market     : Market & Impact Viability              — 15%
+   *   document   : Document Clarity & Structure           — 10%
    */
   async getWeights() {
     const keys = [
-      "scoring_weight_mvp",
-      "scoring_weight_impact",
-      "scoring_weight_creative",
-      "scoring_weight_pitch",
+      "scoring_weight_technical",
+      "scoring_weight_problem",
+      "scoring_weight_innovation",
+      "scoring_weight_market",
+      "scoring_weight_document",
     ];
 
     const configs = await db.query.systemConfig.findMany({
@@ -21,33 +29,47 @@ export const scoringService = {
     });
 
     const weights = {
-      mvp: 0.35,
-      impact: 0.3,
-      creative: 0.2,
-      pitch: 0.15,
+      technical: 0.30,
+      problem: 0.20,
+      innovation: 0.25,
+      market: 0.15,
+      document: 0.10,
     };
 
     configs.forEach((c) => {
-      if (c.key === "scoring_weight_mvp") weights.mvp = parseFloat(c.value);
-      if (c.key === "scoring_weight_impact") weights.impact = parseFloat(c.value);
-      if (c.key === "scoring_weight_creative") weights.creative = parseFloat(c.value);
-      if (c.key === "scoring_weight_pitch") weights.pitch = parseFloat(c.value);
+      if (c.key === "scoring_weight_technical")  weights.technical  = parseFloat(c.value);
+      if (c.key === "scoring_weight_problem")    weights.problem    = parseFloat(c.value);
+      if (c.key === "scoring_weight_innovation") weights.innovation = parseFloat(c.value);
+      if (c.key === "scoring_weight_market")     weights.market     = parseFloat(c.value);
+      if (c.key === "scoring_weight_document")   weights.document   = parseFloat(c.value);
     });
 
     return weights;
   },
 
   /**
-   * Submit or update a score for a team by a judge.
-   * Ensures judge is assigned to team and scores are valid.
+   * Submit or update a Phase 1 score for a team by a judge.
+   * Ensures judge is assigned to team and scores are valid (1–100).
    */
   async submitScore(
     userId: string,
     teamId: string,
-    scores: { mvpScore: number; impactScore: number; creativeScore: number; pitchScore: number }
+    scores: {
+      technicalScore: number;
+      problemScore: number;
+      innovationScore: number;
+      marketScore: number;
+      documentScore: number;
+    }
   ) {
     // Validate score ranges
-    const allScores = [scores.mvpScore, scores.impactScore, scores.creativeScore, scores.pitchScore];
+    const allScores = [
+      scores.technicalScore,
+      scores.problemScore,
+      scores.innovationScore,
+      scores.marketScore,
+      scores.documentScore,
+    ];
     if (allScores.some((s) => s < 1 || s > 100)) {
       throw new AppError(400, "Scores must be between 1 and 100.");
     }
@@ -92,10 +114,11 @@ export const scoringService = {
         [scoreRecord] = await tx
           .update(schema.judgeScores)
           .set({
-            mvpScore: scores.mvpScore,
-            impactScore: scores.impactScore,
-            creativeScore: scores.creativeScore,
-            pitchScore: scores.pitchScore,
+            technicalScore: scores.technicalScore,
+            problemScore: scores.problemScore,
+            innovationScore: scores.innovationScore,
+            marketScore: scores.marketScore,
+            documentScore: scores.documentScore,
             finalScore: finalScore.toString(),
             updatedAt: new Date(),
           })
@@ -107,10 +130,11 @@ export const scoringService = {
           .values({
             judgeId: judge.id,
             teamId,
-            mvpScore: scores.mvpScore,
-            impactScore: scores.impactScore,
-            creativeScore: scores.creativeScore,
-            pitchScore: scores.pitchScore,
+            technicalScore: scores.technicalScore,
+            problemScore: scores.problemScore,
+            innovationScore: scores.innovationScore,
+            marketScore: scores.marketScore,
+            documentScore: scores.documentScore,
             finalScore: finalScore.toString(),
           })
           .returning();
@@ -145,7 +169,7 @@ export const scoringService = {
   },
 
   /**
-   * Get team scoreboard with aggregated scores
+   * Get team scoreboard with aggregated scores (Phase 1 leaderboard)
    */
   async getLeaderboard() {
     return await db.execute(sql`

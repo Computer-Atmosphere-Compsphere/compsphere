@@ -345,11 +345,17 @@ export const judgeScores = pgTable(
     teamId: uuid("team_id")
       .notNull()
       .references(() => competitionTeams.id, { onDelete: "cascade" }),
-    // Scores 1-100
-    mvpScore: integer("mvp_score").notNull(),
-    impactScore: integer("impact_score").notNull(),
-    creativeScore: integer("creative_score").notNull(),
-    pitchScore: integer("pitch_score").notNull(),
+    // Phase 1 Judging Criteria — Babak Penyisihan Online (scores 1-100)
+    // Technical Architecture & Feasibility — 30%
+    technicalScore: integer("technical_score").notNull(),
+    // Problem Relevance & Solution Fit — 20%
+    problemScore: integer("problem_score").notNull(),
+    // Innovation & Value Proposition — 25%
+    innovationScore: integer("innovation_score").notNull(),
+    // Market & Impact Viability — 15%
+    marketScore: integer("market_score").notNull(),
+    // Document Clarity & Structure — 10%
+    documentScore: integer("document_score").notNull(),
     finalScore: numeric("final_score", { precision: 6, scale: 2 }).notNull(),
     submittedAt: timestamp("submitted_at", { withTimezone: true })
       .notNull()

@@ -17,41 +17,49 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ScoreForm {
-  mvpScore: number;
-  impactScore: number;
-  creativeScore: number;
-  pitchScore: number;
+  technicalScore: number;
+  problemScore: number;
+  innovationScore: number;
+  marketScore: number;
+  documentScore: number;
   notes: string;
 }
 
 const CRITERIA = [
   {
-    key: "mvpScore" as const,
-    label: "MVP / Technical Quality",
-    weight: "35%",
-    weightValue: 0.35,
-    description: "Completeness, technical depth, architecture quality, and prototype sophistication.",
-  },
-  {
-    key: "impactScore" as const,
-    label: "Impact & Scalability",
+    key: "technicalScore" as const,
+    label: "Technical Architecture & Feasibility",
     weight: "30%",
     weightValue: 0.30,
-    description: "Potential reach, societal value, real-world applicability, and growth potential.",
+    description: "Evaluates the logic of system architecture, suitability of tech stack, and practical feasibility to execute into a working MVP.",
   },
   {
-    key: "creativeScore" as const,
-    label: "Creativity & Innovation",
+    key: "problemScore" as const,
+    label: "Problem Relevance & Solution Fit",
     weight: "20%",
     weightValue: 0.20,
-    description: "Novelty, uniqueness, originality of the solution approach.",
+    description: "Evaluates real & urgent problem validation by data, and whether the proposed solution logically solves it.",
   },
   {
-    key: "pitchScore" as const,
-    label: "Pitch & Presentation",
+    key: "innovationScore" as const,
+    label: "Innovation & Value Proposition",
+    weight: "25%",
+    weightValue: 0.25,
+    description: "Evaluates originality, novelty, technological innovation, and unique selling proposition.",
+  },
+  {
+    key: "marketScore" as const,
+    label: "Market & Impact Viability",
     weight: "15%",
     weightValue: 0.15,
-    description: "Clarity of communication, slide design, narrative flow, and delivery.",
+    description: "Potential real-world impact, clear target market, long-term sustainability, and application scalability.",
+  },
+  {
+    key: "documentScore" as const,
+    label: "Document Clarity & Structure",
+    weight: "10%",
+    weightValue: 0.10,
+    description: "Clarity, completeness, neatness, logical flow of thought, and adherence to proposal anatomy format.",
   },
 ];
 
@@ -76,10 +84,11 @@ export function Scoring() {
 
   const { control, handleSubmit, watch, formState: { errors } } = useForm<ScoreForm>({
     defaultValues: {
-      mvpScore: existingScore?.mvpScore ?? 70,
-      impactScore: existingScore?.impactScore ?? 70,
-      creativeScore: existingScore?.creativeScore ?? 70,
-      pitchScore: existingScore?.pitchScore ?? 70,
+      technicalScore: existingScore?.technicalScore ?? 70,
+      problemScore: existingScore?.problemScore ?? 70,
+      innovationScore: existingScore?.innovationScore ?? 70,
+      marketScore: existingScore?.marketScore ?? 70,
+      documentScore: existingScore?.documentScore ?? 70,
       notes: existingScore?.notes ?? "",
     },
   });

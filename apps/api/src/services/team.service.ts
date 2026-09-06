@@ -296,12 +296,12 @@ export const teamService = {
     // Rule: Hide Devpost rank on participant dashboard unless:
     // 1. Competition is in Phase 2
     // OR
-    // 2. Team passed Phase 1, evaluated by at least 2 judges in Phase 1, and ranked in top 30
+    // 2. Team completed Phase 1 judging (status JUDGED / TOP30 / FINALIST), evaluated by at least 2 judges, and ranked in top 30
     const isPhase2 = competitionPhase === "2";
     const isPhase1Qualified =
+      (team.status === "JUDGED" || team.status === "TOP30" || team.status === "FINALIST") &&
       judgeCount >= 2 &&
-      team.originalRank <= 30 &&
-      ["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status);
+      team.originalRank <= 30;
 
     const canShowRank = isPhase2 || isPhase1Qualified;
 

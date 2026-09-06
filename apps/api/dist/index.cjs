@@ -101465,7 +101465,7 @@ var teamService = {
     });
     const judgeCount = judgeScores2.length;
     const isPhase2 = competitionPhase === "2";
-    const isPhase1Qualified = judgeCount >= 2 && team.originalRank <= 30 && ["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status);
+    const isPhase1Qualified = (team.status === "JUDGED" || team.status === "TOP30" || team.status === "FINALIST") && judgeCount >= 2 && team.originalRank <= 30;
     const canShowRank = isPhase2 || isPhase1Qualified;
     return {
       team: {

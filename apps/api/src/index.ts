@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 // Polyfill DOMMatrix for pdfjs-dist (pdf-parse dependency) — must be before any pdf imports
-if (typeof globalThis.DOMMatrix === "undefined") {
+if (typeof (globalThis as Record<string, any>).DOMMatrix === "undefined") {
   (globalThis as any).DOMMatrix = class DOMMatrix {
     constructor() {}
     static fromMatrix() { return new DOMMatrix(); }
@@ -9,7 +9,7 @@ if (typeof globalThis.DOMMatrix === "undefined") {
     static fromFloat32Array() { return new DOMMatrix(); }
   };
 }
-if (typeof globalThis.ImageData === "undefined") {
+if (typeof (globalThis as Record<string, any>).ImageData === "undefined") {
   (globalThis as any).ImageData = class ImageData {
     constructor(data: any, width: number, height: number) {
       this.data = data;
@@ -21,7 +21,7 @@ if (typeof globalThis.ImageData === "undefined") {
     height: number;
   };
 }
-if (typeof globalThis.Path2D === "undefined") {
+if (typeof (globalThis as Record<string, any>).Path2D === "undefined") {
   (globalThis as any).Path2D = class Path2D {
     constructor() {}
     addPath() {}
@@ -149,49 +149,39 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../uploads"));
 
-// Dynamic file-serving handler: redirects to Supabase Storage in production, or serves locally in dev
+
+// Dynamic file-serving handler: redirects to a Hostinger presigned URL in production,
+// or serves the file directly from local disk in development.
 const uploadServeHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Capture whatever comes after /uploads/* or /api/uploads/*
   const storageKey = req.params[0];
-  
-  if (process.env.STORAGE_PROVIDER === "supabase") {
+
+  if (process.env.STORAGE_PROVIDER === "hostinger") {
     try {
-      const { supabase } = await import("./lib/storage");
-      if (!supabase) {
-        return res.status(500).send("Supabase client is not initialized");
-      }
-      
-      const parts = storageKey.split("/");
-      const bucketName = parts[0];
-      const fileName = parts.slice(1).join("/");
-      
-      const { data } = supabase.storage.from(bucketName).getPublicUrl(fileName);
-      
-      if (!data?.publicUrl) {
-        return res.status(404).send("File not found in Supabase Storage");
-      }
-      
-      return res.redirect(data.publicUrl);
+      const { generatePresignedUrl } = await import("./lib/storage");
+      const presignedUrl = generatePresignedUrl(storageKey);
+      return res.redirect(302, presignedUrl);
     } catch (err) {
       return next(err);
     }
-  } else {
-    try {
-      const filePath = path.resolve(uploadsDir, storageKey);
-      return res.sendFile(filePath, (err) => {
-        if (err) {
-          res.status(404).send("File not found");
-        }
-      });
-    } catch (err) {
-      // Prevent server crash from synchronous sendFile errors
-      return next(err);
-    }
+  }
+
+  // Local dev fallback — serve file directly from disk
+  try {
+    const filePath = path.resolve(uploadsDir, storageKey);
+    return res.sendFile(filePath, (err) => {
+      if (err) {
+        res.status(404).send("File not found");
+      }
+    });
+  } catch (err) {
+    return next(err);
   }
 };
 
 app.get("/uploads/*", uploadServeHandler);
 app.get("/api/uploads/*", uploadServeHandler);
+
 
 // -------------------------------------------------------------------------
 // API Routes

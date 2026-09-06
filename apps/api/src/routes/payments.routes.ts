@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware";
 import { requireRole, requireTeamLeader } from "../middleware/role.middleware";
 import { paymentService } from "../services/payment.service";
-import { uploadPaymentProof, uploadDocument, getStorageKey } from "../middleware/upload.middleware";
+import { uploadPaymentProof, uploadDocument } from "../middleware/upload.middleware";
 import { uploadFileToStorage } from "../lib/storage";
 import { AppError } from "../middleware/error.middleware";
 import { z } from "zod";
@@ -39,11 +39,7 @@ router.post(
 
         if (req.file) {
           filename = req.file.originalname;
-          if (process.env.STORAGE_PROVIDER === "supabase") {
-            storageKey = await uploadFileToStorage("payments", req.file.path, req.file.filename, req.file.mimetype);
-          } else {
-            storageKey = getStorageKey(req.file.path);
-          }
+          storageKey = await uploadFileToStorage("payments", req.file.path, req.file.filename, req.file.mimetype);
         }
 
         const payment = await paymentService.submitVerification(
@@ -85,11 +81,7 @@ router.post(
 
         if (req.file) {
           filename = req.file.originalname;
-          if (process.env.STORAGE_PROVIDER === "supabase") {
-            storageKey = await uploadFileToStorage("documents", req.file.path, req.file.filename, req.file.mimetype);
-          } else {
-            storageKey = getStorageKey(req.file.path);
-          }
+          storageKey = await uploadFileToStorage("documents", req.file.path, req.file.filename, req.file.mimetype);
         }
 
         const payment = await paymentService.submitVerification(

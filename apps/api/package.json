@@ -13,7 +13,7 @@
     "@compsphere/db": "*",
     "@compsphere/types": "*",
     "better-auth": "^1.2.7",
-    "@supabase/supabase-js": "^2.45.1",
+
     "compression": "^1.7.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

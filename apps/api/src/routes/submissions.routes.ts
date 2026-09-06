@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware";
 import { submissionService } from "../services/submission.service";
-import { uploadPresentation, getStorageKey } from "../middleware/upload.middleware";
+import { uploadPresentation } from "../middleware/upload.middleware";
 import { uploadFileToStorage } from "../lib/storage";
 import { z } from "zod";
 
@@ -31,11 +31,7 @@ router.post("/submit", requireAuth, async (req, res, next) => {
       if (req.file) {
         slideFilename = req.file.originalname;
         slideSizeBytes = req.file.size;
-        if (process.env.STORAGE_PROVIDER === "supabase") {
-          slideStorageKey = await uploadFileToStorage("presentations", req.file.path, req.file.filename, req.file.mimetype);
-        } else {
-          slideStorageKey = getStorageKey(req.file.path);
-        }
+        slideStorageKey = await uploadFileToStorage("presentations", req.file.path, req.file.filename, req.file.mimetype);
       }
 
       const submission = await submissionService.submit(

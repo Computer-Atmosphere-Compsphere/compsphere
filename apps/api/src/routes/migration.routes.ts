@@ -463,8 +463,8 @@ router.post("/submit-team", upload.single("proposalFile"), async (req, res, next
     }
 
     // Move file to permanent storage via the shared storage abstraction.
-    // On Vercel with STORAGE_PROVIDER=supabase → uploads to Supabase Storage.
-    // Locally or when STORAGE_PROVIDER is unset → moves to local uploads dir.
+    // In production with STORAGE_PROVIDER=hostinger -> uploads via Hostinger storage bridge.
+    // Locally or when STORAGE_PROVIDER is unset -> moves to local uploads dir.
     let storageKey: string;
     const newFilename = `${req.file.filename}.pdf`;
     storageKey = await uploadFileToStorage("proposals", req.file.path, newFilename, req.file.mimetype);

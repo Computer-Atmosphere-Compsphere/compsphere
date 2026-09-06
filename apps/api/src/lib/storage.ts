@@ -1,47 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
-export const isSupabase = process.env.STORAGE_PROVIDER === "supabase";
+export const isHostinger = process.env.STORAGE_PROVIDER === "hostinger";
 
-function getJwtRole(token: string): string {
-  try {
-    const parts = token.split(".");
-    if (parts.length === 3) {
-      const payload = Buffer.from(parts[1], "base64").toString("utf-8");
-      const claims = JSON.parse(payload);
-      return claims.role || "unknown";
-    }
-  } catch (e) {
-    return "error";
-  }
-  return "invalid";
-}
-
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
-if (isSupabase && supabaseKey) {
-  console.log(`[Storage Init] Supabase URL: ${process.env.SUPABASE_URL}, Role of key: ${getJwtRole(supabaseKey)}`);
-}
-
-// We initialize the supabase client conditionally to prevent errors if variables are not provided in local dev
-export const supabase = isSupabase
-  ? createClient(
-      process.env.SUPABASE_URL || "",
-      supabaseKey
-    )
-  : null;
-
-const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : path.join(__dirname, "../../../uploads"));
+const uploadsDir =
+  process.env.UPLOAD_DIR ||
+  (process.env.VERCEL
+    ? "/tmp/uploads"
+    : path.join(__dirname, "../../../uploads"));
 
 /**
- * Dynamically upload a local temporary file to either local disk or Supabase Storage.
- * After successful upload to Supabase, the local temporary file is cleaned up.
- * 
- * @param bucketName The folder name locally / Bucket name in Supabase (e.g. "proposals", "payments")
- * @param localTempPath The temporary path of the uploaded file on disk (from multer)
- * @param fileName The desired final filename (e.g. "unique-id.pdf")
- * @param mimeType The file's MIME type
- * @returns The storage key relative path (e.g. "proposals/unique-id.pdf")
+ * Upload a file to the Hostinger PHP storage bridge (production)
+ * or move it to local disk (development).
+ *
+ * @param bucketName  Folder name on storage (e.g. "payments", "proposals")
+ * @param localTempPath  Temp file path written by multer
+ * @param fileName  Final filename (UUID-based, from upload middleware)
+ * @param mimeType  File MIME type
+ * @returns  The storage key (e.g. "payments/abc123.pdf") stored in DB
  */
 export async function uploadFileToStorage(
   bucketName: string,
@@ -49,65 +26,105 @@ export async function uploadFileToStorage(
   fileName: string,
   mimeType: string
 ): Promise<string> {
-  const relativeKey = `${bucketName}/${fileName}`;
-
-  if (isSupabase && supabase) {
+  if (isHostinger) {
     if (!fs.existsSync(localTempPath)) {
-      throw new Error(`[Storage] Temp file not found at ${localTempPath}`);
+      throw new Error(`[Storage] Temp file not found at: ${localTempPath}`);
+    }
+
+    const storageUrl = process.env.HOSTINGER_STORAGE_URL;
+    const uploadToken = process.env.HOSTINGER_UPLOAD_TOKEN;
+
+    if (!storageUrl || !uploadToken) {
+      throw new Error(
+        "[Storage] HOSTINGER_STORAGE_URL or HOSTINGER_UPLOAD_TOKEN is not set"
+      );
     }
 
     const fileBuffer = fs.readFileSync(localTempPath);
-    const keyRole = getJwtRole(supabaseKey);
-    console.log(`[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to bucket "${bucketName}" using role="${keyRole}"...`);
+    const form = new FormData();
+    form.append("file", new Blob([fileBuffer], { type: mimeType }), fileName);
+    form.append("folder", bucketName);
 
-    // Auto-create bucket if it doesn't exist yet
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    console.log(`[Storage] listBuckets result: ${listError ? `error=${JSON.stringify(listError)}` : `found ${buckets?.length ?? 0} buckets`}`);
-    if (!listError && buckets && !buckets.some((b) => b.name === bucketName)) {
-      console.log(`[Storage] Bucket "${bucketName}" missing — creating...`);
-      const { error: createErr } = await supabase.storage.createBucket(bucketName, { public: true });
-      if (createErr) {
-        console.error(`[Storage] Failed to create bucket "${bucketName}":`, JSON.stringify(createErr));
-        // Don't throw — try upload anyway, bucket may exist with different config
-      }
+    console.log(
+      `[Storage] Uploading ${fileName} (${fileBuffer.byteLength}B) to Hostinger folder="${bucketName}"...`
+    );
+
+    const response = await fetch(`${storageUrl}?action=upload`, {
+      method: "POST",
+      headers: { "X-Storage-Token": uploadToken },
+      body: form,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(
+        `[Storage] Hostinger upload failed (HTTP ${response.status}): ${errText}`
+      );
     }
 
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, fileBuffer, { contentType: mimeType, upsert: true });
+    const result = (await response.json()) as { success: boolean; key: string };
 
-    if (error) {
-      console.error(`[Storage] Upload failed (role="${keyRole}"): ${JSON.stringify(error)}`);
-      throw new Error(`Supabase Storage upload failed (role=${keyRole}): ${error.message}`);
-    }
-
-    // Clean up temporary local file after successful upload to Supabase
+    // Clean up temp file after successful remote upload
     try {
       fs.unlinkSync(localTempPath);
     } catch (e) {
-      console.warn(`[Storage Warning] Failed to delete temporary local file at ${localTempPath}:`, e);
+      console.warn(`[Storage] Warning: could not delete temp file ${localTempPath}`, e);
     }
 
-    return relativeKey;
-  } else {
-    // Local storage fallback
-    const targetDir = path.join(uploadsDir, bucketName);
-    try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-      }
-    } catch (e) {
-      console.warn(`[Storage] Could not create directory ${targetDir}:`, e);
-    }
-
-    const targetPath = path.join(targetDir, fileName);
-    
-    if (fs.existsSync(localTempPath)) {
-      fs.renameSync(localTempPath, targetPath);
-    } else {
-      throw new Error(`Temp file not found at ${localTempPath} for local storage fallback`);
-    }
-
-    return relativeKey;
+    console.log(`[Storage] Stored at key: ${result.key}`);
+    return result.key;
   }
+
+  // ── Local disk fallback (development) ────────────────────────────
+  const relativeKey = `${bucketName}/${fileName}`;
+  const targetDir = path.join(uploadsDir, bucketName);
+
+  try {
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+  } catch (e) {
+    console.warn(`[Storage] Could not create directory ${targetDir}:`, e);
+  }
+
+  const targetPath = path.join(targetDir, fileName);
+  if (fs.existsSync(localTempPath)) {
+    fs.renameSync(localTempPath, targetPath);
+  } else {
+    throw new Error(
+      `[Storage] Temp file not found at ${localTempPath} for local storage fallback`
+    );
+  }
+
+  return relativeKey;
+}
+
+/**
+ * Generate a time-limited HMAC-SHA256 presigned URL for private file access.
+ * The Hostinger PHP bridge verifies the signature + expiry before streaming the file.
+ *
+ * @param storageKey  The key returned by uploadFileToStorage (e.g. "payments/abc.pdf")
+ * @param ttlSeconds  How long the URL is valid — default 1 hour
+ */
+export function generatePresignedUrl(
+  storageKey: string,
+  ttlSeconds = 3600
+): string {
+  const signingKey = process.env.HOSTINGER_SIGNING_KEY;
+  const storageUrl = process.env.HOSTINGER_STORAGE_URL;
+
+  if (!signingKey || !storageUrl) {
+    throw new Error(
+      "[Storage] HOSTINGER_SIGNING_KEY or HOSTINGER_STORAGE_URL is not set"
+    );
+  }
+
+  const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const payload = `${storageKey}:${expires}`;
+  const sig = crypto
+    .createHmac("sha256", signingKey)
+    .update(payload)
+    .digest("hex");
+
+  return `${storageUrl}?key=${encodeURIComponent(storageKey)}&expires=${expires}&sig=${sig}`;
 }

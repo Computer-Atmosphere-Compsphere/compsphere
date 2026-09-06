@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { NeonButton } from "@/components/compsphere/NeonButton";
 import { StatusBadge } from "@/components/compsphere/StatusBadge";
@@ -445,7 +445,7 @@ export function TeamDetail() {
                       {proposal.files.map((f: any) => (
                         <button
                           key={f.id}
-                          onClick={() => setViewerFile({ url: `/api/uploads/${f.storageKey}`, name: f.originalFilename })}
+                          onClick={() => setViewerFile({ url: getUploadUrl(f.storageKey), name: f.originalFilename })}
                           className="w-full flex items-center justify-between p-2.5 rounded bg-bg-surface border border-border/60 hover:border-brand-primary/40 transition-colors text-left"
                         >
                           <span className="flex items-center gap-2 text-xs text-text-primary">
@@ -671,7 +671,7 @@ export function TeamDetail() {
                     </div>
                     {p.proofFilename && p.proofStorageKey && (
                       <button
-                        onClick={() => setViewerFile({ url: `/api/uploads/${p.proofStorageKey}`, name: p.proofFilename })}
+                        onClick={() => setViewerFile({ url: getUploadUrl(p.proofStorageKey), name: p.proofFilename })}
                         className="flex items-center gap-1.5 text-[10px] text-brand-primary hover:underline truncate"
                       >
                         <FileText className="w-3 h-3" />

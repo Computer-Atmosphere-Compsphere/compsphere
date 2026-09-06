@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { NeonButton } from "@/components/compsphere/NeonButton";
 import { StatusBadge } from "@/components/compsphere/StatusBadge";
@@ -174,7 +174,7 @@ export function Payments() {
                 {/* Proof file */}
                 {payment.proofStorageKey && (
                   <button
-                    onClick={() => setViewerFile({ url: `/api/uploads/${payment.proofStorageKey}`, name: payment.proofFilename || "Payment Proof" })}
+                    onClick={() => setViewerFile({ url: getUploadUrl(payment.proofStorageKey), name: payment.proofFilename || "Payment Proof" })}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded bg-bg-surface border border-border/60 hover:border-brand-primary/40 transition-colors text-left"
                   >
                     <FileImage className="w-4 h-4 text-brand-primary shrink-0" />

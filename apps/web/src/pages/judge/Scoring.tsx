@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { NeonButton } from "@/components/compsphere/NeonButton";
 import { useForm, Controller } from "react-hook-form";
@@ -119,7 +119,7 @@ export function Scoring() {
   }
 
   const proposalFile = team.proposal?.files?.[0];
-  const proposalUrl = proposalFile ? `/api/uploads/${proposalFile.storageKey}` : null;
+  const proposalUrl = proposalFile ? getUploadUrl(proposalFile.storageKey) : null;
 
   return (
     <div className="space-y-4">

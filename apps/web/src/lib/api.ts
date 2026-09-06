@@ -15,7 +15,20 @@ export class ApiError extends Error {
 
 // Use relative URL by default so requests go through the Vite dev proxy.
 // Set VITE_API_URL only when the backend is on a different origin.
-const API_BASE = import.meta.env.VITE_API_URL || "";
+export const API_BASE = import.meta.env.VITE_API_URL || "";
+
+/**
+ * Generate a full URL pointing to the API upload server.
+ * Ensures cross-origin requests (e.g. frontend on www -> api on api.compsphere12.id) work properly.
+ */
+export function getUploadUrl(storageKey: string | null | undefined): string {
+  if (!storageKey) return "";
+  if (storageKey.startsWith("http://") || storageKey.startsWith("https://")) {
+    return storageKey;
+  }
+  const cleanKey = storageKey.startsWith("/") ? storageKey : `/${storageKey}`;
+  return `${API_BASE}/api/uploads${cleanKey}`;
+}
 
 class ApiClient {
   private async request<T>(

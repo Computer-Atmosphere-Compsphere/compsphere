@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { Link } from "react-router-dom";
 import { FileText, ExternalLink } from "lucide-react";
@@ -43,7 +43,7 @@ export function Proposals() {
               <div className="flex items-center gap-3">
                 {p.fileStorageKey && (
                   <a
-                    href={`/api/uploads/${p.fileStorageKey}`}
+                    href={getUploadUrl(p.fileStorageKey)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs text-brand-primary hover:underline"

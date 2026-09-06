@@ -156,7 +156,7 @@ const uploadServeHandler = async (req: express.Request, res: express.Response, n
   // Capture whatever comes after /uploads/* or /api/uploads/*
   const storageKey = req.params[0];
 
-  if (process.env.STORAGE_PROVIDER === "hostinger") {
+  if (process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger") {
     try {
       const { generatePresignedUrl } = await import("./lib/storage");
       const presignedUrl = generatePresignedUrl(storageKey);

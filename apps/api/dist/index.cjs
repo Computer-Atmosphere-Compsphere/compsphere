@@ -104486,7 +104486,7 @@ app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
 var uploadsDir3 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path5.default.join(__dirname, "../uploads"));
 var uploadServeHandler = async (req, res, next) => {
   const storageKey = req.params[0];
-  if (process.env.STORAGE_PROVIDER === "hostinger") {
+  if (process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger") {
     try {
       const { generatePresignedUrl: generatePresignedUrl2 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
       const presignedUrl = generatePresignedUrl2(storageKey);

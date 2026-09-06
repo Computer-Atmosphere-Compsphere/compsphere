@@ -1,52 +1,50 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { StatusBadge } from "@/components/compsphere/StatusBadge";
-import { FileCode2, Link as LinkIcon, Package } from "lucide-react";
+import { FileCode2, Package, Link as LinkIcon, RefreshCw, FolderGit2 } from "lucide-react";
 
 export function Submissions() {
-  const { data, isLoading } = useQuery<any[]>({
+  const { data: submissions = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ["admin-submissions"],
     queryFn: () => api.get("/api/admin/submissions"),
-    refetchInterval: 30_000,
   });
 
-  const submissions: any[] = data ?? [];
-  const submitted = submissions.filter((s) => s.status === "SUBMITTED" || s.status === "LOCKED");
-  const pending = submissions.filter((s) => s.status === "PENDING");
-
   return (
-    <div className="space-y-8">
-      <div className="pb-6 border-b border-border flex justify-between items-end">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-text-primary">Submissions Monitor</h1>
-          <p className="text-xs text-text-secondary mt-1">
+          <h1 className="text-2xl font-extrabold text-text-primary">Deliverables & Submissions</h1>
+          <p className="text-xs text-text-muted mt-1">
             Track Phase 2 deliverables: proposals, PPTs, prototypes, and videos.
           </p>
         </div>
-        <div className="flex gap-6 text-center text-xs">
-          <div>
-            <p className="text-brand-primary font-mono font-bold text-2xl">{submitted.length}</p>
-            <p className="text-text-muted">Submitted</p>
-          </div>
-          <div>
-            <p className="text-yellow-400 font-mono font-bold text-2xl">{pending.length}</p>
-            <p className="text-text-muted">Missing</p>
-          </div>
-        </div>
+        <button
+          onClick={() => refetch()}
+          className="p-2 rounded bg-bg-surface border border-border text-text-muted hover:text-text-primary transition"
+          title="Refresh submissions"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
       {isLoading ? (
-        <div className="flex h-40 items-center justify-center">
-          <div className="w-7 h-7 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+        <div className="flex justify-center p-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-primary" />
         </div>
+      ) : submissions.length === 0 ? (
+        <GlassPanel className="p-8 text-center">
+          <FolderGit2 className="w-10 h-10 text-text-muted mx-auto mb-2 opacity-50" />
+          <p className="text-sm font-bold text-text-primary">No submissions recorded</p>
+          <p className="text-xs text-text-muted mt-1">Deliverables submitted by teams will appear here.</p>
+        </GlassPanel>
       ) : (
-        <div className="overflow-x-auto rounded border border-border">
-          <table className="min-w-full text-xs text-left">
-            <thead className="bg-bg-surface text-text-muted uppercase border-b border-border">
+        <div className="border border-border rounded-xl bg-bg-surface/50 overflow-hidden">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-bg-surface border-b border-border font-bold uppercase text-[10px] text-text-muted">
               <tr>
-                <th className="px-4 py-3">Team</th>
+                <th className="px-4 py-3">Team Code</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">File / Link</th>
                 <th className="px-4 py-3">Submitted At</th>
@@ -68,7 +66,7 @@ export function Submissions() {
                   <td className="px-4 py-3">
                     {s.fileStorageKey ? (
                       <a
-                        href={`/api/uploads/${s.fileStorageKey}`}
+                        href={getUploadUrl(s.fileStorageKey)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-brand-primary hover:underline"

@@ -1,41 +1,35 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { StatusBadge } from "@/components/compsphere/StatusBadge";
-import { Globe, FileText, Download } from "lucide-react";
+import { FileText, Globe } from "lucide-react";
 
 export function Verification() {
-  const { data, isLoading } = useQuery<any>({
-    queryKey: ["admin-verification"],
-    queryFn: () => api.get("/api/admin/teams?category=INTERNATIONAL"),
+  const { data: teams = [], isLoading } = useQuery<any[]>({
+    queryKey: ["admin-international-verification"],
+    queryFn: () => api.get("/api/admin/international-teams"),
   });
 
-  const teams: any[] = data ?? [];
-
   return (
-    <div className="space-y-8">
-      <div className="pb-6 border-b border-border">
-        <h1 className="text-3xl font-extrabold text-text-primary">International Verification</h1>
-        <p className="text-xs text-text-secondary mt-1">
-          Review identity and commitment letter documents submitted by international teams.
-        </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-extrabold text-text-primary">International Verification</h1>
+        <p className="text-xs text-text-muted mt-1">Review commitment letters & student ID scans for international teams.</p>
       </div>
 
       {isLoading ? (
-        <div className="flex h-40 items-center justify-center">
-          <div className="w-7 h-7 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+        <div className="flex justify-center p-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-primary" />
         </div>
       ) : teams.length === 0 ? (
-        <GlassPanel className="text-center py-14 space-y-3">
-          <Globe className="w-10 h-10 text-brand-primary mx-auto" />
-          <p className="text-sm font-bold text-text-primary">No International Teams</p>
-          <p className="text-xs text-text-muted">No international category submissions found.</p>
+        <GlassPanel className="p-8 text-center text-text-muted text-xs">
+          No international teams pending document verification.
         </GlassPanel>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {teams.map((team: any) => (
-            <GlassPanel key={team.id} className="flex flex-wrap justify-between items-start gap-4">
+            <GlassPanel key={team.id} className="flex flex-wrap justify-between items-center gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-brand-primary" />
@@ -47,7 +41,7 @@ export function Verification() {
               <div className="flex items-center gap-4">
                 {team.latestDocumentKey && (
                   <a
-                    href={`/api/uploads/${team.latestDocumentKey}`}
+                    href={getUploadUrl(team.latestDocumentKey)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs text-brand-primary hover:underline"

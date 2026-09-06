@@ -65056,7 +65056,7 @@ async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType
   }
   return relativeKey;
 }
-function generatePresignedUrl(storageKey, ttlSeconds = 3600) {
+function generatePresignedUrl(storageKey, ttlSeconds = 3600, displayName) {
   const signingKey = process.env.HOSTINGER_SIGNING_KEY;
   const storageUrl = process.env.HOSTINGER_STORAGE_URL;
   if (!signingKey || !storageUrl) {
@@ -65067,7 +65067,11 @@ function generatePresignedUrl(storageKey, ttlSeconds = 3600) {
   const expires = Math.floor(Date.now() / 1e3) + ttlSeconds;
   const payload = `${storageKey}:${expires}`;
   const sig2 = import_crypto9.default.createHmac("sha256", signingKey).update(payload).digest("hex");
-  return `${storageUrl}?key=${encodeURIComponent(storageKey)}&expires=${expires}&sig=${sig2}`;
+  let url = `${storageUrl}?key=${encodeURIComponent(storageKey)}&expires=${expires}&sig=${sig2}`;
+  if (displayName) {
+    url += `&name=${encodeURIComponent(displayName)}`;
+  }
+  return url;
 }
 var import_fs2, import_path3, import_crypto9, isHostinger, uploadsDir2;
 var init_storage = __esm({
@@ -104489,7 +104493,8 @@ var uploadServeHandler = async (req, res, next) => {
   if (process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger") {
     try {
       const { generatePresignedUrl: generatePresignedUrl2 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
-      const presignedUrl = generatePresignedUrl2(storageKey);
+      const displayName = typeof req.query.name === "string" ? req.query.name : void 0;
+      const presignedUrl = generatePresignedUrl2(storageKey, 3600, displayName);
       return res.redirect(302, presignedUrl);
     } catch (err) {
       return next(err);

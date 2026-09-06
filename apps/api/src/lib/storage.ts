@@ -127,10 +127,12 @@ export async function uploadFileToStorage(
  *
  * @param storageKey  The key returned by uploadFileToStorage (e.g. "payments/abc.pdf")
  * @param ttlSeconds  How long the URL is valid — default 1 hour
+ * @param displayName Optional original filename for Content-Disposition header
  */
 export function generatePresignedUrl(
   storageKey: string,
-  ttlSeconds = 3600
+  ttlSeconds = 3600,
+  displayName?: string
 ): string {
   const signingKey = process.env.HOSTINGER_SIGNING_KEY;
   const storageUrl = process.env.HOSTINGER_STORAGE_URL;
@@ -148,5 +150,9 @@ export function generatePresignedUrl(
     .update(payload)
     .digest("hex");
 
-  return `${storageUrl}?key=${encodeURIComponent(storageKey)}&expires=${expires}&sig=${sig}`;
+  let url = `${storageUrl}?key=${encodeURIComponent(storageKey)}&expires=${expires}&sig=${sig}`;
+  if (displayName) {
+    url += `&name=${encodeURIComponent(displayName)}`;
+  }
+  return url;
 }

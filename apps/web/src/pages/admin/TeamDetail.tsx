@@ -117,6 +117,7 @@ export function TeamDetail() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [lastRegeneratedToken, setLastRegeneratedToken] = useState<string | null>(null);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showDropConfirm, setShowDropConfirm] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [viewerFile, setViewerFile] = useState<{ url: string; name: string } | null>(null);
@@ -132,6 +133,7 @@ export function TeamDetail() {
   const verifyMutation = useMutation({
     mutationFn: () => api.post("/api/admin/verify-team", { teamId }),
     onSuccess: () => {
+      setShowApproveConfirm(false);
       queryClient.invalidateQueries({ queryKey: ["admin-team-detail", teamId] });
       queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
     },
@@ -351,7 +353,7 @@ export function TeamDetail() {
         <div className="flex gap-2 shrink-0">
           {team?.status === "VERIFICATION_PENDING" && (
             <NeonButton
-              onClick={() => verifyMutation.mutate()}
+              onClick={() => setShowApproveConfirm(true)}
               disabled={verifyMutation.isPending}
               size="sm"
             >
@@ -995,6 +997,74 @@ export function TeamDetail() {
                     </>
                   )}
                 </NeonButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Approve Team Confirmation Modal ── */}
+      {showApproveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowApproveConfirm(false)}
+        >
+          <div
+            className="w-full max-w-md mx-4 rounded-xl border border-green-900/40 bg-bg-secondary shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-950/60 border border-green-900/50 flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-text-primary">Approve & Verify Team?</h3>
+                  <p className="text-xs text-green-400/80">This will approve the team and update their status to VERIFIED.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-bg-surface border border-border/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Team</span>
+                  <span className="text-[10px] font-bold text-brand-primary bg-brand-dim px-2 py-0.5 rounded uppercase">
+                    {team?.teamCode}
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-text-primary truncate">{team?.teamName}</p>
+                <div className="flex items-center gap-2 text-[10px] text-text-muted">
+                  <span>Rank #{team?.originalRank}</span>
+                  <span>·</span>
+                  <span>{team?.category}</span>
+                  <span>·</span>
+                  <span>{team?.status}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setShowApproveConfirm(false)}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-xs font-bold text-text-secondary hover:text-text-primary hover:border-text-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => verifyMutation.mutate()}
+                  disabled={verifyMutation.isPending}
+                  className="flex-1 py-2.5 rounded-lg border border-green-900/50 bg-green-950/40 text-xs font-bold text-green-400 hover:bg-green-900/40 hover:text-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                >
+                  {verifyMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Yes, Approve Team
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

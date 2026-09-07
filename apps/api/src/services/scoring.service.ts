@@ -1,5 +1,5 @@
 import { db, schema } from "@compsphere/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "./audit.service";
 import { calculateFinalScore } from "@compsphere/types";
@@ -24,8 +24,9 @@ export const scoringService = {
       "scoring_weight_document",
     ];
 
+    // Use inArray for safe parameterized query (avoids sql.raw UUID binding issues)
     const configs = await db.query.systemConfig.findMany({
-      where: sql`key IN (${sql.join(keys.map((k) => sql.raw(`'${k}'`)), sql.raw(","))})`,
+      where: inArray(schema.systemConfig.key, keys),
     });
 
     const weights = {
@@ -46,6 +47,7 @@ export const scoringService = {
 
     return weights;
   },
+
 
   /**
    * Submit or update a Phase 1 score for a team by a judge.

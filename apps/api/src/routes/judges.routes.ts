@@ -3,7 +3,7 @@ import { requireAuth } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
 import { scoringService } from "../services/scoring.service";
 import { db, schema } from "@compsphere/db";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "../services/audit.service";
 import { z } from "zod";
@@ -22,37 +22,43 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
   try {
     const user = req.sessionUser!;
 
-    const judge = await db.query.judges.findFirst({
-      where: eq(schema.judges.userId, user.profileId),
-    });
+    // Single raw SQL join — avoids Drizzle ORM relational N+1 / UUID binding issues
+    const rows = await db.execute(sql`
+      SELECT
+        ja.id              AS assignment_id,
+        ja.assigned_at,
+        ct.id              AS team_id,
+        ct.team_code,
+        ct.team_name,
+        ct.category,
+        ct.status          AS team_status,
+        ct.original_rank,
+        p.id               AS proposal_id,
+        p.title            AS proposal_title,
+        p.description      AS proposal_description,
+        p.devpost_url,
+        js.id              AS score_id,
+        js.technical_score,
+        js.problem_score,
+        js.innovation_score,
+        js.market_score,
+        js.document_score,
+        js.final_score,
+        js.submitted_at    AS score_submitted_at,
+        js.updated_at      AS score_updated_at,
+        j.id               AS judge_id
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      INNER JOIN judge_assignments ja ON ja.judge_id = j.id
+      INNER JOIN competition_teams ct ON ct.id = ja.team_id
+      LEFT JOIN proposals p ON p.team_id = ct.id
+      LEFT JOIN judge_scores js ON js.judge_id = j.id AND js.team_id = ct.id
+      WHERE pr.id = ${user.profileId}
+        AND j.status = 'ACTIVE'
+      ORDER BY ja.assigned_at ASC
+    `);
 
-    if (!judge || judge.status !== "ACTIVE") {
-      throw new AppError(403, "You are not an active judge.", "INACTIVE_JUDGE");
-    }
-
-    const assignments = await db.query.judgeAssignments.findMany({
-      where: eq(schema.judgeAssignments.judgeId, judge.id),
-      with: {
-        team: {
-          with: {
-            proposal: {
-              with: { files: true },
-            },
-          },
-        },
-      },
-      orderBy: (ja, { asc }) => [asc(ja.assignedAt)],
-    });
-
-    // Attach existing scores (single batch query instead of N+1 pool exhaustion)
-    const judgeScores = await db.query.judgeScores.findMany({
-      where: eq(schema.judgeScores.judgeId, judge.id),
-    });
-
-    const assignmentsWithScores = assignments.map((a) => {
-      const score = judgeScores.find((s) => s.teamId === a.teamId);
-      return { ...a, score: score || null };
-    });
+    const rawRows = Array.isArray(rows) ? rows : (rows as any).rows ?? [];
 
     // Check code freeze
     const freezeConfig = await db.query.systemConfig.findFirst({
@@ -61,10 +67,46 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
     const deadline = freezeConfig ? new Date(freezeConfig.value) : null;
     const isFrozen = deadline ? new Date() > deadline : false;
 
+    const assignments = rawRows.map((row: any) => ({
+      id: row.assignment_id,
+      judgeId: row.judge_id,
+      teamId: row.team_id,
+      assignedAt: row.assigned_at,
+      team: {
+        id: row.team_id,
+        teamCode: row.team_code,
+        teamName: row.team_name,
+        category: row.category,
+        status: row.team_status,
+        originalRank: row.original_rank,
+        proposal: row.proposal_id
+          ? {
+              id: row.proposal_id,
+              title: row.proposal_title,
+              description: row.proposal_description,
+              devpostUrl: row.devpost_url,
+            }
+          : null,
+      },
+      score: row.score_id
+        ? {
+            id: row.score_id,
+            technicalScore: Number(row.technical_score),
+            problemScore: Number(row.problem_score),
+            innovationScore: Number(row.innovation_score),
+            marketScore: Number(row.market_score),
+            documentScore: Number(row.document_score),
+            finalScore: row.final_score,
+            submittedAt: row.score_submitted_at,
+            updatedAt: row.score_updated_at,
+          }
+        : null,
+    }));
+
     res.json({
       success: true,
       data: {
-        assignments: assignmentsWithScores,
+        assignments,
         isFrozen,
         deadline: freezeConfig?.value ?? null,
       },
@@ -129,46 +171,59 @@ router.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res,
  */
 router.get("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
-    const judges = await db.query.judges.findMany({
-      with: { user: true },
-      orderBy: (j, { asc }) => [asc(j.id)],
-    });
+    // Single raw SQL with all aggregations — no N+1, no Drizzle relational ORM issues
+    const rows = await db.execute(sql`
+      SELECT
+        j.id,
+        j.status,
+        pr.id          AS user_id,
+        pr.full_name,
+        pr.email,
+        pr.avatar_url,
+        pr.created_at  AS user_created_at,
+        COALESCE(asgn.assigned_count, 0)::int AS assigned_team_count,
+        COALESCE(scrd.scored_count,   0)::int AS scored_count
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS assigned_count
+        FROM judge_assignments
+        GROUP BY judge_id
+      ) asgn ON asgn.judge_id = j.id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS scored_count
+        FROM judge_scores
+        GROUP BY judge_id
+      ) scrd ON scrd.judge_id = j.id
+      ORDER BY pr.full_name ASC
+    `);
 
-    // Group counts in single aggregated queries
-    const assignmentCounts = await db
-      .select({
-        judgeId: schema.judgeAssignments.judgeId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(schema.judgeAssignments)
-      .groupBy(schema.judgeAssignments.judgeId);
+    const rawRows = Array.isArray(rows) ? rows : (rows as any).rows ?? [];
 
-    const scoreCounts = await db
-      .select({
-        judgeId: schema.judgeScores.judgeId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(schema.judgeScores)
-      .groupBy(schema.judgeScores.judgeId);
-
-    const judgesWithCounts = judges.map((j) => {
-      const assigned = assignmentCounts.find((a) => a.judgeId === j.id)?.count ?? 0;
-      const scored = scoreCounts.find((s) => s.judgeId === j.id)?.count ?? 0;
-      return {
-        ...j,
-        assignedTeamCount: assigned,
-        scoredCount: scored,
-      };
-    });
+    const judges = rawRows.map((row: any) => ({
+      id: row.id,
+      status: row.status,
+      userId: row.user_id,
+      user: {
+        id: row.user_id,
+        fullName: row.full_name,
+        email: row.email,
+        avatarUrl: row.avatar_url,
+        createdAt: row.user_created_at,
+      },
+      assignedTeamCount: Number(row.assigned_team_count),
+      scoredCount: Number(row.scored_count),
+    }));
 
     res.json({
       success: true,
-      data: judgesWithCounts,
+      data: judges,
     });
   } catch (error) {
     next(error);
   }
 });
+
 
 /**
  * Add a judge (Admin only)
@@ -330,20 +385,34 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
   try {
     const admin = req.sessionUser!;
 
-    // 1. Get all active judges
-    const judges = await db.query.judges.findMany({
-      where: eq(schema.judges.status, "ACTIVE"),
-      with: { user: { columns: { fullName: true } } },
-    });
+    // 1. Get all active judges (raw SQL, no Drizzle relational)
+    const judgeRows = await db.execute(sql`
+      SELECT j.id, pr.full_name
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      WHERE j.status = 'ACTIVE'
+      ORDER BY j.id ASC
+    `);
+    const judges = (Array.isArray(judgeRows) ? judgeRows : (judgeRows as any).rows ?? []) as {
+      id: string;
+      full_name: string;
+    }[];
 
     if (judges.length < 2) {
       throw new AppError(400, "At least 2 active judges are required for cross-judging.");
     }
 
-    // 2. Get all teams with proposals (eligible for judging)
-    const teams = await db.query.competitionTeams.findMany({
-      orderBy: (t, { asc }) => [asc(t.originalRank)],
-    });
+    // 2. Get all teams ordered by rank (raw SQL)
+    const teamRows = await db.execute(sql`
+      SELECT id, team_code, team_name
+      FROM competition_teams
+      ORDER BY original_rank ASC
+    `);
+    const teams = (Array.isArray(teamRows) ? teamRows : (teamRows as any).rows ?? []) as {
+      id: string;
+      team_code: string;
+      team_name: string;
+    }[];
 
     if (teams.length === 0) {
       throw new AppError(400, "No teams found to assign.");
@@ -360,10 +429,7 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
       const teamId = teams[i].id;
       for (let k = 0; k < JUDGES_PER_TEAM; k++) {
         const judgeIdx = (i + k) % nJudges;
-        assignments.push({
-          judgeId: judges[judgeIdx].id,
-          teamId,
-        });
+        assignments.push({ judgeId: judges[judgeIdx].id, teamId });
       }
     }
 
@@ -376,27 +442,28 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
       return true;
     });
 
-    // 5. Clear old assignments and bulk insert new assignments
-    await db.delete(schema.judgeAssignments);
+    // 5. Clear old assignments
+    await db.execute(sql`DELETE FROM judge_assignments`);
 
-    if (uniqueAssignments.length > 0) {
-      for (let i = 0; i < uniqueAssignments.length; i += 100) {
-        const batch = uniqueAssignments.slice(i, i + 100);
-        await db.insert(schema.judgeAssignments).values(
-          batch.map((a) => ({
-            judgeId: a.judgeId,
-            teamId: a.teamId,
-          }))
-        );
-      }
+    // 6. Bulk insert new assignments (batches of 100 via raw SQL to avoid UUID binding issues)
+    for (let i = 0; i < uniqueAssignments.length; i += 100) {
+      const batch = uniqueAssignments.slice(i, i + 100);
+      const valueClauses = batch.map(
+        (a) => sql`(${a.judgeId}::uuid, ${a.teamId}::uuid, NOW())`
+      );
+      await db.execute(
+        sql`INSERT INTO judge_assignments (judge_id, team_id, assigned_at) VALUES ${sql.join(valueClauses, sql`, `)}`
+      );
     }
 
-    // 8. Update competition phase
-    await db.update(schema.systemConfig)
-      .set({ value: "1", updatedAt: new Date() })
-      .where(eq(schema.systemConfig.key, "competition_phase"));
+    // 7. Update competition phase via upsert
+    await db.execute(sql`
+      INSERT INTO system_config (key, value, type, updated_at)
+      VALUES ('competition_phase', '1', 'STRING', NOW())
+      ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()
+    `);
 
-    // 9. Audit log
+    // 8. Audit log
     await auditService.log(null, {
       actorId: admin.profileId,
       action: "PHASE1_JUDGING_GENERATED",
@@ -406,27 +473,20 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
         judgeCount: nJudges,
         teamCount: nTeams,
         assignmentCount: uniqueAssignments.length,
-        judges: judges.map((j) => j.user?.fullName || j.id),
+        judges: judges.map((j) => (j as any).full_name || j.id),
       },
     });
 
-    // 10. Compute summary stats
+    // 9. Compute summary stats
     const summary = judges.map((j) => {
       const assigned = uniqueAssignments.filter((a) => a.judgeId === j.id);
       return {
         judgeId: j.id,
-        judgeName: j.user?.fullName || "Unknown",
+        judgeName: (j as any).full_name || "Unknown",
         assignedCount: assigned.length,
         teams: assigned.map((a) => a.teamId),
       };
     });
-
-    const perTeamCounts = teams.map((t) => ({
-      teamId: t.id,
-      teamCode: t.teamCode,
-      teamName: t.teamName,
-      judgeCount: uniqueAssignments.filter((a) => a.teamId === t.id).length,
-    }));
 
     res.json({
       success: true,
@@ -434,7 +494,6 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
       data: {
         assignments: uniqueAssignments.length,
         judges: summary,
-        teams: perTeamCounts,
       },
     });
   } catch (error) {
@@ -442,68 +501,114 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
   }
 });
 
+
 /**
  * Get assignment matrix overview (Admin)
  * GET /api/judges/assignment-matrix
+ *
+ * Fully raw SQL — eliminates Drizzle relational ORM issues in production.
  */
 router.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
-    const judges = await db.query.judges.findMany({
-      with: { user: true },
-    });
+    // 1. Judge summary with aggregated counts
+    const judgeMatrixRows = await db.execute(sql`
+      SELECT
+        j.id               AS judge_id,
+        j.status,
+        pr.full_name       AS judge_name,
+        pr.email           AS judge_email,
+        COALESCE(asgn.assigned_count, 0)::int AS assigned_count,
+        COALESCE(scrd.scored_count,   0)::int AS scored_count
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS assigned_count
+        FROM judge_assignments
+        GROUP BY judge_id
+      ) asgn ON asgn.judge_id = j.id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS scored_count
+        FROM judge_scores
+        GROUP BY judge_id
+      ) scrd ON scrd.judge_id = j.id
+      WHERE j.status = 'ACTIVE'
+      ORDER BY pr.full_name ASC
+    `);
+    const judgeMatrixRaw = Array.isArray(judgeMatrixRows)
+      ? judgeMatrixRows
+      : (judgeMatrixRows as any).rows ?? [];
 
-    const assignments = await db.query.judgeAssignments.findMany({
-      orderBy: (ja, { asc }) => [asc(ja.assignedAt)],
-    });
+    // 2. Team matrix with aggregated judge/score counts
+    const teamMatrixRows = await db.execute(sql`
+      SELECT
+        ct.id              AS team_id,
+        ct.team_code,
+        ct.team_name,
+        ct.category,
+        ct.original_rank,
+        COUNT(DISTINCT ja.id)::int  AS judge_count,
+        COUNT(DISTINCT js.id)::int  AS score_count
+      FROM competition_teams ct
+      LEFT JOIN judge_assignments ja ON ja.team_id = ct.id
+      LEFT JOIN judge_scores js      ON js.team_id  = ct.id
+      GROUP BY ct.id, ct.team_code, ct.team_name, ct.category, ct.original_rank
+      ORDER BY ct.original_rank ASC
+    `);
+    const teamMatrixRaw = Array.isArray(teamMatrixRows)
+      ? teamMatrixRows
+      : (teamMatrixRows as any).rows ?? [];
 
-    // Score progress
-    const scores = await db.query.judgeScores.findMany({});
+    // 3. Per-team judge detail (which judge has scored which team)
+    const teamJudgeDetailRows = await db.execute(sql`
+      SELECT
+        ja.team_id,
+        ja.judge_id,
+        pr.full_name       AS judge_name,
+        js.final_score,
+        CASE WHEN js.id IS NOT NULL THEN true ELSE false END AS has_scored
+      FROM judge_assignments ja
+      INNER JOIN judges j     ON j.id  = ja.judge_id
+      INNER JOIN profiles pr  ON pr.id = j.user_id
+      LEFT JOIN judge_scores js
+             ON js.judge_id = ja.judge_id
+            AND js.team_id  = ja.team_id
+      ORDER BY ja.team_id, pr.full_name
+    `);
+    const teamJudgeDetailRaw = Array.isArray(teamJudgeDetailRows)
+      ? teamJudgeDetailRows
+      : (teamJudgeDetailRows as any).rows ?? [];
 
-    const activeJudges = judges.filter((j) => j.status === "ACTIVE");
-
-    const matrix = activeJudges.map((j) => {
-      const myAssignments = assignments.filter((a) => a.judgeId === j.id);
-      const myScores = scores.filter((s) => s.judgeId === j.id);
-      return {
-        judgeId: j.id,
-        judgeName: j.user?.fullName || "Unknown",
-        judgeEmail: j.user?.email,
-        assignedCount: myAssignments.length,
-        scoredCount: myScores.length,
-        teamIds: myAssignments.map((a) => a.teamId),
+    // Build lookup: teamId -> array of judge details
+    const teamJudgeMap = new Map<string, any[]>();
+    for (const row of teamJudgeDetailRaw as any[]) {
+      const entry = {
+        judgeId: row.judge_id,
+        judgeName: row.judge_name,
+        hasScored: row.has_scored === true || row.has_scored === "true",
+        finalScore: row.final_score ?? null,
       };
-    });
+      if (!teamJudgeMap.has(row.team_id)) teamJudgeMap.set(row.team_id, []);
+      teamJudgeMap.get(row.team_id)!.push(entry);
+    }
 
-    // Per-team view
-    const allTeamIds = [...new Set(assignments.map((a) => a.teamId))];
-    const teams = await db.query.competitionTeams.findMany({
-      where: allTeamIds.length > 0 ? inArray(schema.competitionTeams.id, allTeamIds) : undefined,
-      orderBy: (t, { asc }) => [asc(t.originalRank)],
-    });
+    const matrix = (judgeMatrixRaw as any[]).map((row) => ({
+      judgeId: row.judge_id,
+      judgeName: row.judge_name,
+      judgeEmail: row.judge_email,
+      assignedCount: Number(row.assigned_count),
+      scoredCount: Number(row.scored_count),
+    }));
 
-    const teamMatrix = teams.map((t) => {
-      const teamAssignments = assignments.filter((a) => a.teamId === t.id);
-      const teamScores = scores.filter((s) => s.teamId === t.id);
-      return {
-        teamId: t.id,
-        teamCode: t.teamCode,
-        teamName: t.teamName,
-        category: t.category,
-        rank: t.originalRank,
-        judgeCount: teamAssignments.length,
-        scoreCount: teamScores.length,
-        judges: teamAssignments.map((a) => {
-          const judge = judges.find((j) => j.id === a.judgeId);
-          const score = teamScores.find((s) => s.judgeId === a.judgeId);
-          return {
-            judgeId: a.judgeId,
-            judgeName: judge?.user?.fullName || "Unknown",
-            hasScored: !!score,
-            finalScore: score?.finalScore ?? null,
-          };
-        }),
-      };
-    });
+    const teamMatrix = (teamMatrixRaw as any[]).map((row) => ({
+      teamId: row.team_id,
+      teamCode: row.team_code,
+      teamName: row.team_name,
+      category: row.category,
+      rank: Number(row.original_rank),
+      judgeCount: Number(row.judge_count),
+      scoreCount: Number(row.score_count),
+      judges: teamJudgeMap.get(row.team_id) ?? [],
+    }));
 
     res.json({
       success: true,
@@ -522,20 +627,23 @@ router.get("/leaderboard", requireAuth, requireRole("ADMIN"), async (req, res, n
   try {
     const leaderboard = await scoringService.getLeaderboard();
 
-    // Progress stats
-    const totalAssignments = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.judgeAssignments);
+    // Single query for both counts
+    const progressRows = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*) FROM judge_assignments)::int AS total_assignments,
+        (SELECT COUNT(*) FROM judge_scores)::int      AS total_scores
+    `);
+    const progressRaw = Array.isArray(progressRows)
+      ? progressRows[0]
+      : ((progressRows as any).rows ?? [])[0] ?? {};
 
-    const totalScores = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.judgeScores);
-
+    const totalAssignments = Number(progressRaw?.total_assignments ?? 0);
+    const totalScores = Number(progressRaw?.total_scores ?? 0);
     const progress = {
-      totalAssignments: totalAssignments[0]?.count ?? 0,
-      totalScores: totalScores[0]?.count ?? 0,
-      percentage: totalAssignments[0]?.count
-        ? Math.round(((totalScores[0]?.count ?? 0) / totalAssignments[0].count) * 100)
+      totalAssignments,
+      totalScores,
+      percentage: totalAssignments > 0
+        ? Math.round((totalScores / totalAssignments) * 100)
         : 0,
     };
 
@@ -549,3 +657,4 @@ router.get("/leaderboard", requireAuth, requireRole("ADMIN"), async (req, res, n
 });
 
 export default router;
+

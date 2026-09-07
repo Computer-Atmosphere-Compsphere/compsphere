@@ -353,30 +353,22 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
     const nJudges = judges.length;
     const nTeams = teams.length;
 
-    // 3. Clear existing assignments (fresh generation)
-    await db.delete(schema.judgeAssignments);
-
-    // 4. Cross-judging assignment
-    // Each judge covers a window of size ceil(nTeams / nJudges) * 2 / nJudges
-    // But simpler: each team gets 2 judges. We use overlapping sliding windows.
-    const windowSize = Math.ceil((nTeams * 2) / nJudges); // teams per judge
+    // 3. Generate balanced 2-judge cross-assignments using modular rotation
     const assignments: { judgeId: string; teamId: string }[] = [];
+    const JUDGES_PER_TEAM = 2;
 
-    for (let j = 0; j < nJudges; j++) {
-      const startIdx = Math.floor((j * nTeams) / nJudges);
-      const endIdx = startIdx + windowSize;
-
-      for (let t = startIdx; t < endIdx && t < nTeams; t++) {
-        // Wrap around for the last judge
-        const teamIdx = t % nTeams;
+    for (let i = 0; i < nTeams; i++) {
+      const teamId = teams[i].id;
+      for (let k = 0; k < JUDGES_PER_TEAM; k++) {
+        const judgeIdx = (i + k) % nJudges;
         assignments.push({
-          judgeId: judges[j].id,
-          teamId: teams[teamIdx].id,
+          judgeId: judges[judgeIdx].id,
+          teamId,
         });
       }
     }
 
-    // 5. Deduplicate (if a team appears twice for same judge, keep only one)
+    // 4. Deduplicate assignments
     const seen = new Set<string>();
     const uniqueAssignments = assignments.filter((a) => {
       const key = `${a.judgeId}:${a.teamId}`;
@@ -385,40 +377,10 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
       return true;
     });
 
-    // 6. Verify each team has exactly 2 judges — fill gaps if needed
-    const teamJudgeCount = new Map<string, string[]>();
-    for (const a of uniqueAssignments) {
-      const list = teamJudgeCount.get(a.teamId) || [];
-      list.push(a.judgeId);
-      teamJudgeCount.set(a.teamId, list);
-    }
+    // 5. Clear old assignments and bulk insert new assignments
+    await db.delete(schema.judgeAssignments);
 
-    // For teams with < 2 judges, assign from the judge with fewest assignments
-    for (const team of teams) {
-      const current = teamJudgeCount.get(team.id) || [];
-      while (current.length < 2) {
-        // Find judge with fewest assignments
-        const judgeCounts = judges.map((j) => ({
-          judgeId: j.id,
-          count: uniqueAssignments.filter((a) => a.judgeId === j.id).length,
-        }));
-        judgeCounts.sort((a, b) => a.count - b.count);
-
-        // Pick the first judge not already assigned to this team
-        const available = judgeCounts.find((jc) => !current.includes(jc.judgeId));
-        if (available) {
-          uniqueAssignments.push({ judgeId: available.judgeId, teamId: team.id });
-          current.push(available.judgeId);
-          teamJudgeCount.set(team.id, current);
-        } else {
-          break; // all judges assigned, shouldn't happen
-        }
-      }
-    }
-
-    // 7. Bulk insert all assignments
     if (uniqueAssignments.length > 0) {
-      // Insert in batches of 100 to avoid query size limits
       for (let i = 0; i < uniqueAssignments.length; i += 100) {
         const batch = uniqueAssignments.slice(i, i + 100);
         await db.insert(schema.judgeAssignments).values(
@@ -464,7 +426,7 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
       teamId: t.id,
       teamCode: t.teamCode,
       teamName: t.teamName,
-      judgeCount: (teamJudgeCount.get(t.id) || []).length,
+      judgeCount: uniqueAssignments.filter((a) => a.teamId === t.id).length,
     }));
 
     res.json({

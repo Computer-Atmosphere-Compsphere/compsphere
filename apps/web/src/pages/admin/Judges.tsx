@@ -324,10 +324,10 @@ export function Judges() {
                   <span className="text-[10px] text-text-muted">{matrixData.teams?.length ?? 0} teams</span>
                 </div>
                 <div className="divide-y divide-border/30 max-h-[60vh] overflow-y-auto">
-                  {matrixData.teams?.map((t: any) => (
+                  {matrixData.teams?.map((t: any, idx: number) => (
                     <div key={t.teamId} className="px-4 py-3 flex items-center justify-between text-xs hover:bg-bg-surface/30">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-[10px] font-mono text-text-muted w-8 shrink-0">#{t.rank}</span>
+                        <span className="text-[10px] font-mono text-text-muted w-6 shrink-0">{idx + 1}</span>
                         <span className="text-[10px] font-bold text-brand-primary bg-brand-dim px-1.5 py-0.5 rounded shrink-0">{t.teamCode}</span>
                         <span className="font-semibold text-text-primary truncate">{t.teamName}</span>
                       </div>

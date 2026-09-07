@@ -171,11 +171,7 @@ export function Scoring() {
               <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-900/50">
                 {team.category || "NATIONAL"}
               </span>
-              {team.originalRank && (
-                <span className="text-xs font-bold text-yellow-400 bg-yellow-950/30 border border-yellow-900/40 px-2 py-0.5 rounded flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Rank #{team.originalRank}
-                </span>
-              )}
+
               {existingScore && (
                 <span className="text-xs font-bold text-green-400 bg-green-950/50 border border-green-900/50 px-2.5 py-0.5 rounded flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Scored ({Number(existingScore.finalScore).toFixed(1)})

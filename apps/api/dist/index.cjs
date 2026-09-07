@@ -103721,8 +103721,8 @@ router9.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req,
       FROM competition_teams ct
       LEFT JOIN judge_assignments ja ON ja.team_id = ct.id
       LEFT JOIN judge_scores js      ON js.team_id  = ct.id
-      GROUP BY ct.id, ct.team_code, ct.team_name, ct.category, ct.original_rank
-      ORDER BY ct.original_rank ASC
+      GROUP BY ct.id, ct.team_code, ct.team_name, ct.category
+      ORDER BY ct.team_code ASC
     `);
     const teamMatrixRaw = Array.isArray(teamMatrixRows) ? teamMatrixRows : teamMatrixRows.rows ?? [];
     const teamJudgeDetailRows = await db.execute(sql2`

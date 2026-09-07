@@ -296,14 +296,8 @@ export function JudgeTeams() {
                     }}
                   >
                     {/* # */}
-                    <div className="text-[11px] font-mono text-text-muted font-bold">
-                      {team.originalRank ? (
-                        <span className="flex items-center gap-1 text-yellow-500">
-                          <Trophy className="w-3 h-3" />{team.originalRank}
-                        </span>
-                      ) : (
-                        <span className="text-text-muted/50">{idx + 1}</span>
-                      )}
+                    <div className="text-[11px] font-mono text-text-muted/60 font-bold">
+                      {idx + 1}
                     </div>
 
                     {/* Team + Proposal */}

@@ -15,11 +15,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except2, desc6) => {
+var __copyProps = (to, from, except2, desc5) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except2)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc6 = __getOwnPropDesc(from, key)) || desc6.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc5 = __getOwnPropDesc(from, key)) || desc5.enumerable });
   }
   return to;
 };
@@ -1291,10 +1291,10 @@ var require_http_errors = __commonJS({
       return ServerError;
     }
     function nameFunc(func, name) {
-      var desc6 = Object.getOwnPropertyDescriptor(func, "name");
-      if (desc6 && desc6.configurable) {
-        desc6.value = name;
-        Object.defineProperty(func, "name", desc6);
+      var desc5 = Object.getOwnPropertyDescriptor(func, "name");
+      if (desc5 && desc5.configurable) {
+        desc5.value = name;
+        Object.defineProperty(func, "name", desc5);
       }
     }
     function populateConstructorExports(exports3, codes, HttpError) {
@@ -15943,14 +15943,14 @@ var require_get = __commonJS({
         throw e;
       }
     }
-    var desc6 = !!hasProtoAccessor && gOPD && gOPD(
+    var desc5 = !!hasProtoAccessor && gOPD && gOPD(
       Object.prototype,
       /** @type {keyof typeof Object.prototype} */
       "__proto__"
     );
     var $Object = Object;
     var $getPrototypeOf = $Object.getPrototypeOf;
-    module2.exports = desc6 && typeof desc6.get === "function" ? callBind([desc6.get]) : typeof $getPrototypeOf === "function" ? (
+    module2.exports = desc5 && typeof desc5.get === "function" ? callBind([desc5.get]) : typeof $getPrototypeOf === "function" ? (
       /** @type {import('./get')} */
       function getDunder(value) {
         return $getPrototypeOf(value == null ? value : $Object(value));
@@ -16300,10 +16300,10 @@ var require_get_intrinsic = __commonJS({
             return void undefined2;
           }
           if ($gOPD && i + 1 >= parts.length) {
-            var desc6 = $gOPD(value, part);
-            isOwn = !!desc6;
-            if (isOwn && "get" in desc6 && !("originalValue" in desc6.get)) {
-              value = desc6.get;
+            var desc5 = $gOPD(value, part);
+            isOwn = !!desc5;
+            if (isOwn && "get" in desc5 && !("originalValue" in desc5.get)) {
+              value = desc5.get;
             } else {
               value = value[part];
             }
@@ -35266,9 +35266,9 @@ var init_codes = __esm({
 
 // ../../node_modules/better-auth/node_modules/better-call/dist/error.mjs
 function isErrorStackTraceLimitWritable() {
-  const desc6 = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
-  if (desc6 === void 0) return Object.isExtensible(Error);
-  return Object.prototype.hasOwnProperty.call(desc6, "writable") ? desc6.writable : desc6.set !== void 0;
+  const desc5 = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
+  if (desc5 === void 0) return Object.isExtensible(Error);
+  return Object.prototype.hasOwnProperty.call(desc5, "writable") ? desc5.writable : desc5.set !== void 0;
 }
 function hideInternalStackFrames(stack) {
   const lines = stack.split("\n    at ");
@@ -57535,10 +57535,10 @@ var init_dist3 = __esm({
               return await withReturning(data, db3.insertInto(model).values(data), model, []);
             },
             async findOne({ model, where, select, join }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.selectFrom((eb) => {
                 let b = eb.selectFrom(model);
-                if (and4) b = b.where((eb2) => eb2.and(and4.map((expr) => expr(eb2))));
+                if (and5) b = b.where((eb2) => eb2.and(and5.map((expr) => expr(eb2))));
                 if (or2) b = b.where((eb2) => eb2.or(or2.map((expr) => expr(eb2))));
                 if (select?.length && select.length > 0) b = b.select(select.map((field) => getFieldName({
                   model,
@@ -57560,7 +57560,7 @@ var init_dist3 = __esm({
               return row;
             },
             async findMany({ model, where, limit, select, offset, sortBy, join }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.selectFrom((eb) => {
                 let b = eb.selectFrom(model);
                 if (config4?.type === "mssql") {
@@ -57579,7 +57579,7 @@ var init_dist3 = __esm({
                   model,
                   field: sortBy.field
                 })}`, sortBy.direction);
-                if (and4) b = b.where((eb2) => eb2.and(and4.map((expr) => expr(eb2))));
+                if (and5) b = b.where((eb2) => eb2.and(and5.map((expr) => expr(eb2))));
                 if (or2) b = b.where((eb2) => eb2.or(or2.map((expr) => expr(eb2))));
                 if (select?.length && select.length > 0) b = b.select(select.map((field) => getFieldName({
                   model,
@@ -57605,24 +57605,24 @@ var init_dist3 = __esm({
             },
             async update({ model, where, update: values }) {
               if (where.length === 0) return null;
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.updateTable(model).set(values);
-              if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+              if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
               if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
               return await withReturning(values, query, model, where);
             },
             async updateMany({ model, where, update: values }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.updateTable(model).set(values);
-              if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+              if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
               if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
               const res = (await query.executeTakeFirst()).numUpdatedRows;
               return res > Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : Number(res);
             },
             async count({ model, where }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.selectFrom(model).select(db3.fn.count("id").as("count"));
-              if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+              if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
               if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
               const res = await query.execute();
               if (typeof res[0].count === "number") return res[0].count;
@@ -57630,24 +57630,24 @@ var init_dist3 = __esm({
               return parseInt(res[0].count);
             },
             async delete({ model, where }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.deleteFrom(model);
-              if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+              if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
               if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
               await query.execute();
             },
             async deleteMany({ model, where }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               let query = db3.deleteFrom(model);
-              if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+              if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
               if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
               const res = (await query.executeTakeFirst()).numDeletedRows;
               return res > Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : Number(res);
             },
             async consumeOne({ model, where }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               const applyWhere = (query) => {
-                if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+                if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
                 if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
                 return query;
               };
@@ -57683,9 +57683,9 @@ var init_dist3 = __esm({
               return deleteWithReturning(db3.deleteFrom(model).where(`${model}.${idField}`, "in", targetIds));
             },
             async incrementOne({ model, where, increment, set }) {
-              const { and: and4, or: or2 } = convertWhereClause(model, where);
+              const { and: and5, or: or2 } = convertWhereClause(model, where);
               const applyWhere = (query) => {
-                if (and4) query = query.where((eb) => eb.and(and4.map((expr) => expr(eb))));
+                if (and5) query = query.where((eb) => eb.and(and5.map((expr) => expr(eb))));
                 if (or2) query = query.where((eb) => eb.or(or2.map((expr) => expr(eb))));
                 return query;
               };
@@ -64260,16 +64260,16 @@ var require_typedarray = __commonJS({
     })()) {
       defineProp = Object.defineProperty;
     } else {
-      defineProp = function(o, p, desc6) {
+      defineProp = function(o, p, desc5) {
         if (!o === Object(o)) throw new TypeError("Object.defineProperty called on non-object");
-        if (ECMAScript.HasProperty(desc6, "get") && Object.prototype.__defineGetter__) {
-          Object.prototype.__defineGetter__.call(o, p, desc6.get);
+        if (ECMAScript.HasProperty(desc5, "get") && Object.prototype.__defineGetter__) {
+          Object.prototype.__defineGetter__.call(o, p, desc5.get);
         }
-        if (ECMAScript.HasProperty(desc6, "set") && Object.prototype.__defineSetter__) {
-          Object.prototype.__defineSetter__.call(o, p, desc6.set);
+        if (ECMAScript.HasProperty(desc5, "set") && Object.prototype.__defineSetter__) {
+          Object.prototype.__defineSetter__.call(o, p, desc5.set);
         }
-        if (ECMAScript.HasProperty(desc6, "value")) {
-          o[p] = desc6.value;
+        if (ECMAScript.HasProperty(desc5, "value")) {
+          o[p] = desc5.value;
         }
         return o;
       };
@@ -72535,8 +72535,8 @@ function handleCatchall(proms, input, payload, ctx, def, inst) {
 }
 var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   $ZodType.init(inst, def);
-  const desc6 = Object.getOwnPropertyDescriptor(def, "shape");
-  if (!desc6?.get) {
+  const desc5 = Object.getOwnPropertyDescriptor(def, "shape");
+  if (!desc5?.get) {
     const sh = def.shape;
     Object.defineProperty(def, "shape", {
       get: () => {
@@ -96393,11 +96393,17 @@ var judgeScores = pgTable(
     id: uuid2("id").primaryKey().defaultRandom(),
     judgeId: uuid2("judge_id").notNull().references(() => judges.id, { onDelete: "cascade" }),
     teamId: uuid2("team_id").notNull().references(() => competitionTeams.id, { onDelete: "cascade" }),
-    // Scores 1-100
-    mvpScore: integer2("mvp_score").notNull(),
-    impactScore: integer2("impact_score").notNull(),
-    creativeScore: integer2("creative_score").notNull(),
-    pitchScore: integer2("pitch_score").notNull(),
+    // Phase 1 Judging Criteria — Babak Penyisihan Online (scores 1-100)
+    // Technical Architecture & Feasibility — 30%
+    technicalScore: integer2("technical_score").notNull(),
+    // Problem Relevance & Solution Fit — 20%
+    problemScore: integer2("problem_score").notNull(),
+    // Innovation & Value Proposition — 25%
+    innovationScore: integer2("innovation_score").notNull(),
+    // Market & Impact Viability — 15%
+    marketScore: integer2("market_score").notNull(),
+    // Document Clarity & Structure — 10%
+    documentScore: integer2("document_score").notNull(),
     finalScore: numeric("final_score", { precision: 6, scale: 2 }).notNull(),
     submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
@@ -96802,7 +96808,7 @@ var pool = new import_pg3.Pool({
   connectionString,
   max: 20,
   idleTimeoutMillis: 3e4,
-  connectionTimeoutMillis: 2e3
+  connectionTimeoutMillis: 1e4
 });
 var db = drizzle(pool, { schema: schema_exports });
 
@@ -100983,7 +100989,7 @@ async function requireAuth(req, res, next) {
         eq(schema_exports.roleAssignments.userId, profile.id),
         isNull2(schema_exports.roleAssignments.revokedAt)
       ),
-      orderBy: (ra, { desc: desc6 }) => [desc6(ra.assignedAt)]
+      orderBy: (ra, { desc: desc5 }) => [desc5(ra.assignedAt)]
     });
     const membership = await db.query.teamMembers.findFirst({
       where: and(
@@ -101137,7 +101143,7 @@ var auditService = {
       db.query.auditLogs.findMany({
         limit,
         offset,
-        orderBy: (al, { desc: desc6 }) => [desc6(al.createdAt)],
+        orderBy: (al, { desc: desc5 }) => [desc5(al.createdAt)],
         with: {
           actor: {
             columns: {
@@ -101438,20 +101444,20 @@ var teamService = {
     }) : [];
     const payments2 = await db.query.payments.findMany({
       where: eq(schema_exports.payments.teamId, teamId),
-      orderBy: (p, { desc: desc6 }) => [desc6(p.submittedAt)]
+      orderBy: (p, { desc: desc5 }) => [desc5(p.submittedAt)]
     });
     const submissions2 = await db.query.submissions.findMany({
       where: eq(schema_exports.submissions.teamId, teamId),
-      orderBy: (s, { desc: desc6 }) => [desc6(s.submittedAt)]
+      orderBy: (s, { desc: desc5 }) => [desc5(s.submittedAt)]
     });
     const attendance2 = await db.query.attendance.findMany({
       where: eq(schema_exports.attendance.teamId, teamId),
-      orderBy: (a, { desc: desc6 }) => [desc6(a.scannedAt)],
+      orderBy: (a, { desc: desc5 }) => [desc5(a.scannedAt)],
       with: { profile: true }
     });
     const latestToken = await db.query.teamAccessTokens.findFirst({
       where: eq(schema_exports.teamAccessTokens.teamId, teamId),
-      orderBy: (t, { desc: desc6 }) => [desc6(t.createdAt)]
+      orderBy: (t, { desc: desc5 }) => [desc5(t.createdAt)]
     });
     const { tokenHash: _omit, ...tokenMeta } = latestToken ?? {
       tokenHash: void 0
@@ -102858,45 +102864,67 @@ var battleRoyale_routes_default = router8;
 var import_express8 = __toESM(require_express2());
 
 // ../../packages/types/src/index.ts
-function calculateFinalScore(scores, weights = { mvp: 0.35, impact: 0.3, creative: 0.2, pitch: 0.15 }) {
-  return scores.mvpScore * weights.mvp + scores.impactScore * weights.impact + scores.creativeScore * weights.creative + scores.pitchScore * weights.pitch;
+function calculateFinalScore(scores, weights = {
+  technical: 0.3,
+  problem: 0.2,
+  innovation: 0.25,
+  market: 0.15,
+  document: 0.1
+}) {
+  return scores.technicalScore * weights.technical + scores.problemScore * weights.problem + scores.innovationScore * weights.innovation + scores.marketScore * weights.market + scores.documentScore * weights.document;
 }
 
 // src/services/scoring.service.ts
 var scoringService = {
   /**
-   * Get the judging weights from system config, or defaults.
+   * Get Phase 1 judging weights from system config, or defaults.
+   *
+   * Phase 1 — Babak Penyisihan Online Criteria:
+   *   technical  : Technical Architecture & Feasibility  — 30%
+   *   problem    : Problem Relevance & Solution Fit       — 20%
+   *   innovation : Innovation & Value Proposition         — 25%
+   *   market     : Market & Impact Viability              — 15%
+   *   document   : Document Clarity & Structure           — 10%
    */
   async getWeights() {
     const keys = [
-      "scoring_weight_mvp",
-      "scoring_weight_impact",
-      "scoring_weight_creative",
-      "scoring_weight_pitch"
+      "scoring_weight_technical",
+      "scoring_weight_problem",
+      "scoring_weight_innovation",
+      "scoring_weight_market",
+      "scoring_weight_document"
     ];
     const configs = await db.query.systemConfig.findMany({
-      where: sql2`key IN (${sql2.join(keys.map((k) => sql2.raw(`'${k}'`)), sql2.raw(","))})`
+      where: inArray(schema_exports.systemConfig.key, keys)
     });
     const weights = {
-      mvp: 0.35,
-      impact: 0.3,
-      creative: 0.2,
-      pitch: 0.15
+      technical: 0.3,
+      problem: 0.2,
+      innovation: 0.25,
+      market: 0.15,
+      document: 0.1
     };
     configs.forEach((c) => {
-      if (c.key === "scoring_weight_mvp") weights.mvp = parseFloat(c.value);
-      if (c.key === "scoring_weight_impact") weights.impact = parseFloat(c.value);
-      if (c.key === "scoring_weight_creative") weights.creative = parseFloat(c.value);
-      if (c.key === "scoring_weight_pitch") weights.pitch = parseFloat(c.value);
+      if (c.key === "scoring_weight_technical") weights.technical = parseFloat(c.value);
+      if (c.key === "scoring_weight_problem") weights.problem = parseFloat(c.value);
+      if (c.key === "scoring_weight_innovation") weights.innovation = parseFloat(c.value);
+      if (c.key === "scoring_weight_market") weights.market = parseFloat(c.value);
+      if (c.key === "scoring_weight_document") weights.document = parseFloat(c.value);
     });
     return weights;
   },
   /**
-   * Submit or update a score for a team by a judge.
-   * Ensures judge is assigned to team and scores are valid.
+   * Submit or update a Phase 1 score for a team by a judge.
+   * Ensures judge is assigned to team and scores are valid (1–100).
    */
   async submitScore(userId, teamId, scores) {
-    const allScores = [scores.mvpScore, scores.impactScore, scores.creativeScore, scores.pitchScore];
+    const allScores = [
+      scores.technicalScore,
+      scores.problemScore,
+      scores.innovationScore,
+      scores.marketScore,
+      scores.documentScore
+    ];
     if (allScores.some((s) => s < 1 || s > 100)) {
       throw new AppError(400, "Scores must be between 1 and 100.");
     }
@@ -102928,10 +102956,11 @@ var scoringService = {
       let scoreRecord;
       if (existing) {
         [scoreRecord] = await tx.update(schema_exports.judgeScores).set({
-          mvpScore: scores.mvpScore,
-          impactScore: scores.impactScore,
-          creativeScore: scores.creativeScore,
-          pitchScore: scores.pitchScore,
+          technicalScore: scores.technicalScore,
+          problemScore: scores.problemScore,
+          innovationScore: scores.innovationScore,
+          marketScore: scores.marketScore,
+          documentScore: scores.documentScore,
           finalScore: finalScore.toString(),
           updatedAt: /* @__PURE__ */ new Date()
         }).where(eq(schema_exports.judgeScores.id, existing.id)).returning();
@@ -102939,10 +102968,11 @@ var scoringService = {
         [scoreRecord] = await tx.insert(schema_exports.judgeScores).values({
           judgeId: judge.id,
           teamId,
-          mvpScore: scores.mvpScore,
-          impactScore: scores.impactScore,
-          creativeScore: scores.creativeScore,
-          pitchScore: scores.pitchScore,
+          technicalScore: scores.technicalScore,
+          problemScore: scores.problemScore,
+          innovationScore: scores.innovationScore,
+          marketScore: scores.marketScore,
+          documentScore: scores.documentScore,
           finalScore: finalScore.toString()
         }).returning();
       }
@@ -102966,10 +102996,10 @@ var scoringService = {
     });
   },
   /**
-   * Get team scoreboard with aggregated scores
+   * Get team scoreboard with aggregated scores (Phase 1 leaderboard)
    */
   async getLeaderboard() {
-    return await db.execute(sql2`
+    const res = await db.execute(sql2`
       SELECT
         ct.id AS team_id,
         ct.team_name,
@@ -102983,6 +103013,7 @@ var scoringService = {
       GROUP BY ct.id, ct.team_name, ct.team_code, ct.category
       ORDER BY average_score DESC, ct.original_rank ASC
     `);
+    return Array.isArray(res) ? res : res.rows ?? [];
   }
 };
 
@@ -102991,45 +103022,81 @@ var router9 = (0, import_express8.Router)();
 router9.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res, next) => {
   try {
     const user = req.sessionUser;
-    const judge = await db.query.judges.findFirst({
-      where: eq(schema_exports.judges.userId, user.profileId)
-    });
-    if (!judge || judge.status !== "ACTIVE") {
-      throw new AppError(403, "You are not an active judge.", "INACTIVE_JUDGE");
-    }
-    const assignments = await db.query.judgeAssignments.findMany({
-      where: eq(schema_exports.judgeAssignments.judgeId, judge.id),
-      with: {
-        team: {
-          with: {
-            proposal: {
-              with: { files: true }
-            }
-          }
-        }
-      },
-      orderBy: (ja, { asc: asc2 }) => [asc2(ja.assignedAt)]
-    });
-    const assignmentsWithScores = await Promise.all(
-      assignments.map(async (a) => {
-        const score = await db.query.judgeScores.findFirst({
-          where: and(
-            eq(schema_exports.judgeScores.judgeId, judge.id),
-            eq(schema_exports.judgeScores.teamId, a.teamId)
-          )
-        });
-        return { ...a, score: score || null };
-      })
-    );
+    const rows = await db.execute(sql2`
+      SELECT
+        ja.id              AS assignment_id,
+        ja.assigned_at,
+        ct.id              AS team_id,
+        ct.team_code,
+        ct.team_name,
+        ct.category,
+        ct.status          AS team_status,
+        ct.original_rank,
+        p.id               AS proposal_id,
+        p.title            AS proposal_title,
+        p.description      AS proposal_description,
+        p.devpost_url,
+        js.id              AS score_id,
+        js.technical_score,
+        js.problem_score,
+        js.innovation_score,
+        js.market_score,
+        js.document_score,
+        js.final_score,
+        js.submitted_at    AS score_submitted_at,
+        js.updated_at      AS score_updated_at,
+        j.id               AS judge_id
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      INNER JOIN judge_assignments ja ON ja.judge_id = j.id
+      INNER JOIN competition_teams ct ON ct.id = ja.team_id
+      LEFT JOIN proposals p ON p.team_id = ct.id
+      LEFT JOIN judge_scores js ON js.judge_id = j.id AND js.team_id = ct.id
+      WHERE pr.id = ${user.profileId}
+        AND j.status = 'ACTIVE'
+      ORDER BY ja.assigned_at ASC
+    `);
+    const rawRows = Array.isArray(rows) ? rows : rows.rows ?? [];
     const freezeConfig = await db.query.systemConfig.findFirst({
       where: eq(schema_exports.systemConfig.key, "submission_deadline")
     });
     const deadline = freezeConfig ? new Date(freezeConfig.value) : null;
     const isFrozen = deadline ? /* @__PURE__ */ new Date() > deadline : false;
+    const assignments = rawRows.map((row) => ({
+      id: row.assignment_id,
+      judgeId: row.judge_id,
+      teamId: row.team_id,
+      assignedAt: row.assigned_at,
+      team: {
+        id: row.team_id,
+        teamCode: row.team_code,
+        teamName: row.team_name,
+        category: row.category,
+        status: row.team_status,
+        originalRank: row.original_rank,
+        proposal: row.proposal_id ? {
+          id: row.proposal_id,
+          title: row.proposal_title,
+          description: row.proposal_description,
+          devpostUrl: row.devpost_url
+        } : null
+      },
+      score: row.score_id ? {
+        id: row.score_id,
+        technicalScore: Number(row.technical_score),
+        problemScore: Number(row.problem_score),
+        innovationScore: Number(row.innovation_score),
+        marketScore: Number(row.market_score),
+        documentScore: Number(row.document_score),
+        finalScore: row.final_score,
+        submittedAt: row.score_submitted_at,
+        updatedAt: row.score_updated_at
+      } : null
+    }));
     res.json({
       success: true,
       data: {
-        assignments: assignmentsWithScores,
+        assignments,
         isFrozen,
         deadline: freezeConfig?.value ?? null
       }
@@ -103043,10 +103110,11 @@ router9.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res
     const user = req.sessionUser;
     const bodySchema = external_exports.object({
       teamId: external_exports.string().uuid(),
-      mvpScore: external_exports.number().min(1).max(100),
-      impactScore: external_exports.number().min(1).max(100),
-      creativeScore: external_exports.number().min(1).max(100),
-      pitchScore: external_exports.number().min(1).max(100),
+      technicalScore: external_exports.number().min(1).max(100),
+      problemScore: external_exports.number().min(1).max(100),
+      innovationScore: external_exports.number().min(1).max(100),
+      marketScore: external_exports.number().min(1).max(100),
+      documentScore: external_exports.number().min(1).max(100),
       notes: external_exports.string().optional()
     });
     const parsed = bodySchema.parse(req.body);
@@ -103057,10 +103125,11 @@ router9.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res
       throw new AppError(403, "Code freeze active \u2014 submission deadline has passed.", "CODE_FREEZE");
     }
     const result = await scoringService.submitScore(user.profileId, parsed.teamId, {
-      mvpScore: parsed.mvpScore,
-      impactScore: parsed.impactScore,
-      creativeScore: parsed.creativeScore,
-      pitchScore: parsed.pitchScore
+      technicalScore: parsed.technicalScore,
+      problemScore: parsed.problemScore,
+      innovationScore: parsed.innovationScore,
+      marketScore: parsed.marketScore,
+      documentScore: parsed.documentScore
     });
     res.json({
       success: true,
@@ -103073,28 +103142,49 @@ router9.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res
 });
 router9.get("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
-    const judges2 = await db.query.judges.findMany({
-      with: {
-        user: {
-          columns: { fullName: true, email: true, avatarUrl: true }
-        }
+    const rows = await db.execute(sql2`
+      SELECT
+        j.id,
+        j.status,
+        pr.id          AS user_id,
+        pr.full_name,
+        pr.email,
+        pr.avatar_url,
+        pr.created_at  AS user_created_at,
+        COALESCE(asgn.assigned_count, 0)::int AS assigned_team_count,
+        COALESCE(scrd.scored_count,   0)::int AS scored_count
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS assigned_count
+        FROM judge_assignments
+        GROUP BY judge_id
+      ) asgn ON asgn.judge_id = j.id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS scored_count
+        FROM judge_scores
+        GROUP BY judge_id
+      ) scrd ON scrd.judge_id = j.id
+      ORDER BY pr.full_name ASC
+    `);
+    const rawRows = Array.isArray(rows) ? rows : rows.rows ?? [];
+    const judges2 = rawRows.map((row) => ({
+      id: row.id,
+      status: row.status,
+      userId: row.user_id,
+      user: {
+        id: row.user_id,
+        fullName: row.full_name,
+        email: row.email,
+        avatarUrl: row.avatar_url,
+        createdAt: row.user_created_at
       },
-      orderBy: (j, { asc: asc2 }) => [asc2(j.id)]
-    });
-    const judgesWithCounts = await Promise.all(
-      judges2.map(async (j) => {
-        const [{ count: count2 }] = await db.select({ count: sql2`count(*)::int` }).from(schema_exports.judgeAssignments).where(eq(schema_exports.judgeAssignments.judgeId, j.id));
-        const [{ scored }] = await db.select({ scored: sql2`count(*)::int` }).from(schema_exports.judgeScores).where(eq(schema_exports.judgeScores.judgeId, j.id));
-        return {
-          ...j,
-          assignedTeamCount: count2,
-          scoredCount: scored
-        };
-      })
-    );
+      assignedTeamCount: Number(row.assigned_team_count),
+      scoredCount: Number(row.scored_count)
+    }));
     res.json({
       success: true,
-      data: judgesWithCounts
+      data: judges2
     });
   } catch (error3) {
     next(error3);
@@ -103199,33 +103289,35 @@ router9.post("/activate", requireAuth, requireRole("ADMIN"), async (req, res, ne
 router9.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
     const admin = req.sessionUser;
-    const judges2 = await db.query.judges.findMany({
-      where: eq(schema_exports.judges.status, "ACTIVE"),
-      with: { user: { columns: { fullName: true } } }
-    });
+    const judgeRows = await db.execute(sql2`
+      SELECT j.id, pr.full_name
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      WHERE j.status = 'ACTIVE'
+      ORDER BY j.id ASC
+    `);
+    const judges2 = Array.isArray(judgeRows) ? judgeRows : judgeRows.rows ?? [];
     if (judges2.length < 2) {
       throw new AppError(400, "At least 2 active judges are required for cross-judging.");
     }
-    const teams = await db.query.competitionTeams.findMany({
-      orderBy: (t, { asc: asc2 }) => [asc2(t.originalRank)]
-    });
+    const teamRows = await db.execute(sql2`
+      SELECT id, team_code, team_name
+      FROM competition_teams
+      ORDER BY original_rank ASC
+    `);
+    const teams = Array.isArray(teamRows) ? teamRows : teamRows.rows ?? [];
     if (teams.length === 0) {
       throw new AppError(400, "No teams found to assign.");
     }
     const nJudges = judges2.length;
     const nTeams = teams.length;
-    await db.delete(schema_exports.judgeAssignments);
-    const windowSize = Math.ceil(nTeams * 2 / nJudges);
     const assignments = [];
-    for (let j = 0; j < nJudges; j++) {
-      const startIdx = Math.floor(j * nTeams / nJudges);
-      const endIdx = startIdx + windowSize;
-      for (let t = startIdx; t < endIdx && t < nTeams; t++) {
-        const teamIdx = t % nTeams;
-        assignments.push({
-          judgeId: judges2[j].id,
-          teamId: teams[teamIdx].id
-        });
+    const JUDGES_PER_TEAM = 2;
+    for (let i = 0; i < nTeams; i++) {
+      const teamId = teams[i].id;
+      for (let k = 0; k < JUDGES_PER_TEAM; k++) {
+        const judgeIdx = (i + k) % nJudges;
+        assignments.push({ judgeId: judges2[judgeIdx].id, teamId });
       }
     }
     const seen = /* @__PURE__ */ new Set();
@@ -103235,42 +103327,21 @@ router9.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req,
       seen.add(key);
       return true;
     });
-    const teamJudgeCount = /* @__PURE__ */ new Map();
-    for (const a of uniqueAssignments) {
-      const list = teamJudgeCount.get(a.teamId) || [];
-      list.push(a.judgeId);
-      teamJudgeCount.set(a.teamId, list);
+    await db.execute(sql2`DELETE FROM judge_assignments`);
+    for (let i = 0; i < uniqueAssignments.length; i += 100) {
+      const batch = uniqueAssignments.slice(i, i + 100);
+      const valueClauses = batch.map(
+        (a) => sql2`(${a.judgeId}::uuid, ${a.teamId}::uuid, NOW())`
+      );
+      await db.execute(
+        sql2`INSERT INTO judge_assignments (judge_id, team_id, assigned_at) VALUES ${sql2.join(valueClauses, sql2`, `)}`
+      );
     }
-    for (const team of teams) {
-      const current = teamJudgeCount.get(team.id) || [];
-      while (current.length < 2) {
-        const judgeCounts = judges2.map((j) => ({
-          judgeId: j.id,
-          count: uniqueAssignments.filter((a) => a.judgeId === j.id).length
-        }));
-        judgeCounts.sort((a, b) => a.count - b.count);
-        const available = judgeCounts.find((jc) => !current.includes(jc.judgeId));
-        if (available) {
-          uniqueAssignments.push({ judgeId: available.judgeId, teamId: team.id });
-          current.push(available.judgeId);
-          teamJudgeCount.set(team.id, current);
-        } else {
-          break;
-        }
-      }
-    }
-    if (uniqueAssignments.length > 0) {
-      for (let i = 0; i < uniqueAssignments.length; i += 100) {
-        const batch = uniqueAssignments.slice(i, i + 100);
-        await db.insert(schema_exports.judgeAssignments).values(
-          batch.map((a) => ({
-            judgeId: a.judgeId,
-            teamId: a.teamId
-          }))
-        );
-      }
-    }
-    await db.update(schema_exports.systemConfig).set({ value: "1", updatedAt: /* @__PURE__ */ new Date() }).where(eq(schema_exports.systemConfig.key, "competition_phase"));
+    await db.execute(sql2`
+      INSERT INTO system_config (key, value, type, updated_at)
+      VALUES ('competition_phase', '1', 'STRING', NOW())
+      ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()
+    `);
     await auditService.log(null, {
       actorId: admin.profileId,
       action: "PHASE1_JUDGING_GENERATED",
@@ -103280,31 +103351,24 @@ router9.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req,
         judgeCount: nJudges,
         teamCount: nTeams,
         assignmentCount: uniqueAssignments.length,
-        judges: judges2.map((j) => j.user?.fullName || j.id)
+        judges: judges2.map((j) => j.full_name || j.id)
       }
     });
     const summary = judges2.map((j) => {
       const assigned = uniqueAssignments.filter((a) => a.judgeId === j.id);
       return {
         judgeId: j.id,
-        judgeName: j.user?.fullName || "Unknown",
+        judgeName: j.full_name || "Unknown",
         assignedCount: assigned.length,
         teams: assigned.map((a) => a.teamId)
       };
     });
-    const perTeamCounts = teams.map((t) => ({
-      teamId: t.id,
-      teamCode: t.teamCode,
-      teamName: t.teamName,
-      judgeCount: (teamJudgeCount.get(t.id) || []).length
-    }));
     res.json({
       success: true,
       message: `Phase 1 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams.`,
       data: {
         assignments: uniqueAssignments.length,
-        judges: summary,
-        teams: perTeamCounts
+        judges: summary
       }
     });
   } catch (error3) {
@@ -103313,54 +103377,90 @@ router9.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req,
 });
 router9.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
-    const judges2 = await db.query.judges.findMany({
-      where: eq(schema_exports.judges.status, "ACTIVE"),
-      with: { user: { columns: { fullName: true, email: true } } }
-    });
-    const assignments = await db.query.judgeAssignments.findMany({
-      orderBy: (ja, { asc: asc2 }) => [asc2(ja.assignedAt)]
-    });
-    const scores = await db.query.judgeScores.findMany({});
-    const matrix = judges2.map((j) => {
-      const myAssignments = assignments.filter((a) => a.judgeId === j.id);
-      const myScores = scores.filter((s) => s.judgeId === j.id);
-      return {
-        judgeId: j.id,
-        judgeName: j.user?.fullName || "Unknown",
-        judgeEmail: j.user?.email,
-        assignedCount: myAssignments.length,
-        scoredCount: myScores.length,
-        teamIds: myAssignments.map((a) => a.teamId)
+    const judgeMatrixRows = await db.execute(sql2`
+      SELECT
+        j.id               AS judge_id,
+        j.status,
+        pr.full_name       AS judge_name,
+        pr.email           AS judge_email,
+        COALESCE(asgn.assigned_count, 0)::int AS assigned_count,
+        COALESCE(scrd.scored_count,   0)::int AS scored_count
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS assigned_count
+        FROM judge_assignments
+        GROUP BY judge_id
+      ) asgn ON asgn.judge_id = j.id
+      LEFT JOIN (
+        SELECT judge_id, COUNT(*) AS scored_count
+        FROM judge_scores
+        GROUP BY judge_id
+      ) scrd ON scrd.judge_id = j.id
+      WHERE j.status = 'ACTIVE'
+      ORDER BY pr.full_name ASC
+    `);
+    const judgeMatrixRaw = Array.isArray(judgeMatrixRows) ? judgeMatrixRows : judgeMatrixRows.rows ?? [];
+    const teamMatrixRows = await db.execute(sql2`
+      SELECT
+        ct.id              AS team_id,
+        ct.team_code,
+        ct.team_name,
+        ct.category,
+        ct.original_rank,
+        COUNT(DISTINCT ja.id)::int  AS judge_count,
+        COUNT(DISTINCT js.id)::int  AS score_count
+      FROM competition_teams ct
+      LEFT JOIN judge_assignments ja ON ja.team_id = ct.id
+      LEFT JOIN judge_scores js      ON js.team_id  = ct.id
+      GROUP BY ct.id, ct.team_code, ct.team_name, ct.category, ct.original_rank
+      ORDER BY ct.original_rank ASC
+    `);
+    const teamMatrixRaw = Array.isArray(teamMatrixRows) ? teamMatrixRows : teamMatrixRows.rows ?? [];
+    const teamJudgeDetailRows = await db.execute(sql2`
+      SELECT
+        ja.team_id,
+        ja.judge_id,
+        pr.full_name       AS judge_name,
+        js.final_score,
+        CASE WHEN js.id IS NOT NULL THEN true ELSE false END AS has_scored
+      FROM judge_assignments ja
+      INNER JOIN judges j     ON j.id  = ja.judge_id
+      INNER JOIN profiles pr  ON pr.id = j.user_id
+      LEFT JOIN judge_scores js
+             ON js.judge_id = ja.judge_id
+            AND js.team_id  = ja.team_id
+      ORDER BY ja.team_id, pr.full_name
+    `);
+    const teamJudgeDetailRaw = Array.isArray(teamJudgeDetailRows) ? teamJudgeDetailRows : teamJudgeDetailRows.rows ?? [];
+    const teamJudgeMap = /* @__PURE__ */ new Map();
+    for (const row of teamJudgeDetailRaw) {
+      const entry = {
+        judgeId: row.judge_id,
+        judgeName: row.judge_name,
+        hasScored: row.has_scored === true || row.has_scored === "true",
+        finalScore: row.final_score ?? null
       };
-    });
-    const allTeamIds = [...new Set(assignments.map((a) => a.teamId))];
-    const teams = await db.query.competitionTeams.findMany({
-      where: allTeamIds.length > 0 ? sql2`${schema_exports.competitionTeams.id} IN (${sql2.join(allTeamIds.map((id) => sql2`${id}`), sql2`, `)})` : void 0,
-      orderBy: (t, { asc: asc2 }) => [asc2(t.originalRank)]
-    });
-    const teamMatrix = teams.map((t) => {
-      const teamAssignments = assignments.filter((a) => a.teamId === t.id);
-      const teamScores = scores.filter((s) => s.teamId === t.id);
-      return {
-        teamId: t.id,
-        teamCode: t.teamCode,
-        teamName: t.teamName,
-        category: t.category,
-        rank: t.originalRank,
-        judgeCount: teamAssignments.length,
-        scoreCount: teamScores.length,
-        judges: teamAssignments.map((a) => {
-          const judge = judges2.find((j) => j.id === a.judgeId);
-          const score = teamScores.find((s) => s.judgeId === a.judgeId);
-          return {
-            judgeId: a.judgeId,
-            judgeName: judge?.user?.fullName || "Unknown",
-            hasScored: !!score,
-            finalScore: score?.finalScore ?? null
-          };
-        })
-      };
-    });
+      if (!teamJudgeMap.has(row.team_id)) teamJudgeMap.set(row.team_id, []);
+      teamJudgeMap.get(row.team_id).push(entry);
+    }
+    const matrix = judgeMatrixRaw.map((row) => ({
+      judgeId: row.judge_id,
+      judgeName: row.judge_name,
+      judgeEmail: row.judge_email,
+      assignedCount: Number(row.assigned_count),
+      scoredCount: Number(row.scored_count)
+    }));
+    const teamMatrix = teamMatrixRaw.map((row) => ({
+      teamId: row.team_id,
+      teamCode: row.team_code,
+      teamName: row.team_name,
+      category: row.category,
+      rank: Number(row.original_rank),
+      judgeCount: Number(row.judge_count),
+      scoreCount: Number(row.score_count),
+      judges: teamJudgeMap.get(row.team_id) ?? []
+    }));
     res.json({
       success: true,
       data: { judges: matrix, teams: teamMatrix }
@@ -103372,12 +103472,18 @@ router9.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req,
 router9.get("/leaderboard", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
     const leaderboard = await scoringService.getLeaderboard();
-    const totalAssignments = await db.select({ count: sql2`count(*)::int` }).from(schema_exports.judgeAssignments);
-    const totalScores = await db.select({ count: sql2`count(*)::int` }).from(schema_exports.judgeScores);
+    const progressRows = await db.execute(sql2`
+      SELECT
+        (SELECT COUNT(*) FROM judge_assignments)::int AS total_assignments,
+        (SELECT COUNT(*) FROM judge_scores)::int      AS total_scores
+    `);
+    const progressRaw = Array.isArray(progressRows) ? progressRows[0] : (progressRows.rows ?? [])[0] ?? {};
+    const totalAssignments = Number(progressRaw?.total_assignments ?? 0);
+    const totalScores = Number(progressRaw?.total_scores ?? 0);
     const progress = {
-      totalAssignments: totalAssignments[0]?.count ?? 0,
-      totalScores: totalScores[0]?.count ?? 0,
-      percentage: totalAssignments[0]?.count ? Math.round((totalScores[0]?.count ?? 0) / totalAssignments[0].count * 100) : 0
+      totalAssignments,
+      totalScores,
+      percentage: totalAssignments > 0 ? Math.round(totalScores / totalAssignments * 100) : 0
     };
     res.json({
       success: true,

@@ -172,7 +172,7 @@ export const scoringService = {
    * Get team scoreboard with aggregated scores (Phase 1 leaderboard)
    */
   async getLeaderboard() {
-    return await db.execute(sql`
+    const res = await db.execute(sql`
       SELECT
         ct.id AS team_id,
         ct.team_name,
@@ -186,5 +186,6 @@ export const scoringService = {
       GROUP BY ct.id, ct.team_name, ct.team_code, ct.category
       ORDER BY average_score DESC, ct.original_rank ASC
     `);
+    return Array.isArray(res) ? res : (res as any).rows ?? [];
   },
 };

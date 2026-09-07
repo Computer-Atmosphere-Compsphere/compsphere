@@ -477,9 +477,7 @@ router.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req, 
     // Per-team view
     const allTeamIds = [...new Set(assignments.map((a) => a.teamId))];
     const teams = await db.query.competitionTeams.findMany({
-      where: allTeamIds.length > 0
-        ? sql`${schema.competitionTeams.id} IN (${sql.join(allTeamIds.map((id) => sql`${id}`), sql`, `)})`
-        : undefined,
+      where: allTeamIds.length > 0 ? inArray(schema.competitionTeams.id, allTeamIds) : undefined,
       orderBy: (t, { asc }) => [asc(t.originalRank)],
     });
 

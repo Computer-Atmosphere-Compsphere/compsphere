@@ -7,8 +7,158 @@ import { eq, and, sql } from "drizzle-orm";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "../services/audit.service";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import { uploadFileToStorage } from "../lib/storage";
 
 const router = Router();
+
+/**
+ * PDF Generator for Dummy Proposal Documents
+ */
+function generateRichProposalPDF(
+  title: string,
+  teamName: string,
+  teamCode: string,
+  category: string,
+  idx: number
+): Buffer {
+  const topics = [
+    "Artificial Intelligence & Autonomous Systems",
+    "Smart IoT Infrastructure & Edge Computing",
+    "Decentralized Finance & Blockchain Protocol",
+    "Cloud Native Microservices & High-Scale Analytics",
+    "Zero-Trust Cybersecurity & Cryptographic Systems",
+    "Big Data Intelligence & Predictive Analytics",
+    "Cross-Platform Mobile Ecosystem",
+    "Sustainable Energy & Green Tech Solutions",
+    "Digital Health & AI-Powered Diagnostics",
+    "EdTech & Interactive Learning Platform"
+  ];
+  const topic = topics[idx % topics.length];
+
+  const lines = [
+    "=========================================================================================",
+    `                     COMPSPHERE 2026 -- OFFICIAL PROPOSAL DOCUMENT`,
+    "=========================================================================================",
+    "",
+    `PROJECT TITLE : ${title}`,
+    `TEAM NAME     : ${teamName}`,
+    `TEAM CODE     : ${teamCode}`,
+    `CATEGORY      : ${category}`,
+    `TRACK TOPIC   : ${topic}`,
+    `SUBMITTED AT  : September 2026`,
+    "",
+    "-----------------------------------------------------------------------------------------",
+    "1. EXECUTIVE SUMMARY & VALUE PROPOSITION",
+    "-----------------------------------------------------------------------------------------",
+    `Platform inovatif ini dikembangkan oleh tim ${teamName} sebagai solusi komprehensif`,
+    `berbasis ${topic}. Proyek ini dirancang untuk mengatasi tantangan skala nasional`,
+    "melalui arsitektur software berkinerja tinggi, keamanan data tingkat tinggi, dan",
+    "pengalaman pengguna (UX) yang sangat intuitif.",
+    "",
+    "Key Highlights:",
+    " - 100% cloud-native architecture dengan ketersediaan tinggi (99.9% uptime).",
+    " - Efisiensi pemrosesan data meningkat hingga 65% dibandingkan metode konvensional.",
+    " - Desain modular yang siap diintegrasikan dengan infrastruktur eksisting.",
+    "",
+    "-----------------------------------------------------------------------------------------",
+    "2. PROBLEM STATEMENT & MARKET NEED",
+    "-----------------------------------------------------------------------------------------",
+    `Di era transformasi digital saat ini, sektor terkait ${topic} menghadapi berbagai kendala:`,
+    " 1. Fragmentasi data dan lambatnya kecepatan respons sistem terpusat.",
+    " 2. Kurangnya transparansi dan keandalan sistem audit otomatis.",
+    " 3. Tingginya biaya operasional untuk perawatan dan pengembangan infrastruktur.",
+    "",
+    `Tim ${teamName} mengidentifikasi bahwa kebutuhan akan efisiensi dan otomasi merupakan`,
+    "prioritas utama bagi pengguna dan pemangku kepentingan.",
+    "",
+    "-----------------------------------------------------------------------------------------",
+    "3. PROPOSED SYSTEM ARCHITECTURE & INNOVATION",
+    "-----------------------------------------------------------------------------------------",
+    "Sistem ini menggunakan arsitektur microservices terdistribusi dengan komponen:",
+    " - Frontend Layer : React.js / Next.js SPA dengan PWA & Glassmorphism UI.",
+    " - API Gateway    : Express / Node.js High-Throughput Gateway dengan TLS 1.3.",
+    " - Microservices  : Python FastAPI Services untuk pemrosesan AI/ML.",
+    " - Database Layer : PostgreSQL Relational DB + Redis Caching Layer.",
+    " - Storage Bridge : Secure Presigned Object Storage untuk dokumen & aset media.",
+    "",
+    "Keunggulan Inovasi (Unique Value Proposition):",
+    " * Otomasi alur kerja real-time berbasis WebSockets dan Event-Driven Architecture.",
+    " * Enkripsi end-to-end pada data sensitif baik at-rest maupun in-transit.",
+    "",
+    "-----------------------------------------------------------------------------------------",
+    "4. IMPLEMENTATION ROADMAP & FEASIBILITY",
+    "-----------------------------------------------------------------------------------------",
+    " - Phase 1 (Q3 2026): Requirement Analysis, Architecture Design & MVP Core Build",
+    " - Phase 2 (Q4 2026): Beta Testing, Security Audit & Judge Evaluation Integration",
+    " - Phase 3 (Q1 2027): Commercial Rollout, Partner Integration & Scaling",
+    "",
+    "-----------------------------------------------------------------------------------------",
+    `Document generated automatically for COMPSPHERE 2026 Judge Evaluation Panel.`,
+    `Ref ID: ${teamCode}-PROP-${idx + 1001}`,
+    "========================================================================================="
+  ];
+
+  const textCmds = lines.reduce((acc, line) => {
+    const escaped = line
+      .replace(/\\/g, "\\\\")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)");
+    return acc + `(${escaped}) Tj\nT*\n`;
+  }, "BT\n/F1 9 Tf\n40 800 Td\n12 TL\n") + "ET\n";
+
+  const streamBuf = Buffer.from(textCmds, "latin1");
+
+  const obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+  const obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+  const obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n";
+  const obj4h = `4 0 obj\n<< /Length ${streamBuf.length} >>\nstream\n`;
+  const obj4f = "\nendstream\nendobj\n";
+  const obj5 = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
+
+  const header = Buffer.from("%PDF-1.4\n");
+  const b1 = Buffer.from(obj1);
+  const b2 = Buffer.from(obj2);
+  const b3 = Buffer.from(obj3);
+  const b4h = Buffer.from(obj4h);
+  const b4f = Buffer.from(obj4f);
+  const b5 = Buffer.from(obj5);
+
+  const off1 = header.length;
+  const off2 = off1 + b1.length;
+  const off3 = off2 + b2.length;
+  const off4 = off3 + b3.length;
+  const off5 = off4 + b4h.length + streamBuf.length + b4f.length;
+  const xrefPos = off5 + b5.length;
+
+  const xref = `xref
+0 6
+0000000000 65535 f 
+${String(off1).padStart(10, "0")} 00000 n 
+${String(off2).padStart(10, "0")} 00000 n 
+${String(off3).padStart(10, "0")} 00000 n 
+${String(off4).padStart(10, "0")} 00000 n 
+${String(off5).padStart(10, "0")} 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+${xrefPos}
+%%EOF`;
+
+  return Buffer.concat([
+    header,
+    b1,
+    b2,
+    b3,
+    b4h,
+    streamBuf,
+    b4f,
+    b5,
+    Buffer.from(xref, "latin1"),
+  ]);
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // JUDGE PORTAL (authenticated as JUDGE)
@@ -60,6 +210,55 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
 
     const rawRows = Array.isArray(rows) ? rows : (rows as any).rows ?? [];
 
+    const proposalIds = rawRows.map((r: any) => r.proposal_id).filter(Boolean);
+    const teamIds = rawRows.map((r: any) => r.team_id).filter(Boolean);
+
+    // Fetch proposal files
+    const filesMap: Record<string, any[]> = {};
+    if (proposalIds.length > 0) {
+      const fileRows = await db.execute(sql`
+        SELECT id, proposal_id, storage_key, original_filename, mime_type, size_bytes
+        FROM proposal_files
+        WHERE proposal_id IN (${sql.join(proposalIds.map((id: string) => sql`${id}`), sql`, `)})
+      `);
+      const rawFiles = Array.isArray(fileRows) ? fileRows : (fileRows as any).rows ?? [];
+      for (const f of rawFiles) {
+        if (!filesMap[f.proposal_id]) filesMap[f.proposal_id] = [];
+        filesMap[f.proposal_id].push({
+          id: f.id,
+          storageKey: f.storage_key,
+          originalFilename: f.original_filename,
+          mimeType: f.mime_type,
+          sizeBytes: Number(f.size_bytes),
+        });
+      }
+    }
+
+    // Fetch team members metadata (count + leader)
+    const membersMap: Record<string, { count: number; leaderName?: string; leaderEmail?: string }> = {};
+    if (teamIds.length > 0) {
+      const tmRows = await db.execute(sql`
+        SELECT
+          tm.team_id,
+          COUNT(*)::int AS member_count,
+          MAX(CASE WHEN tm.role = 'LEADER' THEN pr.full_name END) AS leader_name,
+          MAX(CASE WHEN tm.role = 'LEADER' THEN pr.email END) AS leader_email
+        FROM team_members tm
+        JOIN profiles pr ON pr.id = tm.user_id
+        WHERE tm.team_id IN (${sql.join(teamIds.map((id: string) => sql`${id}`), sql`, `)})
+          AND tm.status = 'ACTIVE'
+        GROUP BY tm.team_id
+      `);
+      const rawTm = Array.isArray(tmRows) ? tmRows : (tmRows as any).rows ?? [];
+      for (const tm of rawTm) {
+        membersMap[tm.team_id] = {
+          count: Number(tm.member_count),
+          leaderName: tm.leader_name || undefined,
+          leaderEmail: tm.leader_email || undefined,
+        };
+      }
+    }
+
     // Check code freeze
     const freezeConfig = await db.query.systemConfig.findFirst({
       where: eq(schema.systemConfig.key, "submission_deadline"),
@@ -67,41 +266,50 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
     const deadline = freezeConfig ? new Date(freezeConfig.value) : null;
     const isFrozen = deadline ? new Date() > deadline : false;
 
-    const assignments = rawRows.map((row: any) => ({
-      id: row.assignment_id,
-      judgeId: row.judge_id,
-      teamId: row.team_id,
-      assignedAt: row.assigned_at,
-      team: {
-        id: row.team_id,
-        teamCode: row.team_code,
-        teamName: row.team_name,
-        category: row.category,
-        status: row.team_status,
-        originalRank: row.original_rank,
-        proposal: row.proposal_id
+    const assignments = rawRows.map((row: any) => {
+      const pFiles = row.proposal_id ? (filesMap[row.proposal_id] || []) : [];
+      const mInfo = membersMap[row.team_id] || { count: 1 };
+
+      return {
+        id: row.assignment_id,
+        judgeId: row.judge_id,
+        teamId: row.team_id,
+        assignedAt: row.assigned_at,
+        team: {
+          id: row.team_id,
+          teamCode: row.team_code,
+          teamName: row.team_name,
+          category: row.category,
+          status: row.team_status,
+          originalRank: row.original_rank,
+          memberCount: mInfo.count,
+          leaderName: mInfo.leaderName || "Team Leader",
+          leaderEmail: mInfo.leaderEmail || "",
+          proposal: row.proposal_id
+            ? {
+                id: row.proposal_id,
+                title: row.proposal_title,
+                description: row.proposal_description,
+                devpostUrl: row.devpost_url,
+                files: pFiles,
+              }
+            : null,
+        },
+        score: row.score_id
           ? {
-              id: row.proposal_id,
-              title: row.proposal_title,
-              description: row.proposal_description,
-              devpostUrl: row.devpost_url,
+              id: row.score_id,
+              technicalScore: Number(row.technical_score),
+              problemScore: Number(row.problem_score),
+              innovationScore: Number(row.innovation_score),
+              marketScore: Number(row.market_score),
+              documentScore: Number(row.document_score),
+              finalScore: row.final_score,
+              submittedAt: row.score_submitted_at,
+              updatedAt: row.score_updated_at,
             }
           : null,
-      },
-      score: row.score_id
-        ? {
-            id: row.score_id,
-            technicalScore: Number(row.technical_score),
-            problemScore: Number(row.problem_score),
-            innovationScore: Number(row.innovation_score),
-            marketScore: Number(row.market_score),
-            documentScore: Number(row.document_score),
-            finalScore: row.final_score,
-            submittedAt: row.score_submitted_at,
-            updatedAt: row.score_updated_at,
-          }
-        : null,
-    }));
+      };
+    });
 
     res.json({
       success: true,
@@ -110,6 +318,137 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
         isFrozen,
         deadline: freezeConfig?.value ?? null,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Get all proposals for assigned teams (Judge)
+ * GET /api/judges/proposals
+ */
+router.get("/proposals", requireAuth, requireRole("JUDGE"), async (req, res, next) => {
+  try {
+    const user = req.sessionUser!;
+
+    const rows = await db.execute(sql`
+      SELECT
+        p.id AS proposal_id,
+        p.title,
+        p.description,
+        p.devpost_url,
+        ct.id AS team_id,
+        ct.team_name,
+        ct.team_code,
+        ct.category,
+        pf.storage_key,
+        pf.original_filename
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      INNER JOIN judge_assignments ja ON ja.judge_id = j.id
+      INNER JOIN competition_teams ct ON ct.id = ja.team_id
+      INNER JOIN proposals p ON p.team_id = ct.id
+      LEFT JOIN proposal_files pf ON pf.proposal_id = p.id
+      WHERE pr.id = ${user.profileId}
+        AND j.status = 'ACTIVE'
+      ORDER BY ct.team_name ASC
+    `);
+
+    const rawRows = Array.isArray(rows) ? rows : (rows as any).rows ?? [];
+
+    const proposals = rawRows.map((r: any) => ({
+      id: r.proposal_id,
+      teamId: r.team_id,
+      teamName: r.team_name,
+      teamCode: r.team_code,
+      category: r.category,
+      title: r.title,
+      description: r.description,
+      linkUrl: r.devpost_url,
+      fileStorageKey: r.storage_key,
+      filename: r.original_filename,
+    }));
+
+    res.json({
+      success: true,
+      data: { proposals },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Seed/Sync Proposal PDFs to storage (Admin/Judge system utility)
+ * POST /api/judges/sync-dummy-pdfs
+ */
+router.post("/sync-dummy-pdfs", requireAuth, async (req, res, next) => {
+  try {
+    const allProposals = await db.execute(sql`
+      SELECT p.id, p.title, p.team_id, ct.team_name, ct.team_code, ct.category
+      FROM proposals p
+      JOIN competition_teams ct ON ct.id = p.team_id
+      ORDER BY ct.original_rank ASC
+    `);
+
+    const rawProposals = Array.isArray(allProposals) ? allProposals : (allProposals as any).rows ?? [];
+    const tempDir = process.env.VERCEL ? "/tmp/uploads/temp" : path.join(process.cwd(), "uploads/temp");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    let syncedCount = 0;
+    for (let i = 0; i < rawProposals.length; i++) {
+      const prop = rawProposals[i];
+      const pdfBuffer = generateRichProposalPDF(
+        prop.title || `Proposal Inovasi ${prop.team_name}`,
+        prop.team_name,
+        prop.team_code,
+        prop.category || "NATIONAL",
+        i
+      );
+
+      const pdfFilename = `dummy_${prop.team_code.replace(/-/g, "_").toLowerCase()}.pdf`;
+      const tempPath = path.join(tempDir, pdfFilename);
+      fs.writeFileSync(tempPath, pdfBuffer);
+
+      let storageKey: string;
+      try {
+        storageKey = await uploadFileToStorage("proposals", tempPath, pdfFilename, "application/pdf");
+      } catch (uploadErr) {
+        console.warn(`[PDF Sync] Upload failed for ${prop.team_code}, using local key fallback`, uploadErr);
+        storageKey = `proposals/${pdfFilename}`;
+      }
+
+      // Check existing proposal file
+      const existing = await db.execute(sql`
+        SELECT id FROM proposal_files WHERE proposal_id = ${prop.id} LIMIT 1
+      `);
+      const existingRows = Array.isArray(existing) ? existing : (existing as any).rows ?? [];
+
+      if (existingRows.length > 0) {
+        await db.execute(sql`
+          UPDATE proposal_files
+          SET storage_key = ${storageKey},
+              original_filename = ${`proposal_${prop.team_code}.pdf`},
+              mime_type = 'application/pdf',
+              size_bytes = ${pdfBuffer.length}
+          WHERE id = ${existingRows[0].id}
+        `);
+      } else {
+        await db.execute(sql`
+          INSERT INTO proposal_files (id, proposal_id, storage_key, original_filename, mime_type, size_bytes)
+          VALUES (${crypto.randomUUID()}, ${prop.id}, ${storageKey}, ${`proposal_${prop.team_code}.pdf`}, 'application/pdf', ${pdfBuffer.length})
+        `);
+      }
+      syncedCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully synced & uploaded ${syncedCount} dummy proposal PDFs to storage!`,
+      data: { syncedCount },
     });
   } catch (error) {
     next(error);

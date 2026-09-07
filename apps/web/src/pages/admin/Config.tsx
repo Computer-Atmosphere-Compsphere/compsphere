@@ -109,8 +109,8 @@ const CATEGORIES: ConfigCategory[] = [
   },
   {
     id: "scoring_phase1",
-    label: "Judging Kriteria Phase 1: Babak Penyisihan Online",
-    description: "Evaluasi proposal online — Bobot & kriteria penilaian Phase 1",
+    label: "Judging Criteria: Online Evaluation",
+    description: "Online Evaluation - Phase 1",
     icon: <BarChart3 className="w-4 h-4" />,
     color: "text-purple-400",
     keys: [
@@ -123,8 +123,8 @@ const CATEGORIES: ConfigCategory[] = [
   },
   {
     id: "scoring_phase2",
-    label: "Judging Kriteria Phase 2: Pitching Project",
-    description: "Pitching & live presentation — Bobot & kriteria penilaian Phase 2",
+    label: "Judging Criteria: Live Evaluation",
+    description: "Live Evaluation - Phase 2",
     icon: <BarChart3 className="w-4 h-4" />,
     color: "text-indigo-400",
     keys: [

@@ -95,7 +95,7 @@ export const subEvents: SubEvent[] = [
         desc: "Best-booth awards and official expo closing.",
       },
     ],
-    sponsorNames: ["KitaLulus", "SeaBank", "Threepoint"],
+    sponsorNames: ["NordVPN", "NordPass", "KitaLulus", "SeaBank", "Threepoint"],
     partnerPerks: [
       {
         title: "High-Traffic Location",
@@ -166,7 +166,7 @@ export const subEvents: SubEvent[] = [
         desc: "Open session and networking with speakers.",
       },
     ],
-    sponsorNames: ["KitaLulus", "OMG Beauty", "Pocket Studio"],
+    sponsorNames: ["Incogni", "Saily", "KitaLulus", "OMG Beauty", "Pocket Studio"],
     speakers: [
       {
         name: "Avip Syaifulloh",
@@ -240,7 +240,7 @@ export const subEvents: SubEvent[] = [
         desc: "Submit final deliverables, pitch live to judges, and see who takes the crown.",
       },
     ],
-    sponsorNames: ["KitaLulus", "SeaBank", "Pocket Studio", "Threepoint"],
+    sponsorNames: ["NordVPN", "Cloura", "KitaLulus", "SeaBank", "Pocket Studio", "Threepoint"],
     globalStats: [
       { label: "Countries", value: "15+" },
       { label: "Registered Teams", value: "100+" },
@@ -290,7 +290,7 @@ export const subEvents: SubEvent[] = [
         desc: "Final awards and closing show.",
       },
     ],
-    sponsorNames: ["OMG Beauty", "Pocket Studio", "Threepoint", "SeaBank"],
+    sponsorNames: ["Featherless AI", "OMG Beauty", "Pocket Studio", "Threepoint", "SeaBank"],
     benefits: [
       { icon: "🎨", title: "Creative Expression", desc: "A real platform to showcase art, culture, and community creations." },
       { icon: "🎵", title: "Live Performances", desc: "Enjoy live performances from selected artists and communities." },
@@ -301,6 +301,12 @@ export const subEvents: SubEvent[] = [
 ];
 
 export const sponsors = [
+  { name: "NordVPN", monogram: "NV", style: "font-extrabold tracking-widest", image: "/sponsor1-nordvpn.png" },
+  { name: "NordPass", monogram: "NP", style: "font-black uppercase", image: "/sponsor2-nordpass.png" },
+  { name: "Incogni", monogram: "IN", style: "font-bold italic tracking-tight", image: "/sponsor3-incogni.png" },
+  { name: "Saily", monogram: "SL", style: "font-mono font-bold", image: "/sponsor4-saily.png" },
+  { name: "Cloura", monogram: "CL", style: "font-black tracking-tighter", image: "/sponsor5-cloura.png" },
+  { name: "Featherless AI", monogram: "FA", style: "font-extralight tracking-[0.25em]", image: "/sponsor6-featherless.png" },
   { name: "KitaLulus", monogram: "KL", style: "font-extrabold tracking-widest text-sky-400", image: "/kitalulus-logo.png" },
   { name: "OMG Beauty", monogram: "OMG", style: "font-black uppercase text-pink-400", image: "/omg-beauty-logo.png" },
   { name: "Pocket Studio", monogram: "PS", style: "font-bold italic tracking-tight text-amber-400", image: "/pocket-studio-logo.png" },

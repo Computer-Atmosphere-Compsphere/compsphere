@@ -37,7 +37,7 @@ export function LogoCloud({ logos, className, ...props }: LogoCloudProps) {
           <img
             alt={logo.alt}
             className={cn(
-              "max-h-20 w-auto max-w-full object-contain transition-transform duration-500 group-hover:scale-110 md:max-h-24",
+              "max-h-20 w-auto max-w-full object-contain opacity-85 transition-all duration-300 group-hover:opacity-100 group-hover:scale-110 md:max-h-24",
               logo.imgClassName
             )}
             loading="lazy"

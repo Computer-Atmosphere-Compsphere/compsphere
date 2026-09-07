@@ -95,7 +95,7 @@ export const subEvents: SubEvent[] = [
         desc: "Best-booth awards and official expo closing.",
       },
     ],
-    sponsorNames: ["Sponsor 1", "Sponsor 2"],
+    sponsorNames: ["KitaLulus", "SeaBank", "Threepoint"],
     partnerPerks: [
       {
         title: "High-Traffic Location",
@@ -166,7 +166,7 @@ export const subEvents: SubEvent[] = [
         desc: "Open session and networking with speakers.",
       },
     ],
-    sponsorNames: ["Sponsor 3", "Sponsor 4"],
+    sponsorNames: ["KitaLulus", "OMG Beauty", "Pocket Studio"],
     speakers: [
       {
         name: "Avip Syaifulloh",
@@ -240,7 +240,7 @@ export const subEvents: SubEvent[] = [
         desc: "Submit final deliverables, pitch live to judges, and see who takes the crown.",
       },
     ],
-    sponsorNames: ["Sponsor 2", "Sponsor 4", "Sponsor 5"],
+    sponsorNames: ["KitaLulus", "SeaBank", "Pocket Studio", "Threepoint"],
     globalStats: [
       { label: "Countries", value: "15+" },
       { label: "Registered Teams", value: "100+" },
@@ -290,7 +290,7 @@ export const subEvents: SubEvent[] = [
         desc: "Final awards and closing show.",
       },
     ],
-    sponsorNames: ["Sponsor 4", "Sponsor 5", "Sponsor 6"],
+    sponsorNames: ["OMG Beauty", "Pocket Studio", "Threepoint", "SeaBank"],
     benefits: [
       { icon: "🎨", title: "Creative Expression", desc: "A real platform to showcase art, culture, and community creations." },
       { icon: "🎵", title: "Live Performances", desc: "Enjoy live performances from selected artists and communities." },
@@ -301,12 +301,11 @@ export const subEvents: SubEvent[] = [
 ];
 
 export const sponsors = [
-  { name: "Sponsor 1", monogram: "S1", style: "font-extrabold tracking-widest", image: "/sponsor1-nordvpn.png" },
-  { name: "Sponsor 2", monogram: "S2", style: "font-black uppercase", image: "/sponsor2-nordpass.png" },
-  { name: "Sponsor 3", monogram: "S3", style: "font-bold italic tracking-tight", image: "/sponsor3-incogni.png" },
-  { name: "Sponsor 4", monogram: "S4", style: "font-mono font-bold", image: "/sponsor4-saily.png" },
-  { name: "Sponsor 5", monogram: "S5", style: "font-black tracking-tighter", image: "/sponsor5-cloura.png" },
-  { name: "Sponsor 6", monogram: "S6", style: "font-extralight tracking-[0.25em]", image: "/sponsor6-featherless.png" },
+  { name: "KitaLulus", monogram: "KL", style: "font-extrabold tracking-widest text-sky-400", image: "/kitalulus-logo.png" },
+  { name: "OMG Beauty", monogram: "OMG", style: "font-black uppercase text-pink-400", image: "/omg-beauty-logo.png" },
+  { name: "Pocket Studio", monogram: "PS", style: "font-bold italic tracking-tight text-amber-400", image: "/pocket-studio-logo.png" },
+  { name: "SeaBank", monogram: "SB", style: "font-mono font-bold text-orange-400", image: "/seabank-logo.webp" },
+  { name: "Threepoint", monogram: "TP", style: "font-black tracking-tighter text-purple-400", image: "/threepoint-logo.png" },
 ];
 
 export const partners = [

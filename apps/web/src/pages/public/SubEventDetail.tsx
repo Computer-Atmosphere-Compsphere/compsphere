@@ -877,7 +877,7 @@ function SponsorsBlock({ sponsors: eventSponsors }: { sponsors: typeof sponsors 
                 <img
                   src={s.image}
                   alt={s.name}
-                  className="h-14 w-auto max-w-[180px] object-contain opacity-45 grayscale transition-all duration-400 group-hover:opacity-90 group-hover:grayscale-0 sm:h-16 md:h-20"
+                  className="h-14 w-auto max-w-[160px] object-contain opacity-85 transition-all duration-300 group-hover:opacity-100 group-hover:scale-105 sm:h-16 md:h-20"
                 />
               ) : (
                 <div

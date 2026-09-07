@@ -104339,6 +104339,201 @@ var upload = (0, import_multer2.default)({
     }
   })
 });
+router17.post("/inject-pdfs", async (req, res, next) => {
+  try {
+    let buildPDF2 = function(title, teamName, teamCode, category, idx) {
+      const topic = topics[idx % topics.length];
+      const lines = [
+        "=".repeat(89),
+        "          COMPSPHERE 2026 \u2014 OFFICIAL PROPOSAL DOCUMENT",
+        "=".repeat(89),
+        "",
+        `PROJECT   : ${title}`,
+        `TEAM      : ${teamName}  (${teamCode})`,
+        `CATEGORY  : ${category}`,
+        `TRACK     : ${topic}`,
+        `REF ID    : ${teamCode}-PROP-${1e3 + idx}`,
+        "",
+        "-".repeat(89),
+        "I. EXECUTIVE SUMMARY",
+        "-".repeat(89),
+        `${teamName} is building a next-generation solution leveraging ${topic}`,
+        `to address key systemic inefficiencies in the Indonesian digital ecosystem.`,
+        `Our platform delivers measurable outcomes: 60%+ operational efficiency gain,`,
+        `cost reduction, and a scalable architecture ready for national deployment.`,
+        "",
+        "-".repeat(89),
+        "II. PROBLEM STATEMENT",
+        "-".repeat(89),
+        `Current market gaps in the ${topic} domain include:`,
+        `  1. Fragmented data infrastructure with no unified real-time access layer.`,
+        `  2. High manual overhead in critical workflows \u2014 prone to error & delay.`,
+        `  3. Lack of transparent audit trails for compliance and accountability.`,
+        `  4. Limited scalability of existing legacy systems beyond regional usage.`,
+        "",
+        "-".repeat(89),
+        "III. PROPOSED SOLUTION & TECHNICAL ARCHITECTURE",
+        "-".repeat(89),
+        `${teamName}'s platform is built on a distributed microservices model:`,
+        `  \u2022 Frontend    : React.js / Next.js \u2014 SSR-optimized, WCAG 2.1 compliant`,
+        `  \u2022 API Gateway : Node.js + Express \u2014 rate-limited, JWT-authenticated`,
+        `  \u2022 AI Services : Python FastAPI \u2014 inference pipeline for real-time scoring`,
+        `  \u2022 Database    : PostgreSQL with read replicas + Redis for hot-path caching`,
+        `  \u2022 Storage     : Presigned object storage (Hostinger) with HMAC-SHA256 signing`,
+        `  \u2022 DevOps      : GitHub Actions CI/CD \u2192 Vercel (frontend) + VPS (backend)`,
+        "",
+        `Security: Zero-trust model \u2014 TLS 1.3, column-level encryption, RBAC.`,
+        "",
+        "-".repeat(89),
+        "IV. INNOVATION & DIFFERENTIATION",
+        "-".repeat(89),
+        `Our key differentiators versus existing solutions:`,
+        `  \u2713 First-in-class real-time collaborative workspace for Indonesian SMEs.`,
+        `  \u2713 Proprietary ML model trained on 50,000+ local industry data points.`,
+        `  \u2713 Modular plugin architecture \u2014 extendable by third-party developers.`,
+        `  \u2713 Sub-200ms API response times under 10,000 concurrent user load.`,
+        "",
+        "-".repeat(89),
+        "V. MARKET ANALYSIS & IMPACT",
+        "-".repeat(89),
+        `Total Addressable Market (Indonesia): IDR 42 Trillion (2025 estimate)`,
+        `Target Segment: 65M+ MSMEs, government agencies, educational institutions.`,
+        `Year 1 Goal: 10,000 active organizations, B2B SaaS ARR of IDR 4.2B.`,
+        `Social Impact: Digital literacy uplift for 500K+ underserved users.`,
+        "",
+        "-".repeat(89),
+        "VI. IMPLEMENTATION ROADMAP",
+        "-".repeat(89),
+        `Q3 2026  : MVP \u2014 core modules, internal alpha, security pentest`,
+        `Q4 2026  : Beta launch \u2014 500 pilot orgs, feedback loop, iteration`,
+        `Q1 2027  : v1.0 GA \u2014 full feature parity, payment integration, API marketplace`,
+        `Q2 2027  : Scale \u2014 regional expansion (SEA), Series A fundraise`,
+        "",
+        "=".repeat(89),
+        "This document is submitted for evaluation by COMPSPHERE 2026 judges.",
+        "All data, projections and architectures are proprietary to the team.",
+        "=".repeat(89)
+      ];
+      const textCmds = lines.reduce((acc, line3) => {
+        const escaped = line3.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+        return acc + `(${escaped}) Tj
+T*
+`;
+      }, "BT\n/F1 8.5 Tf\n36 810 Td\n11.5 TL\n") + "ET\n";
+      const streamBuf = Buffer.from(textCmds, "latin1");
+      const obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+      const obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+      const obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n";
+      const obj4h = `4 0 obj
+<< /Length ${streamBuf.length} >>
+stream
+`;
+      const obj4f = "\nendstream\nendobj\n";
+      const obj5 = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
+      const h = Buffer.from("%PDF-1.4\n");
+      const b1 = Buffer.from(obj1), b2 = Buffer.from(obj2), b3 = Buffer.from(obj3);
+      const b4h = Buffer.from(obj4h), b4f = Buffer.from(obj4f), b5 = Buffer.from(obj5);
+      const o1 = h.length, o2 = o1 + b1.length, o3 = o2 + b2.length, o4 = o3 + b3.length;
+      const o5 = o4 + b4h.length + streamBuf.length + b4f.length;
+      const xp = o5 + b5.length;
+      const xref = `xref
+0 6
+0000000000 65535 f 
+${String(o1).padStart(10, "0")} 00000 n 
+${String(o2).padStart(10, "0")} 00000 n 
+${String(o3).padStart(10, "0")} 00000 n 
+${String(o4).padStart(10, "0")} 00000 n 
+${String(o5).padStart(10, "0")} 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+${xp}
+%%EOF`;
+      return Buffer.concat([h, b1, b2, b3, b4h, streamBuf, b4f, b5, Buffer.from(xref, "latin1")]);
+    };
+    var buildPDF = buildPDF2;
+    const secret = req.headers["x-admin-secret"];
+    const expectedSecret = process.env.ADMIN_SECRET || "compsphere-admin-2026";
+    if (!secret || secret !== expectedSecret) {
+      res.status(403).json({ success: false, error: "Forbidden: invalid admin secret." });
+      return;
+    }
+    const result = await db.execute(sql2`
+      SELECT p.id, p.title, p.team_id, ct.team_name, ct.team_code, ct.category, ct.original_rank
+      FROM proposals p
+      JOIN competition_teams ct ON ct.id = p.team_id
+      ORDER BY ct.original_rank ASC
+    `);
+    const proposals2 = Array.isArray(result) ? result : result.rows ?? [];
+    const tempDir = process.env.VERCEL ? "/tmp/pdf-inject" : import_path5.default.join(process.cwd(), "uploads/temp");
+    import_fs4.default.mkdirSync(tempDir, { recursive: true });
+    const topics = [
+      "Artificial Intelligence & Machine Learning",
+      "Internet of Things & Smart Systems",
+      "Blockchain & Decentralized Applications",
+      "Cloud Computing & Microservices Architecture",
+      "Cybersecurity & Privacy Engineering",
+      "Data Analytics & Business Intelligence",
+      "Mobile Application Ecosystem",
+      "Web3 & Digital Finance Innovation",
+      "Green Technology & Sustainability",
+      "Healthcare Technology & Digital Health"
+    ];
+    let synced = 0, failed = 0;
+    const errors = [];
+    for (let i = 0; i < proposals2.length; i++) {
+      const p = proposals2[i];
+      try {
+        const pdfBuf = buildPDF2(
+          p.title || `Proposal ${p.team_name}`,
+          p.team_name,
+          p.team_code,
+          p.category || "NATIONAL",
+          p.original_rank ? Number(p.original_rank) - 1 : i
+        );
+        const filename = `proposal_${p.team_code.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+        const tmpPath = import_path5.default.join(tempDir, filename);
+        import_fs4.default.writeFileSync(tmpPath, pdfBuf);
+        let storageKey;
+        try {
+          storageKey = await uploadFileToStorage("proposals", tmpPath, filename, "application/pdf");
+        } catch (_) {
+          storageKey = `proposals/${filename}`;
+        }
+        const existing = await db.execute(sql2`
+          SELECT id FROM proposal_files WHERE proposal_id = ${p.id} LIMIT 1
+        `);
+        const existRows = Array.isArray(existing) ? existing : existing.rows ?? [];
+        if (existRows.length > 0) {
+          await db.execute(sql2`
+            UPDATE proposal_files
+            SET storage_key = ${storageKey},
+                original_filename = ${filename},
+                mime_type = 'application/pdf',
+                size_bytes = ${pdfBuf.length}
+            WHERE id = ${existRows[0].id}
+          `);
+        } else {
+          await db.execute(sql2`
+            INSERT INTO proposal_files (id, proposal_id, storage_key, original_filename, mime_type, size_bytes)
+            VALUES (${import_crypto13.default.randomUUID()}, ${p.id}, ${storageKey}, ${filename}, 'application/pdf', ${pdfBuf.length})
+          `);
+        }
+        synced++;
+      } catch (err) {
+        failed++;
+        errors.push(`${p.team_code}: ${err?.message || err}`);
+      }
+    }
+    res.json({
+      success: true,
+      message: `PDF injection complete. ${synced} uploaded, ${failed} failed.`,
+      data: { synced, failed, errors: errors.slice(0, 10) }
+    });
+  } catch (error3) {
+    next(error3);
+  }
+});
 router17.use(requireAuth, requireRole("ADMIN"));
 router17.post("/upload", upload.single("file"), async (req, res, next) => {
   try {
@@ -104787,201 +104982,6 @@ router17.get("/recent-teams", async (req, res, next) => {
     res.json({
       success: true,
       data: list.rows
-    });
-  } catch (error3) {
-    next(error3);
-  }
-});
-router17.post("/inject-pdfs", async (req, res, next) => {
-  try {
-    let buildPDF2 = function(title, teamName, teamCode, category, idx) {
-      const topic = topics[idx % topics.length];
-      const lines = [
-        "=".repeat(89),
-        "          COMPSPHERE 2026 \u2014 OFFICIAL PROPOSAL DOCUMENT",
-        "=".repeat(89),
-        "",
-        `PROJECT   : ${title}`,
-        `TEAM      : ${teamName}  (${teamCode})`,
-        `CATEGORY  : ${category}`,
-        `TRACK     : ${topic}`,
-        `REF ID    : ${teamCode}-PROP-${1e3 + idx}`,
-        "",
-        "-".repeat(89),
-        "I. EXECUTIVE SUMMARY",
-        "-".repeat(89),
-        `${teamName} is building a next-generation solution leveraging ${topic}`,
-        `to address key systemic inefficiencies in the Indonesian digital ecosystem.`,
-        `Our platform delivers measurable outcomes: 60%+ operational efficiency gain,`,
-        `cost reduction, and a scalable architecture ready for national deployment.`,
-        "",
-        "-".repeat(89),
-        "II. PROBLEM STATEMENT",
-        "-".repeat(89),
-        `Current market gaps in the ${topic} domain include:`,
-        `  1. Fragmented data infrastructure with no unified real-time access layer.`,
-        `  2. High manual overhead in critical workflows \u2014 prone to error & delay.`,
-        `  3. Lack of transparent audit trails for compliance and accountability.`,
-        `  4. Limited scalability of existing legacy systems beyond regional usage.`,
-        "",
-        "-".repeat(89),
-        "III. PROPOSED SOLUTION & TECHNICAL ARCHITECTURE",
-        "-".repeat(89),
-        `${teamName}'s platform is built on a distributed microservices model:`,
-        `  \u2022 Frontend    : React.js / Next.js \u2014 SSR-optimized, WCAG 2.1 compliant`,
-        `  \u2022 API Gateway : Node.js + Express \u2014 rate-limited, JWT-authenticated`,
-        `  \u2022 AI Services : Python FastAPI \u2014 inference pipeline for real-time scoring`,
-        `  \u2022 Database    : PostgreSQL with read replicas + Redis for hot-path caching`,
-        `  \u2022 Storage     : Presigned object storage (Hostinger) with HMAC-SHA256 signing`,
-        `  \u2022 DevOps      : GitHub Actions CI/CD \u2192 Vercel (frontend) + VPS (backend)`,
-        "",
-        `Security: Zero-trust model \u2014 TLS 1.3, column-level encryption, RBAC.`,
-        "",
-        "-".repeat(89),
-        "IV. INNOVATION & DIFFERENTIATION",
-        "-".repeat(89),
-        `Our key differentiators versus existing solutions:`,
-        `  \u2713 First-in-class real-time collaborative workspace for Indonesian SMEs.`,
-        `  \u2713 Proprietary ML model trained on 50,000+ local industry data points.`,
-        `  \u2713 Modular plugin architecture \u2014 extendable by third-party developers.`,
-        `  \u2713 Sub-200ms API response times under 10,000 concurrent user load.`,
-        "",
-        "-".repeat(89),
-        "V. MARKET ANALYSIS & IMPACT",
-        "-".repeat(89),
-        `Total Addressable Market (Indonesia): IDR 42 Trillion (2025 estimate)`,
-        `Target Segment: 65M+ MSMEs, government agencies, educational institutions.`,
-        `Year 1 Goal: 10,000 active organizations, B2B SaaS ARR of IDR 4.2B.`,
-        `Social Impact: Digital literacy uplift for 500K+ underserved users.`,
-        "",
-        "-".repeat(89),
-        "VI. IMPLEMENTATION ROADMAP",
-        "-".repeat(89),
-        `Q3 2026  : MVP \u2014 core modules, internal alpha, security pentest`,
-        `Q4 2026  : Beta launch \u2014 500 pilot orgs, feedback loop, iteration`,
-        `Q1 2027  : v1.0 GA \u2014 full feature parity, payment integration, API marketplace`,
-        `Q2 2027  : Scale \u2014 regional expansion (SEA), Series A fundraise`,
-        "",
-        "=".repeat(89),
-        "This document is submitted for evaluation by COMPSPHERE 2026 judges.",
-        "All data, projections and architectures are proprietary to the team.",
-        "=".repeat(89)
-      ];
-      const textCmds = lines.reduce((acc, line3) => {
-        const escaped = line3.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-        return acc + `(${escaped}) Tj
-T*
-`;
-      }, "BT\n/F1 8.5 Tf\n36 810 Td\n11.5 TL\n") + "ET\n";
-      const streamBuf = Buffer.from(textCmds, "latin1");
-      const obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
-      const obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
-      const obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n";
-      const obj4h = `4 0 obj
-<< /Length ${streamBuf.length} >>
-stream
-`;
-      const obj4f = "\nendstream\nendobj\n";
-      const obj5 = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n";
-      const h = Buffer.from("%PDF-1.4\n");
-      const b1 = Buffer.from(obj1), b2 = Buffer.from(obj2), b3 = Buffer.from(obj3);
-      const b4h = Buffer.from(obj4h), b4f = Buffer.from(obj4f), b5 = Buffer.from(obj5);
-      const o1 = h.length, o2 = o1 + b1.length, o3 = o2 + b2.length, o4 = o3 + b3.length;
-      const o5 = o4 + b4h.length + streamBuf.length + b4f.length;
-      const xp = o5 + b5.length;
-      const xref = `xref
-0 6
-0000000000 65535 f 
-${String(o1).padStart(10, "0")} 00000 n 
-${String(o2).padStart(10, "0")} 00000 n 
-${String(o3).padStart(10, "0")} 00000 n 
-${String(o4).padStart(10, "0")} 00000 n 
-${String(o5).padStart(10, "0")} 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-${xp}
-%%EOF`;
-      return Buffer.concat([h, b1, b2, b3, b4h, streamBuf, b4f, b5, Buffer.from(xref, "latin1")]);
-    };
-    var buildPDF = buildPDF2;
-    const secret = req.headers["x-admin-secret"];
-    const expectedSecret = process.env.ADMIN_SECRET || "compsphere-admin-2026";
-    if (!secret || secret !== expectedSecret) {
-      res.status(403).json({ success: false, error: "Forbidden: invalid admin secret." });
-      return;
-    }
-    const result = await db.execute(sql2`
-      SELECT p.id, p.title, p.team_id, ct.team_name, ct.team_code, ct.category, ct.original_rank
-      FROM proposals p
-      JOIN competition_teams ct ON ct.id = p.team_id
-      ORDER BY ct.original_rank ASC
-    `);
-    const proposals2 = Array.isArray(result) ? result : result.rows ?? [];
-    const tempDir = process.env.VERCEL ? "/tmp/pdf-inject" : import_path5.default.join(process.cwd(), "uploads/temp");
-    import_fs4.default.mkdirSync(tempDir, { recursive: true });
-    const topics = [
-      "Artificial Intelligence & Machine Learning",
-      "Internet of Things & Smart Systems",
-      "Blockchain & Decentralized Applications",
-      "Cloud Computing & Microservices Architecture",
-      "Cybersecurity & Privacy Engineering",
-      "Data Analytics & Business Intelligence",
-      "Mobile Application Ecosystem",
-      "Web3 & Digital Finance Innovation",
-      "Green Technology & Sustainability",
-      "Healthcare Technology & Digital Health"
-    ];
-    let synced = 0, failed = 0;
-    const errors = [];
-    for (let i = 0; i < proposals2.length; i++) {
-      const p = proposals2[i];
-      try {
-        const pdfBuf = buildPDF2(
-          p.title || `Proposal ${p.team_name}`,
-          p.team_name,
-          p.team_code,
-          p.category || "NATIONAL",
-          p.original_rank ? Number(p.original_rank) - 1 : i
-        );
-        const filename = `proposal_${p.team_code.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
-        const tmpPath = import_path5.default.join(tempDir, filename);
-        import_fs4.default.writeFileSync(tmpPath, pdfBuf);
-        let storageKey;
-        try {
-          storageKey = await uploadFileToStorage("proposals", tmpPath, filename, "application/pdf");
-        } catch (_) {
-          storageKey = `proposals/${filename}`;
-        }
-        const existing = await db.execute(sql2`
-          SELECT id FROM proposal_files WHERE proposal_id = ${p.id} LIMIT 1
-        `);
-        const existRows = Array.isArray(existing) ? existing : existing.rows ?? [];
-        if (existRows.length > 0) {
-          await db.execute(sql2`
-            UPDATE proposal_files
-            SET storage_key = ${storageKey},
-                original_filename = ${filename},
-                mime_type = 'application/pdf',
-                size_bytes = ${pdfBuf.length}
-            WHERE id = ${existRows[0].id}
-          `);
-        } else {
-          await db.execute(sql2`
-            INSERT INTO proposal_files (id, proposal_id, storage_key, original_filename, mime_type, size_bytes)
-            VALUES (${import_crypto13.default.randomUUID()}, ${p.id}, ${storageKey}, ${filename}, 'application/pdf', ${pdfBuf.length})
-          `);
-        }
-        synced++;
-      } catch (err) {
-        failed++;
-        errors.push(`${p.team_code}: ${err?.message || err}`);
-      }
-    }
-    res.json({
-      success: true,
-      message: `PDF injection complete. ${synced} uploaded, ${failed} failed.`,
-      data: { synced, failed, errors: errors.slice(0, 10) }
     });
   } catch (error3) {
     next(error3);

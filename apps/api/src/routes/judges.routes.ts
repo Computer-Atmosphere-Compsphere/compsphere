@@ -203,68 +203,80 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
       INNER JOIN competition_teams ct ON ct.id = ja.team_id
       LEFT JOIN proposals p ON p.team_id = ct.id
       LEFT JOIN judge_scores js ON js.judge_id = j.id AND js.team_id = ct.id
-      WHERE pr.id = ${user.profileId}
+      WHERE (pr.id::text = ${user.profileId} OR pr.email = ${user.email})
         AND j.status = 'ACTIVE'
       ORDER BY ja.assigned_at ASC
     `);
 
     const rawRows = Array.isArray(rows) ? rows : (rows as any).rows ?? [];
 
-    const proposalIds = rawRows.map((r: any) => r.proposal_id).filter(Boolean);
-    const teamIds = rawRows.map((r: any) => r.team_id).filter(Boolean);
+    const proposalIds = Array.from(new Set(rawRows.map((r: any) => r.proposal_id).filter(Boolean)));
+    const teamIds = Array.from(new Set(rawRows.map((r: any) => r.team_id).filter(Boolean)));
 
-    // Fetch proposal files
+    // Fetch proposal files safely
     const filesMap: Record<string, any[]> = {};
     if (proposalIds.length > 0) {
-      const fileRows = await db.execute(sql`
-        SELECT id, proposal_id, storage_key, original_filename, mime_type, size_bytes
-        FROM proposal_files
-        WHERE proposal_id IN (${sql.join(proposalIds.map((id: string) => sql`${id}`), sql`, `)})
-      `);
-      const rawFiles = Array.isArray(fileRows) ? fileRows : (fileRows as any).rows ?? [];
-      for (const f of rawFiles) {
-        if (!filesMap[f.proposal_id]) filesMap[f.proposal_id] = [];
-        filesMap[f.proposal_id].push({
-          id: f.id,
-          storageKey: f.storage_key,
-          originalFilename: f.original_filename,
-          mimeType: f.mime_type,
-          sizeBytes: Number(f.size_bytes),
-        });
+      try {
+        const fileRows = await db.execute(sql`
+          SELECT id, proposal_id, storage_key, original_filename, mime_type, size_bytes
+          FROM proposal_files
+          WHERE proposal_id::text IN (${sql.join(proposalIds.map((id: any) => sql`${id}`), sql`, `)})
+        `);
+        const rawFiles = Array.isArray(fileRows) ? fileRows : (fileRows as any).rows ?? [];
+        for (const f of rawFiles) {
+          if (!filesMap[f.proposal_id]) filesMap[f.proposal_id] = [];
+          filesMap[f.proposal_id].push({
+            id: f.id,
+            storageKey: f.storage_key,
+            originalFilename: f.original_filename,
+            mimeType: f.mime_type,
+            sizeBytes: Number(f.size_bytes),
+          });
+        }
+      } catch (fileErr) {
+        console.warn("[my-assignments] Failed to fetch proposal files metadata:", fileErr);
       }
     }
 
-    // Fetch team members metadata (count + leader)
+    // Fetch team members metadata (count + leader) safely
     const membersMap: Record<string, { count: number; leaderName?: string; leaderEmail?: string }> = {};
     if (teamIds.length > 0) {
-      const tmRows = await db.execute(sql`
-        SELECT
-          tm.team_id,
-          COUNT(*)::int AS member_count,
-          MAX(CASE WHEN tm.role = 'LEADER' THEN pr.full_name END) AS leader_name,
-          MAX(CASE WHEN tm.role = 'LEADER' THEN pr.email END) AS leader_email
-        FROM team_members tm
-        JOIN profiles pr ON pr.id = tm.user_id
-        WHERE tm.team_id IN (${sql.join(teamIds.map((id: string) => sql`${id}`), sql`, `)})
-          AND tm.status = 'ACTIVE'
-        GROUP BY tm.team_id
-      `);
-      const rawTm = Array.isArray(tmRows) ? tmRows : (tmRows as any).rows ?? [];
-      for (const tm of rawTm) {
-        membersMap[tm.team_id] = {
-          count: Number(tm.member_count),
-          leaderName: tm.leader_name || undefined,
-          leaderEmail: tm.leader_email || undefined,
-        };
+      try {
+        const tmRows = await db.execute(sql`
+          SELECT
+            tm.team_id,
+            COUNT(*)::int AS member_count,
+            MAX(CASE WHEN tm.role = 'LEADER' THEN pr.full_name END) AS leader_name,
+            MAX(CASE WHEN tm.role = 'LEADER' THEN pr.email END) AS leader_email
+          FROM team_members tm
+          JOIN profiles pr ON pr.id = tm.user_id
+          WHERE tm.team_id::text IN (${sql.join(teamIds.map((id: any) => sql`${id}`), sql`, `)})
+            AND tm.status = 'ACTIVE'
+          GROUP BY tm.team_id
+        `);
+        const rawTm = Array.isArray(tmRows) ? tmRows : (tmRows as any).rows ?? [];
+        for (const tm of rawTm) {
+          membersMap[tm.team_id] = {
+            count: Number(tm.member_count),
+            leaderName: tm.leader_name || undefined,
+            leaderEmail: tm.leader_email || undefined,
+          };
+        }
+      } catch (tmErr) {
+        console.warn("[my-assignments] Failed to fetch team members metadata:", tmErr);
       }
     }
 
     // Check code freeze
-    const freezeConfig = await db.query.systemConfig.findFirst({
-      where: eq(schema.systemConfig.key, "submission_deadline"),
-    });
-    const deadline = freezeConfig ? new Date(freezeConfig.value) : null;
-    const isFrozen = deadline ? new Date() > deadline : false;
+    let isFrozen = false;
+    let freezeConfig: any = null;
+    try {
+      freezeConfig = await db.query.systemConfig.findFirst({
+        where: eq(schema.systemConfig.key, "submission_deadline"),
+      });
+      const deadline = freezeConfig ? new Date(freezeConfig.value) : null;
+      isFrozen = deadline && !isNaN(deadline.getTime()) ? new Date() > deadline : false;
+    } catch (_) {}
 
     const assignments = rawRows.map((row: any) => {
       const pFiles = row.proposal_id ? (filesMap[row.proposal_id] || []) : [];
@@ -350,7 +362,7 @@ router.get("/proposals", requireAuth, requireRole("JUDGE"), async (req, res, nex
       INNER JOIN competition_teams ct ON ct.id = ja.team_id
       INNER JOIN proposals p ON p.team_id = ct.id
       LEFT JOIN proposal_files pf ON pf.proposal_id = p.id
-      WHERE pr.id = ${user.profileId}
+      WHERE (pr.id::text = ${user.profileId} OR pr.email = ${user.email})
         AND j.status = 'ACTIVE'
       ORDER BY ct.team_name ASC
     `);

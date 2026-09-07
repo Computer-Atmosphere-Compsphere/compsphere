@@ -267,11 +267,32 @@ export function Scoring() {
             {activeTab === "pdf" ? (
               proposalUrl ? (
                 <div className="flex-1 w-full min-h-[600px] rounded-xl overflow-hidden border border-border/60 bg-white">
-                  <iframe
-                    src={proposalUrl}
+                  <object
+                    data={proposalUrl}
+                    type="application/pdf"
                     className="w-full h-full border-0 min-h-[600px]"
-                    title={`Proposal Document - ${team.teamName}`}
-                  />
+                  >
+                    <iframe
+                      src={proposalUrl}
+                      className="w-full h-full border-0 min-h-[600px]"
+                      title={`Proposal Document - ${team.teamName}`}
+                    >
+                      <div className="flex flex-col items-center justify-center p-8 bg-bg-surface text-center space-y-3">
+                        <FileText className="w-10 h-10 text-brand-primary" />
+                        <p className="text-xs text-text-secondary">
+                          Direct PDF preview is not supported by your browser viewer.
+                        </p>
+                        <a
+                          href={proposalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> View PDF in New Tab
+                        </a>
+                      </div>
+                    </iframe>
+                  </object>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center py-20 text-center space-y-4">

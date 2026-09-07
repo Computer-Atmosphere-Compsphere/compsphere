@@ -450,8 +450,7 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
 router.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
     const judges = await db.query.judges.findMany({
-      where: eq(schema.judges.status, "ACTIVE"),
-      with: { user: { columns: { fullName: true, email: true } } },
+      with: { user: true },
     });
 
     const assignments = await db.query.judgeAssignments.findMany({
@@ -461,7 +460,9 @@ router.get("/assignment-matrix", requireAuth, requireRole("ADMIN"), async (req, 
     // Score progress
     const scores = await db.query.judgeScores.findMany({});
 
-    const matrix = judges.map((j) => {
+    const activeJudges = judges.filter((j) => j.status === "ACTIVE");
+
+    const matrix = activeJudges.map((j) => {
       const myAssignments = assignments.filter((a) => a.judgeId === j.id);
       const myScores = scores.filter((s) => s.judgeId === j.id);
       return {

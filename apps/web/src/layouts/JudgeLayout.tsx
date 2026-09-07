@@ -145,10 +145,11 @@ export function JudgeLayout() {
 
       {/* Main Panel Outlet */}
       <div className="flex-1 pl-64 flex flex-col min-h-screen">
-        <main className="flex-1 p-8 max-w-5xl w-full mx-auto">
+        <main className="flex-1 w-full">
           <Outlet />
         </main>
       </div>
+
     </div>
   );
 }

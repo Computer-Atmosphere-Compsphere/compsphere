@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, getUploadUrl } from "@/lib/api";
-import { GlassPanel } from "@/components/compsphere/GlassPanel";
-import { NeonButton } from "@/components/compsphere/NeonButton";
 import { Link } from "react-router-dom";
 import {
-  CheckSquare,
-  Clock,
+  CheckCircle2,
+  Clock3,
   FileText,
   ExternalLink,
   Users,
@@ -18,6 +16,11 @@ import {
   Tag,
   Layers,
   Sparkles,
+  ChevronRight,
+  AlertTriangle,
+  LayoutList,
+  BarChart3,
+  Filter,
 } from "lucide-react";
 
 export function JudgeTeams() {
@@ -35,10 +38,7 @@ export function JudgeTeams() {
 
   const syncPdfMutation = useMutation({
     mutationFn: () => api.post("/api/judges/sync-dummy-pdfs"),
-    onMutate: () => {
-      setIsSyncing(true);
-      setSyncMessage(null);
-    },
+    onMutate: () => { setIsSyncing(true); setSyncMessage(null); },
     onSuccess: (res: any) => {
       setIsSyncing(false);
       setSyncMessage(res.message || "PDFs synced successfully!");
@@ -53,338 +53,435 @@ export function JudgeTeams() {
 
   const rawAssignments: any[] = data?.assignments ?? [];
 
-  // Filter assignments based on search term, status, and category
   const assignments = rawAssignments.filter((a) => {
     const team = a.team || {};
     const prop = team.proposal || {};
-    const searchMatch =
-      !searchTerm ||
-      team.teamName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.teamCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prop.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.leaderName?.toLowerCase().includes(searchTerm.toLowerCase());
-
+    const q = searchTerm.toLowerCase();
+    const searchMatch = !searchTerm ||
+      team.teamName?.toLowerCase().includes(q) ||
+      team.teamCode?.toLowerCase().includes(q) ||
+      prop.title?.toLowerCase().includes(q) ||
+      team.leaderName?.toLowerCase().includes(q);
     const isScored = !!a.score;
-    const statusMatch =
-      filterStatus === "ALL" ||
+    const statusMatch = filterStatus === "ALL" ||
       (filterStatus === "SCORED" && isScored) ||
       (filterStatus === "PENDING" && !isScored);
-
-    const categoryMatch =
-      filterCategory === "ALL" || team.category === filterCategory;
-
+    const categoryMatch = filterCategory === "ALL" || team.category === filterCategory;
     return searchMatch && statusMatch && categoryMatch;
   });
 
   const totalCount = rawAssignments.length;
   const scoredCount = rawAssignments.filter((a) => a.score).length;
   const pendingCount = totalCount - scoredCount;
+  const completionPct = totalCount > 0 ? Math.round((scoredCount / totalCount) * 100) : 0;
+
+  const categoryBadge: Record<string, string> = {
+    NATIONAL: "text-sky-300 bg-sky-950/60 border-sky-700/40",
+    MIX: "text-violet-300 bg-violet-950/60 border-violet-700/40",
+    INTERNATIONAL: "text-amber-300 bg-amber-950/60 border-amber-700/40",
+  };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Header */}
-      <div className="pb-6 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-brand-primary uppercase tracking-wider mb-1">
-            <ShieldCheck className="w-4 h-4" /> Judge Evaluation Panel
+    <div className="w-full max-w-none px-0 pb-16" style={{ minHeight: "100vh" }}>
+      {/* ── TOP COMMAND BAR ── */}
+      <div
+        className="sticky top-0 z-20 flex flex-col gap-0"
+        style={{
+          background: "rgba(0,0,0,0.75)",
+          backdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(0,245,200,0.09)",
+        }}
+      >
+        {/* Title Row */}
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-brand-primary uppercase tracking-widest opacity-80">
+              <ShieldCheck className="w-3.5 h-3.5" /> Judge Evaluation Panel
+            </span>
+            <span className="text-border">│</span>
+            <h1 className="text-base font-bold text-text-primary tracking-tight">
+              Assigned Teams
+            </h1>
+            <span
+              className="text-[11px] font-mono font-bold px-2 py-0.5 rounded"
+              style={{
+                background: "rgba(0,245,200,0.08)",
+                border: "1px solid rgba(0,245,200,0.2)",
+                color: "#00f5c8",
+              }}
+            >
+              {totalCount} TEAMS
+            </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">
-            Assigned Teams for Evaluation
-          </h1>
-          <p className="text-xs text-text-secondary mt-1 max-w-2xl">
-            Review detailed proposal documents, technical architecture, and team specs. Grade each team according to COMPSPHERE Phase 1 scoring guidelines.
-          </p>
+
+          <div className="flex items-center gap-2">
+            {syncMessage && (
+              <span className="text-[11px] font-semibold text-brand-primary bg-brand-primary/10 px-3 py-1 rounded border border-brand-primary/30 max-w-xs truncate">
+                {syncMessage}
+              </span>
+            )}
+            <button
+              onClick={() => syncPdfMutation.mutate()}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded border transition-all"
+              style={{
+                background: "rgba(0,245,200,0.06)",
+                borderColor: "rgba(0,245,200,0.2)",
+                color: "#00f5c8",
+              }}
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync PDFs"}
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <NeonButton
-            size="sm"
-            onClick={() => syncPdfMutation.mutate()}
-            disabled={isSyncing}
-            className="flex items-center gap-2 text-xs"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-            {isSyncing ? "Syncing Dummy PDFs..." : "Sync PDF Server Data"}
-          </NeonButton>
+        {/* Stats + Progress Row */}
+        <div
+          className="flex items-center gap-0 px-6 py-2 border-t"
+          style={{ borderColor: "rgba(255,255,255,0.05)" }}
+        >
+          {/* Progress bar area */}
+          <div className="flex-1 flex items-center gap-4 mr-8">
+            <div className="flex-1 max-w-xs">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider">
+                  Evaluation Progress
+                </span>
+                <span className="text-[10px] font-mono font-bold text-brand-primary">
+                  {completionPct}%
+                </span>
+              </div>
+              <div className="h-1 rounded-full w-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${completionPct}%`,
+                    background: "linear-gradient(90deg, #00f5c8, #00ddb5)",
+                    boxShadow: "0 0 8px rgba(0,245,200,0.4)",
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-5 text-xs font-mono">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
+                <span className="text-green-400 font-bold">{scoredCount}</span>
+                <span className="text-text-muted">Scored</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.5)]" />
+                <span className="text-yellow-400 font-bold">{pendingCount}</span>
+                <span className="text-text-muted">Pending</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Layers className="w-3 h-3 text-text-muted" />
+                <span className="text-text-secondary font-bold">{totalCount}</span>
+                <span className="text-text-muted">Total</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search teams, proposals..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-[11px] rounded border focus:outline-none focus:border-brand-primary/50 transition-colors"
+                style={{
+                  width: "220px",
+                  background: "rgba(255,255,255,0.04)",
+                  borderColor: "rgba(255,255,255,0.08)",
+                  color: "#fff",
+                }}
+              />
+            </div>
+
+            <div
+              className="flex items-center text-[10px] font-bold rounded border overflow-hidden"
+              style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+            >
+              {(["ALL", "PENDING", "SCORED"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFilterStatus(s)}
+                  className="px-3 py-1.5 transition-all"
+                  style={{
+                    background: filterStatus === s
+                      ? s === "SCORED" ? "rgba(74,222,128,0.15)"
+                        : s === "PENDING" ? "rgba(250,204,21,0.15)"
+                        : "rgba(0,245,200,0.12)"
+                      : "transparent",
+                    color: filterStatus === s
+                      ? s === "SCORED" ? "#4ade80"
+                        : s === "PENDING" ? "#facc15"
+                        : "#00f5c8"
+                      : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="text-[10px] font-bold py-1.5 px-2.5 rounded border focus:outline-none transition-all"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                borderColor: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.7)",
+              }}
+            >
+              <option value="ALL">ALL CATEGORIES</option>
+              <option value="NATIONAL">NATIONAL</option>
+              <option value="MIX">MIX</option>
+              <option value="INTERNATIONAL">INTERNATIONAL</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Sync alert message */}
-      {syncMessage && (
-        <div className="p-3 rounded-lg bg-brand-primary/10 border border-brand-primary/30 text-xs font-semibold text-brand-primary flex items-center justify-between">
-          <span>{syncMessage}</span>
-          <button onClick={() => setSyncMessage(null)} className="text-text-muted hover:text-text-primary">✕</button>
-        </div>
-      )}
-
-      {/* Stats Summary Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <GlassPanel className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Total Assigned Teams</p>
-            <p className="text-2xl font-extrabold text-text-primary font-mono mt-1">{totalCount}</p>
+      {/* ── MAIN CONTENT ── */}
+      <div className="px-6 pt-4">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-3">
+            <div
+              className="w-7 h-7 rounded-full border-2 animate-spin"
+              style={{ borderColor: "rgba(0,245,200,0.2)", borderTopColor: "#00f5c8" }}
+            />
+            <span className="text-xs text-text-muted font-mono">Loading assignments...</span>
           </div>
-          <Layers className="w-8 h-8 text-brand-primary/40" />
-        </GlassPanel>
-        <GlassPanel className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-green-400 uppercase tracking-wider">Evaluated & Scored</p>
-            <p className="text-2xl font-extrabold text-green-400 font-mono mt-1">{scoredCount}</p>
+        ) : assignments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
+            <Layers className="w-10 h-10 text-text-muted" />
+            <p className="text-sm font-bold text-text-primary">No Teams Match</p>
+            <p className="text-xs text-text-muted max-w-xs">
+              Adjust your search or filter criteria to find assigned teams.
+            </p>
           </div>
-          <CheckSquare className="w-8 h-8 text-green-400/40" />
-        </GlassPanel>
-        <GlassPanel className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">Pending Evaluation</p>
-            <p className="text-2xl font-extrabold text-yellow-400 font-mono mt-1">{pendingCount}</p>
-          </div>
-          <Clock className="w-8 h-8 text-yellow-400/40" />
-        </GlassPanel>
-      </div>
-
-      {/* Search & Filter Toolbar */}
-      <GlassPanel className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by team name, code, proposal title, leader..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-brand-primary"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Status Filter */}
-          <div className="flex items-center bg-bg-surface border border-border rounded-lg p-1 text-xs font-semibold">
-            <button
-              onClick={() => setFilterStatus("ALL")}
-              className={`px-3 py-1 rounded-md transition ${filterStatus === "ALL" ? "bg-brand-primary text-bg-primary font-bold" : "text-text-secondary hover:text-text-primary"}`}
+        ) : (
+          <>
+            {/* Column Header */}
+            <div
+              className="grid items-center gap-4 px-4 py-2 mb-1 text-[10px] font-mono font-bold uppercase tracking-widest text-text-muted select-none"
+              style={{
+                gridTemplateColumns: "2.5rem 1fr 14rem 10rem 8rem 10rem 9rem",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+              }}
             >
-              All ({totalCount})
-            </button>
-            <button
-              onClick={() => setFilterStatus("PENDING")}
-              className={`px-3 py-1 rounded-md transition ${filterStatus === "PENDING" ? "bg-yellow-400/20 text-yellow-400 font-bold" : "text-text-secondary hover:text-text-primary"}`}
-            >
-              Pending ({pendingCount})
-            </button>
-            <button
-              onClick={() => setFilterStatus("SCORED")}
-              className={`px-3 py-1 rounded-md transition ${filterStatus === "SCORED" ? "bg-green-400/20 text-green-400 font-bold" : "text-text-secondary hover:text-text-primary"}`}
-            >
-              Scored ({scoredCount})
-            </button>
-          </div>
+              <span>#</span>
+              <span className="flex items-center gap-1.5"><LayoutList className="w-3 h-3" /> Team / Proposal</span>
+              <span className="flex items-center gap-1.5"><Tag className="w-3 h-3" /> Code & Category</span>
+              <span className="flex items-center gap-1.5"><Users className="w-3 h-3" /> Leader</span>
+              <span className="flex items-center gap-1.5"><FileText className="w-3 h-3" /> Document</span>
+              <span className="flex items-center gap-1.5"><BarChart3 className="w-3 h-3" /> Score</span>
+              <span>Action</span>
+            </div>
 
-          {/* Category Filter */}
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="bg-bg-surface border border-border text-xs text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:border-brand-primary"
-          >
-            <option value="ALL">All Categories</option>
-            <option value="NATIONAL">National</option>
-            <option value="MIX">Mix</option>
-            <option value="INTERNATIONAL">International</option>
-          </select>
-        </div>
-      </GlassPanel>
+            {/* Rows */}
+            <div className="flex flex-col gap-0.5">
+              {assignments.map((a: any, idx: number) => {
+                const team = a.team || {};
+                const proposal = team.proposal || {};
+                const proposalFile = proposal.files?.[0];
+                const pdfUrl = proposalFile ? getUploadUrl(proposalFile.storageKey) : null;
+                const score = a.score;
+                const isScored = !!score;
 
-      {/* Loading state */}
-      {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : assignments.length === 0 ? (
-        <GlassPanel className="text-center py-16 space-y-3">
-          <Layers className="w-10 h-10 text-text-muted mx-auto" />
-          <p className="text-base font-bold text-text-primary">No Matching Teams Found</p>
-          <p className="text-xs text-text-muted max-w-sm mx-auto">
-            Try adjusting your search query or filters to view assigned teams.
-          </p>
-        </GlassPanel>
-      ) : (
-        /* Wide Card List */
-        <div className="space-y-6">
-          {assignments.map((a: any) => {
-            const team = a.team || {};
-            const proposal = team.proposal || {};
-            const proposalFile = proposal.files?.[0];
-            const pdfUrl = proposalFile ? getUploadUrl(proposalFile.storageKey) : null;
-            const score = a.score;
-            const isScored = !!score;
-
-            return (
-              <GlassPanel
-                key={a.id}
-                className="p-6 transition hover:border-brand-primary/50 relative overflow-hidden group space-y-5"
-              >
-                {/* Top Badge Strip */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-border/50">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-brand-primary bg-brand-dim border border-brand-primary/30 px-3 py-1 rounded-md">
-                      {team.teamCode}
-                    </span>
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full border border-purple-500/40 bg-purple-950/30 text-purple-300">
-                      {team.category || "NATIONAL"}
-                    </span>
-                    {team.originalRank && (
-                      <span className="text-xs font-bold flex items-center gap-1 text-yellow-400 bg-yellow-950/30 border border-yellow-500/30 px-2.5 py-0.5 rounded-full">
-                        <Trophy className="w-3 h-3" /> Rank #{team.originalRank}
-                      </span>
-                    )}
-                    <span className="text-xs text-text-muted bg-bg-surface px-2.5 py-0.5 rounded border border-border">
-                      Status: <strong className="text-text-primary">{team.status || "NEW"}</strong>
-                    </span>
-                  </div>
-
-                  <div>
-                    {isScored ? (
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-green-950/50 border border-green-500/40 text-green-400 text-xs font-bold">
-                        <CheckSquare className="w-4 h-4 text-green-400" />
-                        <span>Scored: <strong className="font-mono text-sm">{Number(score.finalScore).toFixed(1)}</strong> / 100</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-yellow-950/40 border border-yellow-500/40 text-yellow-400 text-xs font-bold animate-pulse">
-                        <Clock className="w-4 h-4" />
-                        <span>Pending Evaluation</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Team Title & Member Info */}
-                <div className="grid md:grid-cols-3 gap-6 items-start">
-                  <div className="md:col-span-2 space-y-2">
-                    <h3 className="text-xl font-extrabold text-text-primary group-hover:text-brand-primary transition-colors">
-                      {team.teamName}
-                    </h3>
-                    
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
-                      <span className="flex items-center gap-1.5 font-semibold text-text-secondary">
-                        <Users className="w-3.5 h-3.5 text-brand-primary" />
-                        {team.memberCount || 1} Team Member{(team.memberCount || 1) > 1 ? "s" : ""}
-                      </span>
-                      {team.leaderName && (
-                        <span>
-                          Leader: <strong className="text-text-primary">{team.leaderName}</strong>
-                          {team.leaderEmail && <span className="text-text-muted ml-1">({team.leaderEmail})</span>}
+                return (
+                  <div
+                    key={a.id}
+                    className="group relative grid items-center gap-4 px-4 py-3 rounded-lg transition-all duration-150"
+                    style={{
+                      gridTemplateColumns: "2.5rem 1fr 14rem 10rem 8rem 10rem 9rem",
+                      background: isScored
+                        ? "rgba(74,222,128,0.03)"
+                        : "rgba(255,255,255,0.025)",
+                      border: "1px solid transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(0,245,200,0.04)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,245,200,0.12)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = isScored
+                        ? "rgba(74,222,128,0.03)"
+                        : "rgba(255,255,255,0.025)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+                    }}
+                  >
+                    {/* # */}
+                    <div className="text-[11px] font-mono text-text-muted font-bold">
+                      {team.originalRank ? (
+                        <span className="flex items-center gap-1 text-yellow-500">
+                          <Trophy className="w-3 h-3" />{team.originalRank}
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Quick Action Button */}
-                  <div className="flex justify-start md:justify-end items-center">
-                    <Link to={`/judge/scoring/${team.id}`} className="w-full md:w-auto">
-                      <NeonButton size="md" className="w-full md:w-auto flex items-center justify-center gap-2 py-2.5 px-5">
-                        <Sparkles className="w-4 h-4 text-brand-primary" />
-                        {isScored ? "Review & Update Score" : "Evaluate Team Proposal"}
-                        <ArrowRight className="w-4 h-4 ml-1" />
-                      </NeonButton>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Proposal Section Details */}
-                {proposal.title && (
-                  <div className="p-4 rounded-xl bg-bg-surface/80 border border-border/70 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5" />
-                        Proposal Project: {proposal.title}
-                      </h4>
-                      {proposal.devpostUrl && (
-                        <a
-                          href={proposal.devpostUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[11px] text-brand-primary hover:underline flex items-center gap-1"
-                        >
-                          Devpost Submission <ExternalLink className="w-3 h-3" />
-                        </a>
+                      ) : (
+                        <span className="text-text-muted/50">{idx + 1}</span>
                       )}
                     </div>
 
-                    <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
-                      {proposal.description || "Proposal description submitted for COMPSPHERE 2026."}
-                    </p>
+                    {/* Team + Proposal */}
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate">
+                        {team.teamName}
+                      </p>
+                      {proposal.title && (
+                        <p className="text-[11px] text-text-muted truncate mt-0.5 max-w-xs">
+                          <FileText className="w-3 h-3 inline mr-1 text-brand-primary/50" />
+                          {proposal.title}
+                        </p>
+                      )}
+                    </div>
 
-                    {/* PDF File Badge & Viewer Link */}
-                    <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    {/* Code + Category */}
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="text-[10px] font-mono font-bold px-2 py-0.5 rounded w-fit"
+                        style={{
+                          background: "rgba(0,245,200,0.08)",
+                          border: "1px solid rgba(0,245,200,0.2)",
+                          color: "#00f5c8",
+                        }}
+                      >
+                        {team.teamCode}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border w-fit ${categoryBadge[team.category] || "text-text-muted bg-bg-surface border-border"}`}
+                      >
+                        {team.category || "NATIONAL"}
+                      </span>
+                    </div>
+
+                    {/* Leader */}
+                    <div className="min-w-0">
+                      {team.leaderName ? (
+                        <>
+                          <p className="text-[11px] font-semibold text-text-primary truncate">{team.leaderName}</p>
+                          <p className="text-[10px] text-text-muted truncate">
+                            {team.memberCount || 1} member{(team.memberCount || 1) > 1 ? "s" : ""}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-text-muted">—</span>
+                      )}
+                    </div>
+
+                    {/* Document */}
+                    <div>
                       {proposalFile ? (
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-950/40 border border-green-900/50 px-2.5 py-1 rounded font-mono font-semibold">
-                            <FileText className="w-3.5 h-3.5" />
-                            {proposalFile.originalFilename || `proposal_${team.teamCode}.pdf`}
-                            {proposalFile.sizeBytes && (
-                              <span className="text-[10px] text-text-muted">
-                                ({(proposalFile.sizeBytes / 1024).toFixed(0)} KB)
-                              </span>
-                            )}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-mono text-green-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> PDF Ready
                           </span>
                           {pdfUrl && (
                             <a
                               href={pdfUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-xs text-brand-primary font-bold hover:underline flex items-center gap-1"
+                              className="text-[10px] text-brand-primary hover:underline flex items-center gap-0.5"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <ExternalLink className="w-3.5 h-3.5" /> View PDF in New Tab
+                              View <ExternalLink className="w-2.5 h-2.5" />
                             </a>
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-yellow-400 bg-yellow-950/30 border border-yellow-900/40 px-2.5 py-1 rounded">
-                          ⚠️ No PDF document attached yet (Click Sync PDF Server Data above to generate)
+                        <span className="text-[10px] text-yellow-500 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> No PDF
                         </span>
                       )}
                     </div>
-                  </div>
-                )}
 
-                {/* Score Breakdown Pills if already scored */}
-                {isScored && (
-                  <div className="pt-2 border-t border-border/40">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-2">
-                      Your Evaluated Scores Breakdown:
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-                      <div className="p-2 rounded bg-bg-surface border border-border/60 text-center">
-                        <span className="text-[9px] text-text-muted block font-semibold">Technical (30%)</span>
-                        <span className="font-mono font-bold text-brand-primary text-sm">{score.technicalScore}</span>
-                      </div>
-                      <div className="p-2 rounded bg-bg-surface border border-border/60 text-center">
-                        <span className="text-[9px] text-text-muted block font-semibold">Problem (20%)</span>
-                        <span className="font-mono font-bold text-brand-primary text-sm">{score.problemScore}</span>
-                      </div>
-                      <div className="p-2 rounded bg-bg-surface border border-border/60 text-center">
-                        <span className="text-[9px] text-text-muted block font-semibold">Innovation (25%)</span>
-                        <span className="font-mono font-bold text-brand-primary text-sm">{score.innovationScore}</span>
-                      </div>
-                      <div className="p-2 rounded bg-bg-surface border border-border/60 text-center">
-                        <span className="text-[9px] text-text-muted block font-semibold">Market (15%)</span>
-                        <span className="font-mono font-bold text-brand-primary text-sm">{score.marketScore}</span>
-                      </div>
-                      <div className="p-2 rounded bg-bg-surface border border-border/60 text-center">
-                        <span className="text-[9px] text-text-muted block font-semibold">Document (10%)</span>
-                        <span className="font-mono font-bold text-brand-primary text-sm">{score.documentScore}</span>
-                      </div>
+                    {/* Score */}
+                    <div>
+                      {isScored ? (
+                        <div>
+                          <p className="text-sm font-bold font-mono" style={{ color: "#00f5c8" }}>
+                            {Number(score.finalScore).toFixed(1)}
+                            <span className="text-[10px] text-text-muted font-normal"> / 100</span>
+                          </p>
+                          <div className="flex gap-0.5 mt-1">
+                            {[
+                              { key: "technicalScore", pct: 30 },
+                              { key: "problemScore", pct: 20 },
+                              { key: "innovationScore", pct: 25 },
+                              { key: "marketScore", pct: 15 },
+                              { key: "documentScore", pct: 10 },
+                            ].map(({ key, pct }) => {
+                              const val = Number(score[key]) || 0;
+                              return (
+                                <div
+                                  key={key}
+                                  className="h-1 flex-1 rounded-sm overflow-hidden"
+                                  title={`${key}: ${val} (${pct}%)`}
+                                  style={{ background: "rgba(255,255,255,0.08)" }}
+                                >
+                                  <div
+                                    className="h-full rounded-sm"
+                                    style={{
+                                      width: `${Math.min(100, val)}%`,
+                                      background: val >= 70 ? "#4ade80" : val >= 40 ? "#facc15" : "#f87171",
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-yellow-400 flex items-center gap-1 font-semibold animate-pulse">
+                          <Clock3 className="w-3 h-3" /> Pending
+                        </span>
+                      )}
                     </div>
-                    {score.submittedAt && (
-                      <p className="text-[10px] text-text-muted mt-2 text-right">
-                        Evaluated on: {new Date(score.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                      </p>
-                    )}
+
+                    {/* Action */}
+                    <div>
+                      <Link
+                        to={`/judge/scoring/${team.id}`}
+                        className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded transition-all"
+                        style={{
+                          background: isScored ? "rgba(74,222,128,0.1)" : "rgba(0,245,200,0.1)",
+                          border: `1px solid ${isScored ? "rgba(74,222,128,0.3)" : "rgba(0,245,200,0.25)"}`,
+                          color: isScored ? "#4ade80" : "#00f5c8",
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        {isScored ? "Review" : "Evaluate"}
+                        <ChevronRight className="w-3 h-3 ml-auto" />
+                      </Link>
+                    </div>
                   </div>
-                )}
-              </GlassPanel>
-            );
-          })}
-        </div>
-      )}
+                );
+              })}
+            </div>
+
+            {/* Footer summary */}
+            <div
+              className="mt-4 py-3 px-4 flex items-center justify-between text-[10px] font-mono text-text-muted border-t"
+              style={{ borderColor: "rgba(255,255,255,0.05)" }}
+            >
+              <span>
+                Showing <strong className="text-text-secondary">{assignments.length}</strong> of{" "}
+                <strong className="text-text-secondary">{totalCount}</strong> assigned teams
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Filter className="w-3 h-3" />
+                {filterStatus !== "ALL" && <span>Status: {filterStatus}</span>}
+                {filterCategory !== "ALL" && <span>· Category: {filterCategory}</span>}
+                {searchTerm && <span>· Search: "{searchTerm}"</span>}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

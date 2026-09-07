@@ -152,7 +152,7 @@ export function Scoring() {
   const proposalUrl = proposalFile ? getUploadUrl(proposalFile.storageKey) : null;
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
+    <div className="p-8 space-y-6 max-w-[1600px] mx-auto pb-12">
       {/* Navigation & Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">

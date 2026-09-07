@@ -21,7 +21,7 @@ export function JudgeDashboard() {
   const isFrozen = data?.isFrozen;
 
   return (
-    <div className="space-y-8">
+    <div className="p-8 space-y-8">
       <div className="pb-6 border-b border-border flex items-center justify-between">
         <div>
           <p className="text-xs text-text-muted">Judge Console</p>

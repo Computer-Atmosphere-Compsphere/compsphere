@@ -14,7 +14,7 @@ export function Proposals() {
   const proposals: any[] = data?.proposals ?? [];
 
   return (
-    <div className="space-y-8">
+    <div className="p-8 space-y-8">
       <div className="pb-6 border-b border-border">
         <h1 className="text-3xl font-extrabold text-text-primary">Proposal Review</h1>
         <p className="text-xs text-text-secondary mt-1">

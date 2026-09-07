@@ -196,17 +196,6 @@ export function Scoring() {
               <span>Code Freeze Active</span>
             </div>
           )}
-          {!proposalUrl && (
-            <NeonButton
-              size="sm"
-              onClick={() => syncPdfMutation.mutate()}
-              disabled={isSyncing}
-              className="flex items-center gap-2 text-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-              {isSyncing ? "Syncing PDF..." : "Generate & Sync Proposal PDF"}
-            </NeonButton>
-          )}
         </div>
       </div>
 
@@ -295,23 +284,14 @@ export function Scoring() {
                   </object>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center py-20 text-center space-y-4">
-                  <FileText className="w-12 h-12 text-text-muted" />
+                <div className="flex-1 flex flex-col items-center justify-center py-20 text-center space-y-3">
+                  <FileText className="w-10 h-10 text-text-muted" />
                   <div>
-                    <h3 className="text-base font-bold text-text-primary">No PDF Uploaded Yet</h3>
-                    <p className="text-xs text-text-muted mt-1 max-w-md">
-                      Click the button below to generate and sync dummy PDF files for judges testing in production.
+                    <h3 className="text-sm font-bold text-text-primary">No PDF Attached</h3>
+                    <p className="text-xs text-text-muted mt-0.5 max-w-xs">
+                      Proposal document is pending upload by the team.
                     </p>
                   </div>
-                  <NeonButton
-                    size="sm"
-                    onClick={() => syncPdfMutation.mutate()}
-                    disabled={isSyncing}
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                    Sync PDF to Server Now
-                  </NeonButton>
                 </div>
               )
             ) : (

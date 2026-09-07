@@ -113,27 +113,6 @@ export function JudgeTeams() {
               {totalCount} TEAMS
             </span>
           </div>
-
-          <div className="flex items-center gap-2">
-            {syncMessage && (
-              <span className="text-[11px] font-semibold text-brand-primary bg-brand-primary/10 px-3 py-1 rounded border border-brand-primary/30 max-w-xs truncate">
-                {syncMessage}
-              </span>
-            )}
-            <button
-              onClick={() => syncPdfMutation.mutate()}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded border transition-all"
-              style={{
-                background: "rgba(0,245,200,0.06)",
-                borderColor: "rgba(0,245,200,0.2)",
-                color: "#00f5c8",
-              }}
-            >
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
-              {isSyncing ? "Syncing..." : "Sync PDFs"}
-            </button>
-          </div>
         </div>
 
         {/* Stats + Progress Row */}

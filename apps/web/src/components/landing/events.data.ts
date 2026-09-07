@@ -301,17 +301,17 @@ export const subEvents: SubEvent[] = [
 ];
 
 export const sponsors = [
-  { name: "Threepoint", monogram: "TP", style: "font-black tracking-tighter text-purple-400", image: "/threepoint-logo.png" },
+  { name: "Threepoint", monogram: "TP", style: "font-black tracking-tighter text-purple-400", image: "/threepoint-logo.png", imgClassName: "scale-125 md:scale-135" },
   { name: "Featherless AI", monogram: "FA", style: "font-extralight tracking-[0.25em]", image: "/sponsor6-featherless.png" },
   { name: "NordVPN", monogram: "NV", style: "font-extrabold tracking-widest", image: "/sponsor1-nordvpn.png" },
   { name: "KitaLulus", monogram: "KL", style: "font-extrabold tracking-widest text-sky-400", image: "/kitalulus-logo.png" },
-  { name: "OMG Beauty", monogram: "OMG", style: "font-black uppercase text-pink-400", image: "/omg-beauty-logo.png" },
-  { name: "Pocket Studio", monogram: "PS", style: "font-bold italic tracking-tight text-amber-400", image: "/pocket-studio-logo.png" },
+  { name: "OMG Beauty", monogram: "OMG", style: "font-black uppercase text-pink-400", image: "/omg-beauty-logo.png", imgClassName: "scale-135 md:scale-145" },
+  { name: "Pocket Studio", monogram: "PS", style: "font-bold italic tracking-tight text-amber-400", image: "/pocket-studio-logo.png", imgClassName: "scale-125 md:scale-135" },
   { name: "SeaBank", monogram: "SB", style: "font-mono font-bold text-orange-400", image: "/seabank-logo.webp" },
   { name: "NordPass", monogram: "NP", style: "font-black uppercase", image: "/sponsor2-nordpass.png" },
   { name: "Incogni", monogram: "IN", style: "font-bold italic tracking-tight", image: "/sponsor3-incogni.png" },
   { name: "Saily", monogram: "SL", style: "font-mono font-bold", image: "/sponsor4-saily.png" },
-  { name: "Cloura", monogram: "CL", style: "font-black tracking-tighter", image: "/sponsor5-cloura.png" },
+  { name: "Cloura", monogram: "CL", style: "font-black tracking-tighter", image: "/sponsor5-cloura.png", imgClassName: "scale-135 md:scale-145" },
 ];
 
 export const partners = [

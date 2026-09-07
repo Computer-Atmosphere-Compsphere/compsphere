@@ -28,14 +28,14 @@ export function LogoCloud({ logos, className, ...props }: LogoCloudProps) {
           {topLogos.map((logo) => (
             <div
               key={logo.alt}
-              className="group relative flex h-28 sm:h-32 w-full sm:w-[calc(33.333%-1.25rem)] min-w-[240px] max-w-[320px] items-center justify-center overflow-hidden rounded-[24px] border border-white/20 bg-gradient-to-b from-white/[0.09] to-white/[0.03] px-8 py-6 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] transition-all duration-300 hover:scale-[1.03] hover:border-brand-primary/40 hover:bg-white/[0.10] hover:shadow-[0_16px_48px_rgba(124,58,237,0.25)]"
+              className="group relative flex h-28 sm:h-32 w-full sm:w-[calc(33.333%-1.25rem)] min-w-[240px] max-w-[320px] items-center justify-center overflow-hidden rounded-[22px] border border-white/15 bg-white/[0.05] px-6 py-5 backdrop-blur-xl transition-all duration-300 hover:border-white/30 hover:bg-white/[0.09]"
             >
               {/* Subtle top sheen */}
-              <div className="absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+              <div className="absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
               <img
                 alt={logo.alt}
                 className={cn(
-                  "max-h-16 md:max-h-20 w-auto max-w-[88%] object-contain opacity-90 transition-all duration-300 group-hover:opacity-100 group-hover:scale-105 filter drop-shadow-md",
+                  "max-h-20 md:max-h-24 w-auto max-w-[90%] object-contain opacity-90 transition-opacity duration-300 group-hover:opacity-100",
                   logo.imgClassName
                 )}
                 loading="lazy"
@@ -52,12 +52,12 @@ export function LogoCloud({ logos, className, ...props }: LogoCloudProps) {
           {remainingLogos.map((logo) => (
             <div
               key={logo.alt}
-              className="group flex h-24 sm:h-28 w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-0.85rem)] md:w-[calc(25%-1rem)] min-w-[170px] max-w-[240px] items-center justify-center overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] px-6 py-5 backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:bg-white/[0.08] hover:shadow-[0_12px_30px_rgba(0,0,0,0.4)]"
+              className="group flex h-26 sm:h-30 w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-0.85rem)] md:w-[calc(25%-1rem)] min-w-[170px] max-w-[240px] items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-md transition-all duration-300 hover:border-white/20 hover:bg-white/[0.07]"
             >
               <img
                 alt={logo.alt}
                 className={cn(
-                  "max-h-12 md:max-h-14 w-auto max-w-[85%] object-contain opacity-85 transition-all duration-300 group-hover:opacity-100 group-hover:scale-105",
+                  "max-h-16 md:max-h-18 w-auto max-w-[88%] object-contain opacity-85 transition-opacity duration-300 group-hover:opacity-100",
                   logo.imgClassName
                 )}
                 loading="lazy"

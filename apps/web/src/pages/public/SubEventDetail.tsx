@@ -13,8 +13,10 @@ import {
   CalendarDays,
   ChevronRight,
   Clock,
+  LockOpen,
   MapPin,
   Mic2,
+  MousePointerClick,
   Users,
   Zap,
 } from "lucide-react";
@@ -318,10 +320,14 @@ function SpeakersBlock({ speakers }: { speakers: NonNullable<typeof subEvents[nu
                       aria-hidden
                     />
 
-                    {/* Hint */}
-                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2.5 pb-6">
-                      <span className="mono-chip inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/[0.07] px-3.5 py-1 text-[9px] uppercase tracking-[0.3em] text-white/70 backdrop-blur-2xl transition-colors duration-500 group-hover:text-white">
-                        Who will be our innovative speaker?
+                    {/* Click info indicator in English */}
+                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 pb-6 px-4">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/50 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-2xl shadow-xl transition-all duration-300 group-hover:border-white/50 group-hover:bg-black/70 group-hover:scale-105">
+                        <MousePointerClick className="h-3.5 w-3.5 text-emerald-400 animate-bounce" />
+                        <span>Click card to reveal speakers</span>
+                      </span>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/60">
+                        Who will be our keynote speakers?
                       </span>
                     </div>
                   </motion.div>
@@ -333,6 +339,13 @@ function SpeakersBlock({ speakers }: { speakers: NonNullable<typeof subEvents[nu
                     transition={{ duration: 0.9, ease: smooth }}
                     className="absolute inset-0"
                   >
+                    {/* Top-right indicator */}
+                    <div className="absolute top-3 right-3 z-20 pointer-events-none">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[10px] font-medium text-white/80 backdrop-blur-md shadow-md">
+                        <LockOpen className="h-3 w-3 text-emerald-400" />
+                        <span>Click to hide speakers</span>
+                      </span>
+                    </div>
                     {/* Revealed stage shot */}
                     <img
                       src="/speaker-image.png"

@@ -44,18 +44,15 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
       orderBy: (ja, { asc }) => [asc(ja.assignedAt)],
     });
 
-    // Attach existing scores
-    const assignmentsWithScores = await Promise.all(
-      assignments.map(async (a) => {
-        const score = await db.query.judgeScores.findFirst({
-          where: and(
-            eq(schema.judgeScores.judgeId, judge.id),
-            eq(schema.judgeScores.teamId, a.teamId)
-          ),
-        });
-        return { ...a, score: score || null };
-      })
-    );
+    // Attach existing scores (single batch query instead of N+1 pool exhaustion)
+    const judgeScores = await db.query.judgeScores.findMany({
+      where: eq(schema.judgeScores.judgeId, judge.id),
+    });
+
+    const assignmentsWithScores = assignments.map((a) => {
+      const score = judgeScores.find((s) => s.teamId === a.teamId);
+      return { ...a, score: score || null };
+    });
 
     // Check code freeze
     const freezeConfig = await db.query.systemConfig.findFirst({
@@ -133,34 +130,36 @@ router.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res,
 router.get("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
     const judges = await db.query.judges.findMany({
-      with: {
-        user: {
-          columns: { fullName: true, email: true, avatarUrl: true },
-        },
-      },
+      with: { user: true },
       orderBy: (j, { asc }) => [asc(j.id)],
     });
 
-    // Count assignments per judge
-    const judgesWithCounts = await Promise.all(
-      judges.map(async (j) => {
-        const [{ count }] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(schema.judgeAssignments)
-          .where(eq(schema.judgeAssignments.judgeId, j.id));
-
-        const [{ scored }] = await db
-          .select({ scored: sql<number>`count(*)::int` })
-          .from(schema.judgeScores)
-          .where(eq(schema.judgeScores.judgeId, j.id));
-
-        return {
-          ...j,
-          assignedTeamCount: count,
-          scoredCount: scored,
-        };
+    // Group counts in single aggregated queries
+    const assignmentCounts = await db
+      .select({
+        judgeId: schema.judgeAssignments.judgeId,
+        count: sql<number>`count(*)::int`,
       })
-    );
+      .from(schema.judgeAssignments)
+      .groupBy(schema.judgeAssignments.judgeId);
+
+    const scoreCounts = await db
+      .select({
+        judgeId: schema.judgeScores.judgeId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.judgeScores)
+      .groupBy(schema.judgeScores.judgeId);
+
+    const judgesWithCounts = judges.map((j) => {
+      const assigned = assignmentCounts.find((a) => a.judgeId === j.id)?.count ?? 0;
+      const scored = scoreCounts.find((s) => s.judgeId === j.id)?.count ?? 0;
+      return {
+        ...j,
+        assignedTeamCount: assigned,
+        scoredCount: scored,
+      };
+    });
 
     res.json({
       success: true,

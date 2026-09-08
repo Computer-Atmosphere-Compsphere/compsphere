@@ -9,13 +9,28 @@ import { scrollToTop } from "@/lib/smooth-scroll";
 import { GlitterFinal } from "@/components/ui/animated-hero-with-web-gl-glitter";
 import {
   ArrowUp,
-  Github,
   Instagram,
   Linkedin,
-  Mail,
   Twitter,
-  Youtube,
+  Facebook,
 } from "lucide-react";
+
+// Inline SVG icons for platforms not in Lucide
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.73a4.85 4.85 0 0 1-1.01-.04z" />
+    </svg>
+  );
+}
+
+function ThreadsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.473 12.01v-.017c.027-3.579.878-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.594 12c.022 3.086.714 5.494 2.051 7.158 1.432 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.7-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.808-1.062-.695-1.685-1.763-1.752-3.013-.144-2.705 1.87-4.699 5.089-4.927.573-.04 1.109-.065 1.658-.082V8.417c0-.01 0-.02-.001-.032-.065-.97-.753-1.546-1.891-1.546-.803 0-1.515.317-2.08.918l-1.476-1.382C9.976 5.474 11.037 5 12.365 5c2.075 0 3.389 1.079 3.508 2.89.01.153.015.308.015.462v2.082c.506-.042 1.027-.083 1.584-.083.376 0 .748.015 1.113.044l.012.001c.067.006.133.013.199.021l.035.005-.017-.005v.005l.017-.005c1.637.264 3.116 1.016 4.088 2.095 1.114 1.237 1.567 2.913 1.271 4.698-.534 3.246-2.976 5.498-7.004 5.772a14.012 14.012 0 0 1-.998.018zm.495-7.587c-.34.002-.675.02-1.005.054-1.716.167-2.585.976-2.516 2.292.041.771.424 1.346 1.136 1.709.48.246 1.064.36 1.686.326 1.068-.058 1.875-.458 2.399-1.19.523-.728.772-1.762.737-3.074-.147-.05-.298-.091-.455-.119a8.07 8.07 0 0 0-.982-.003l-.001.005z" />
+    </svg>
+  );
+}
 
 // Register ScrollTrigger safely for React
 if (typeof window !== "undefined") {
@@ -125,15 +140,14 @@ const STYLES = `
   font-weight: 900;
   letter-spacing: -0.02em;
   background: linear-gradient(
-    120deg,
-    #67e8f9 0%,
-    #a7f3d0 25%,
-    #5eead4 45%,
-    #99f6e4 65%,
-    #67e8f9 85%,
-    #a7f3d0 100%
+    160deg,
+    #FFFFFF 0%,
+    #70E0F8 25%,
+    #71FFE7 50%,
+    #70E0F8 75%,
+    #FFFFFF 100%
   );
-  background-size: 300% 100%;
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -150,12 +164,12 @@ const STYLES = `
 
 @keyframes footer-brand-glow {
   from {
-    filter: drop-shadow(0 0 14px rgba(103, 232, 249, 0.3))
-            drop-shadow(0 0 40px rgba(94, 234, 212, 0.15));
+    filter: drop-shadow(0 0 16px rgba(112, 224, 248, 0.45))
+            drop-shadow(0 0 42px rgba(113, 255, 231, 0.25));
   }
   to {
-    filter: drop-shadow(0 0 22px rgba(153, 246, 228, 0.45))
-            drop-shadow(0 0 56px rgba(103, 232, 249, 0.25));
+    filter: drop-shadow(0 0 26px rgba(113, 255, 231, 0.6))
+            drop-shadow(0 0 60px rgba(112, 224, 248, 0.35));
   }
 }
 `;
@@ -241,12 +255,12 @@ MagneticButton.displayName = "MagneticButton";
 // 3. MAIN COMPONENT
 // -------------------------------------------------------------------------
 const SOCIAL_LINKS = [
-  { label: "Instagram", href: "https://instagram.com", icon: Instagram },
-  { label: "YouTube", href: "https://youtube.com", icon: Youtube },
-  { label: "Twitter / X", href: "https://x.com", icon: Twitter },
-  { label: "LinkedIn", href: "https://linkedin.com", icon: Linkedin },
-  { label: "GitHub", href: "https://github.com", icon: Github },
-  { label: "Email", href: "mailto:hello@compsphere.id", icon: Mail },
+  { label: "Instagram",  href: "https://instagram.com/compsphere",             icon: Instagram },
+  { label: "LinkedIn",   href: "https://linkedin.com/company/compshere",       icon: Linkedin },
+  { label: "X",          href: "https://x.com/compsphere_",                    icon: Twitter },
+  { label: "Facebook",   href: "https://facebook.com/Comp-Sphere",             icon: Facebook },
+  { label: "TikTok",     href: "https://tiktok.com/@compsphere",               icon: TikTokIcon },
+  { label: "Threads",    href: "https://threads.net/@compsphere",              icon: ThreadsIcon },
 ];
 
 export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void } = {}) {
@@ -403,14 +417,6 @@ export function CinematicFooter({ onHiddenLogin }: { onHiddenLogin?: () => void 
                   Join the Event
                 </MagneticButton>
 
-                <MagneticButton
-                  as="a"
-                  href="/guidebook"
-                  className="footer-glass-pill px-6 sm:px-10 py-4 sm:py-5 rounded-full text-foreground font-bold text-sm md:text-base flex items-center gap-3 group w-full sm:w-auto justify-center"
-                >
-                  <ArrowUp className="w-5 h-5 text-secondary group-hover:text-foreground transition-colors transition-transform duration-300 group-hover:-rotate-45" />
-                  Discover More
-                </MagneticButton>
               </div>
 
               {/* Social Media Links */}

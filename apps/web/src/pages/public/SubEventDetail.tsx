@@ -27,6 +27,7 @@ import { FeatureCard } from "@/components/ui/grid-feature-cards";
 import { Rocket, Handshake, Trophy, Globe, Mic, Lightbulb, Network, Award, Music, PartyPopper } from "lucide-react";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { cn } from "@/lib/utils";
+import { LogoCloud } from "@/components/ui/logo-cloud";
 
 // ── Animation variants ──────────────────────────────────────────────────────
 const container = {
@@ -862,6 +863,12 @@ function BenefitsBlock({ benefits, eventName }: { benefits: typeof subEvents[num
 // 5. SPONSORS
 // ══════════════════════════════════════════════════════════════════════════════
 function SponsorsBlock({ sponsors: eventSponsors }: { sponsors: typeof sponsors }) {
+  const logos = eventSponsors.map((item) => ({
+    src: item.image,
+    alt: item.name,
+    imgClassName: item.imgClassName,
+  }));
+
   return (
     <motion.section
       variants={fadeUp}
@@ -873,34 +880,8 @@ function SponsorsBlock({ sponsors: eventSponsors }: { sponsors: typeof sponsors 
       <GlitterFinal speed={0.5} intensity={4.5} uvScale={2.3} />
       <div className="relative z-10 mx-auto max-w-5xl px-6">
         <SectionHeading title="SUPPORTED BY" />
-
-        <div className="mt-10 flex flex-wrap items-stretch justify-center gap-5">
-          {eventSponsors.map((s, idx) => (
-            <motion.div
-              key={s.name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: idx * 0.06 }}
-              className={`group relative flex w-[140px] items-center justify-center overflow-hidden rounded-[24px] border px-4 py-6 sm:w-[180px] sm:px-6 sm:py-8 md:w-[200px] md:px-8 md:py-10 ${GLASS.cardHover}`}
-              style={{ ...GLASS.card }}
-            >
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
-              {s.image ? (
-                <img
-                  src={s.image}
-                  alt={s.name}
-                  className="h-14 w-auto max-w-[160px] object-contain opacity-85 transition-all duration-300 group-hover:opacity-100 group-hover:scale-105 sm:h-16 md:h-20"
-                />
-              ) : (
-                <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-xl font-black text-white/50 ${s.style ?? ""}`}
-                >
-                  {s.monogram}
-                </div>
-              )}
-            </motion.div>
-          ))}
+        <div className="mt-10">
+          <LogoCloud logos={logos} />
         </div>
       </div>
     </motion.section>

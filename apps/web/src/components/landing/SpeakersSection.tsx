@@ -89,7 +89,7 @@ export function SpeakersSection() {
                     {/* Click info indicator in English */}
                     <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 pb-6 px-4">
                       <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/50 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-2xl shadow-xl transition-all duration-300 group-hover:border-white/50 group-hover:bg-black/70 group-hover:scale-105">
-                        <MousePointerClick className="h-3.5 w-3.5 text-emerald-400 animate-ping" />
+                        <MousePointerClick className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
                         <span>Click card to reveal speakers</span>
                       </span>
                       <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/60">

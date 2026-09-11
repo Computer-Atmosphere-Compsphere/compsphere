@@ -867,6 +867,7 @@ function SponsorsBlock({ sponsors: eventSponsors }: { sponsors: typeof sponsors 
     src: item.image,
     alt: item.name,
     imgClassName: item.imgClassName,
+    url: item.url,
   }));
 
   return (

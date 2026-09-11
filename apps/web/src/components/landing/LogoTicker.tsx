@@ -9,7 +9,7 @@ import { GlitterFinal } from "@/components/ui/animated-hero-with-web-gl-glitter"
 interface LogoTickerProps {
   title: string;
   subtitle: string;
-  items: { name: string; monogram: string; style: string; image: string; imgClassName?: string }[];
+  items: { name: string; monogram: string; style: string; image: string; imgClassName?: string; url?: string }[];
   icon?: React.ReactNode;
 }
 
@@ -18,6 +18,7 @@ export function LogoTicker({ title, subtitle, items, icon }: LogoTickerProps) {
     src: item.image,
     alt: item.name,
     imgClassName: item.imgClassName,
+    url: item.url,
   }));
 
   return (

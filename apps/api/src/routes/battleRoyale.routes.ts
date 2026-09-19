@@ -108,7 +108,6 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
         FROM team_members tm
         JOIN profiles pr ON pr.id = tm.user_id
         WHERE tm.role::text IN ('TEAM_LEADER', 'LEADER')
-          AND tm.status::text = 'ACTIVE'
       `);
       const rawLeaders = Array.isArray(teamLeaderRows) ? teamLeaderRows : (teamLeaderRows as any).rows ?? [];
       for (const row of rawLeaders) {
@@ -128,41 +127,51 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
         const parsed = JSON.parse(snapshotConfig.value);
         if (Array.isArray(parsed) && parsed.length > 0) {
           // Re-hydrate snapshot items with live payment, slot, leader, and email confirmation status
-          leaderboard = parsed.map((item: any) => {
-            const live = liveMap.get(item.team_id);
-            const leader = leaderMap.get(item.team_id);
-            const conf = confirmations[item.team_id];
-            const emailLog = emailLogs[item.team_id];
+          leaderboard = parsed
+            .map((item: any) => {
+              const live = liveMap.get(item.team_id);
+              // If team was deleted or ID doesn't exist in competition_teams anymore, skip
+              if (!live) return null;
 
-            let emailStatus: "NOT_SENT" | "SENT" | "CONFIRMED" | "REJECTED" = "NOT_SENT";
-            if (conf?.decision === "CONFIRMED") {
-              emailStatus = "CONFIRMED";
-            } else if (conf?.decision === "REJECTED") {
-              emailStatus = "REJECTED";
-            } else if (emailLog) {
-              emailStatus = "SENT";
-            }
+              const leader = leaderMap.get(item.team_id);
+              const conf = confirmations[item.team_id];
+              const emailLog = emailLogs[item.team_id];
 
-            return {
-              ...item,
-              team_status: live?.team_status ?? item.team_status,
-              payment_status: live?.payment_status ?? item.payment_status ?? "UNPAID",
-              payment_amount: live?.payment_amount ?? item.payment_amount ?? null,
-              slot_id: live?.slot_id ?? item.slot_id ?? null,
-              slot_claimed_at: live?.slot_claimed_at ?? item.slot_claimed_at ?? null,
-              is_payment_cleared:
-                live?.is_payment_cleared ??
-                (item.category === "INTERNATIONAL" ||
-                  item.payment_status === "VERIFIED" ||
-                  item.payment_status === "APPROVED"),
-              leader_name: leader?.name || item.leader_name || "Team Leader",
-              leader_email: leader?.email || item.leader_email || "",
-              email_status: emailStatus,
-              email_sent_at: emailLog?.lastSentAt || null,
-              slot_decision: conf?.decision || null,
-              slot_decided_at: conf?.updatedAt || null,
-            };
-          });
+              let emailStatus: "NOT_SENT" | "SENT" | "CONFIRMED" | "REJECTED" = "NOT_SENT";
+              if (conf?.decision === "CONFIRMED") {
+                emailStatus = "CONFIRMED";
+              } else if (conf?.decision === "REJECTED") {
+                emailStatus = "REJECTED";
+              } else if (emailLog) {
+                emailStatus = "SENT";
+              }
+
+              return {
+                ...live,
+                ...item,
+                team_name: live.team_name || item.team_name,
+                team_code: live.team_code || item.team_code,
+                category: live.category || item.category,
+                average_score: Number(live.average_score ?? item.average_score ?? 0),
+                team_status: live.team_status ?? item.team_status,
+                payment_status: live.payment_status ?? item.payment_status ?? "UNPAID",
+                payment_amount: live.payment_amount ?? item.payment_amount ?? null,
+                slot_id: live.slot_id ?? item.slot_id ?? null,
+                slot_claimed_at: live.slot_claimed_at ?? item.slot_claimed_at ?? null,
+                is_payment_cleared:
+                  live.is_payment_cleared ??
+                  (live.category === "INTERNATIONAL" ||
+                    live.payment_status === "VERIFIED" ||
+                    live.payment_status === "APPROVED"),
+                leader_name: leader?.name || item.leader_name || "Team Leader",
+                leader_email: leader?.email || item.leader_email || "",
+                email_status: emailStatus,
+                email_sent_at: emailLog?.lastSentAt || null,
+                slot_decision: conf?.decision || null,
+                slot_decided_at: conf?.updatedAt || null,
+              };
+            })
+            .filter(Boolean);
 
           // Also check if any live teams are not in the snapshot, append them
           for (const team of liveLeaderboard) {
@@ -172,6 +181,7 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
               const emailLog = emailLogs[team.team_id];
               leaderboard.push({
                 ...team,
+                average_score: Number(team.average_score || 0),
                 leader_name: leader?.name || "Team Leader",
                 leader_email: leader?.email || "",
                 email_status: conf?.decision || (emailLog ? "SENT" : "NOT_SENT"),
@@ -187,7 +197,7 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
       }
     }
 
-    // If no snapshot exists yet, fallback to live calculation
+    // If no snapshot exists yet or snapshot had 0 valid teams, fallback to live calculation
     if (!leaderboard || leaderboard.length === 0) {
       leaderboard = liveLeaderboard.map((team: any) => {
         const leader = leaderMap.get(team.team_id);
@@ -195,6 +205,7 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
         const emailLog = emailLogs[team.team_id];
         return {
           ...team,
+          average_score: Number(team.average_score || 0),
           leader_name: leader?.name || "Team Leader",
           leader_email: leader?.email || "",
           email_status: conf?.decision || (emailLog ? "SENT" : "NOT_SENT"),
@@ -218,6 +229,53 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
         isEmailConfigured: emailService.isConfigured(),
         leaderboard,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Re-sync Phase 1 Leaderboard directly from live database scores (Admin only)
+ * POST /api/battle-royale/sync-leaderboard
+ */
+router.post("/sync-leaderboard", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser!;
+    const liveLeaderboard = await scoringService.getLeaderboard();
+
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "phase1_leaderboard",
+          value: JSON.stringify(liveLeaderboard),
+          type: "STRING",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: {
+            value: JSON.stringify(liveLeaderboard),
+            updatedAt: new Date(),
+            updatedBy: admin.profileId,
+          },
+        });
+
+      await auditService.log(tx, {
+        actorId: admin.profileId,
+        action: "LEADERBOARD_SYNCED",
+        entityType: "battle_royale",
+        entityId: "leaderboard",
+        metadata: { totalTeams: liveLeaderboard.length },
+      });
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully synchronized ${liveLeaderboard.length} teams from database.`,
+      data: liveLeaderboard,
     });
   } catch (error) {
     next(error);

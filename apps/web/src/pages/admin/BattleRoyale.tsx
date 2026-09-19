@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
@@ -30,6 +31,7 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -134,7 +136,13 @@ export function BattleRoyale() {
   const queryClient = useQueryClient();
 
   // Queries
-  const { data: leaderboardResponse, isLoading: isLeaderboardLoading } = useQuery<any>({
+  const {
+    data: leaderboardResponse,
+    isLoading: isLeaderboardLoading,
+    isError: isLeaderboardError,
+    error: leaderboardError,
+    refetch: refetchLeaderboard,
+  } = useQuery<any>({
     queryKey: ["admin-br-phase1-leaderboard"],
     queryFn: () => api.get("/api/battle-royale/phase1-leaderboard"),
   });
@@ -210,6 +218,17 @@ export function BattleRoyale() {
   };
 
   // Mutations
+  const syncLeaderboardMutation = useMutation({
+    mutationFn: () => api.post("/api/battle-royale/sync-leaderboard"),
+    onSuccess: (res: any) => {
+      const list = res?.data ?? (Array.isArray(res) ? res : []);
+      if (Array.isArray(list) && list.length > 0) {
+        setLeaderboard(list);
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-br-phase1-leaderboard"] });
+    },
+  });
+
   const reorderMutation = useMutation({
     mutationFn: (newLeaderboard: LeaderboardTeam[]) =>
       api.post("/api/battle-royale/reorder-leaderboard", { leaderboard: newLeaderboard }),
@@ -443,6 +462,18 @@ export function BattleRoyale() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Sync from DB Button */}
+          <NeonButton
+            onClick={() => syncLeaderboardMutation.mutate()}
+            disabled={syncLeaderboardMutation.isPending}
+            variant="secondary"
+            size="sm"
+            className="flex items-center gap-1.5 text-xs text-brand-primary border-brand-primary/30 hover:border-brand-primary"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", syncLeaderboardMutation.isPending && "animate-spin")} />
+            {syncLeaderboardMutation.isPending ? "Syncing..." : "Sync from DB"}
+          </NeonButton>
+
           {/* Email Blast Button */}
           <NeonButton
             onClick={() => {
@@ -670,17 +701,51 @@ export function BattleRoyale() {
           </p>
 
           {/* Leaderboard Table / List */}
-          {isLeaderboardLoading ? (
+          {isLeaderboardError ? (
+            <GlassPanel className="text-center py-10 space-y-3 border-red-900/40 bg-red-950/20">
+              <AlertTriangle className="w-9 h-9 mx-auto text-red-400" />
+              <p className="text-sm font-semibold text-text-primary">Failed to Load Leaderboard</p>
+              <p className="text-xs text-text-muted max-w-sm mx-auto">
+                {(leaderboardError as any)?.message || "An unexpected error occurred while communicating with the server."}
+              </p>
+              <div className="pt-1 flex items-center justify-center gap-2">
+                <NeonButton size="sm" variant="secondary" onClick={() => refetchLeaderboard()}>
+                  Retry
+                </NeonButton>
+                <NeonButton
+                  size="sm"
+                  variant="primary"
+                  onClick={() => syncLeaderboardMutation.mutate()}
+                  disabled={syncLeaderboardMutation.isPending}
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5 mr-1", syncLeaderboardMutation.isPending && "animate-spin")} />
+                  Sync from DB
+                </NeonButton>
+              </div>
+            </GlassPanel>
+          ) : isLeaderboardLoading ? (
             <div className="flex h-40 items-center justify-center">
               <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : currentTeams.length === 0 ? (
-            <GlassPanel className="text-center py-12 space-y-2 border-border">
+            <GlassPanel className="text-center py-12 space-y-3 border-border">
               <Trophy className="w-10 h-10 mx-auto text-text-muted opacity-40" />
-              <p className="text-sm font-semibold text-text-primary">No Leaderboard Data</p>
-              <p className="text-xs text-text-muted max-w-sm mx-auto">
-                Generate assignments and score teams in the Judge Panel to view rankings.
+              <p className="text-sm font-semibold text-text-primary">No Leaderboard Data Loaded</p>
+              <p className="text-xs text-text-muted max-w-md mx-auto">
+                No active leaderboard rankings found. Click the button below to synchronize all competition teams directly from the database.
               </p>
+              <div className="pt-2">
+                <NeonButton
+                  onClick={() => syncLeaderboardMutation.mutate()}
+                  disabled={syncLeaderboardMutation.isPending}
+                  size="sm"
+                  variant="primary"
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", syncLeaderboardMutation.isPending && "animate-spin")} />
+                  {syncLeaderboardMutation.isPending ? "Synchronizing..." : "Synchronize Leaderboard from DB"}
+                </NeonButton>
+              </div>
             </GlassPanel>
           ) : (
             <div className="space-y-1.5">
@@ -851,7 +916,7 @@ export function BattleRoyale() {
                       <div className="text-right min-w-[55px]">
                         <p className="text-[9px] text-text-muted uppercase font-mono">Score</p>
                         <p className="text-xs font-mono font-bold text-text-primary">
-                          {Number(team.average_score).toFixed(2)}
+                          {Number(team.average_score || 0).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -940,120 +1005,125 @@ export function BattleRoyale() {
       )}
 
       {/* Reorder Validation Popup Modal */}
-      {pendingMove && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overflow-hidden"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) cancelMove();
-          }}
-        >
-          <div className="w-full max-w-md p-6 rounded-xl bg-bg-surface border border-border shadow-2xl space-y-4 text-left">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-bg-primary border border-border text-text-primary">
-                <ArrowUpDown className="w-4 h-4" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="font-bold text-sm text-text-primary">Confirm Ranking Change</h3>
-                <p className="text-xs text-text-muted">Validate leaderboard position update</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-lg bg-bg-primary/50 border border-border space-y-2.5 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
-                <span className="text-text-muted">Team:</span>
-                <span className="font-semibold text-text-primary">{pendingMove.team.team_name}</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-2.5 rounded bg-bg-surface border border-border text-center space-y-0.5">
-                  <p className="text-[10px] text-text-muted uppercase">Original Position</p>
-                  <p className="text-base font-mono font-bold text-text-muted">
-                    Rank #{pendingMove.fromIndex + 1}
-                  </p>
+      {pendingMove &&
+        createPortal(
+          <div
+            className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[9999] w-screen h-screen min-h-[100dvh] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-150 overflow-hidden"
+            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, width: "100vw", height: "100vh" }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) cancelMove();
+            }}
+          >
+            <div className="w-full max-w-md p-6 rounded-xl bg-bg-surface border border-border shadow-2xl space-y-4 text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-bg-primary border border-border text-text-primary">
+                  <ArrowUpDown className="w-4 h-4" />
                 </div>
-
-                <div className="p-2.5 rounded bg-bg-surface border border-brand-primary/30 text-center space-y-0.5">
-                  <p className="text-[10px] text-brand-primary uppercase">New Position</p>
-                  <p className="text-base font-mono font-bold text-brand-primary">
-                    Rank #{pendingMove.toIndex + 1}
-                  </p>
+                <div className="space-y-0.5">
+                  <h3 className="font-bold text-sm text-text-primary">Confirm Ranking Change</h3>
+                  <p className="text-xs text-text-muted">Validate leaderboard position update</p>
                 </div>
               </div>
 
-              <p className="text-[11px] text-text-muted text-center pt-0.5">
-                Confirm moving this team to the new rank? If canceled, the leaderboard will revert to its previous order.
-              </p>
-            </div>
+              <div className="p-3.5 rounded-lg bg-bg-primary/50 border border-border space-y-2.5 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
+                  <span className="text-text-muted">Team:</span>
+                  <span className="font-semibold text-text-primary">{pendingMove.team.team_name}</span>
+                </div>
 
-            {reorderMutation.isError && (
-              <div className="p-2.5 rounded bg-red-950/30 border border-red-900/40 text-red-400 text-xs">
-                {(reorderMutation.error as any)?.message || "Failed to update leaderboard ranking."}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="p-2.5 rounded bg-bg-surface border border-border text-center space-y-0.5">
+                    <p className="text-[10px] text-text-muted uppercase">Original Position</p>
+                    <p className="text-base font-mono font-bold text-text-muted">
+                      Rank #{pendingMove.fromIndex + 1}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded bg-bg-surface border border-brand-primary/30 text-center space-y-0.5">
+                    <p className="text-[10px] text-brand-primary uppercase">New Position</p>
+                    <p className="text-base font-mono font-bold text-brand-primary">
+                      Rank #{pendingMove.toIndex + 1}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-text-muted text-center pt-0.5">
+                  Confirm moving this team to the new rank? If canceled, the leaderboard will revert to its previous order.
+                </p>
               </div>
-            )}
 
-            <div className="flex gap-2.5 pt-1">
-              <NeonButton
-                onClick={cancelMove}
-                variant="secondary"
-                size="sm"
-                className="flex-1"
-                disabled={reorderMutation.isPending}
-              >
-                Cancel
-              </NeonButton>
-              <NeonButton
-                onClick={confirmMove}
-                disabled={reorderMutation.isPending}
-                size="sm"
-                variant="primary"
-                className="flex-1"
-              >
-                {reorderMutation.isPending ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin mr-1.5" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                    Confirm Move
-                  </>
-                )}
-              </NeonButton>
+              {reorderMutation.isError && (
+                <div className="p-2.5 rounded bg-red-950/30 border border-red-900/40 text-red-400 text-xs">
+                  {(reorderMutation.error as any)?.message || "Failed to update leaderboard ranking."}
+                </div>
+              )}
+
+              <div className="flex gap-2.5 pt-1">
+                <NeonButton
+                  onClick={cancelMove}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                  disabled={reorderMutation.isPending}
+                >
+                  Cancel
+                </NeonButton>
+                <NeonButton
+                  onClick={confirmMove}
+                  disabled={reorderMutation.isPending}
+                  size="sm"
+                  variant="primary"
+                  className="flex-1"
+                >
+                  {reorderMutation.isPending ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin mr-1.5" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      Confirm Move
+                    </>
+                  )}
+                </NeonButton>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Email Dispatcher Modal */}
-      {isEmailModalOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overflow-hidden"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !sendEmailMutation.isPending) {
-              setIsEmailModalOpen(false);
-            }
-          }}
-        >
-          <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-[#11141c] border border-border shadow-2xl overflow-hidden text-left">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-border/80 flex items-center justify-between bg-[#141822]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-primary/10 border border-brand-primary/20 text-brand-primary shrink-0">
-                  <Mail className="w-4 h-4" />
+      {isEmailModalOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[9999] w-screen h-screen min-h-[100dvh] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-150 overflow-hidden"
+            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, width: "100vw", height: "100vh" }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !sendEmailMutation.isPending) {
+                setIsEmailModalOpen(false);
+              }
+            }}
+          >
+            <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-[#11141c] border border-border shadow-2xl overflow-hidden text-left">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-border/80 flex items-center justify-between bg-[#141822]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-primary/10 border border-brand-primary/20 text-brand-primary shrink-0">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-text-primary tracking-tight">
+                      Email Notification & Slot Confirmation Dispatcher
+                    </h2>
+                    <p className="text-[11px] text-text-muted">
+                      Broadcast official announcements or Phase 2 qualification invitations to team leaders.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-text-primary tracking-tight">
-                    Email Notification & Slot Confirmation Dispatcher
-                  </h2>
-                  <p className="text-[11px] text-text-muted">
-                    Broadcast official announcements or Phase 2 qualification invitations to team leaders.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsEmailModalOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => setIsEmailModalOpen(false)}
                 className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-primary/80 transition"
               >
                 <X className="w-4 h-4" />
@@ -1515,7 +1585,8 @@ export function BattleRoyale() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

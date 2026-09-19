@@ -200,9 +200,9 @@ export const scoringService = {
         ORDER BY team_id, submitted_at DESC
       ) pm ON ct.id = pm.team_id
       LEFT JOIN battle_royale_slots brs ON ct.id = brs.claimed_by
-      WHERE ct.status::text != 'DROPPED'
+      WHERE COALESCE(ct.status::text, '') != 'DROPPED'
       GROUP BY ct.id, ct.team_name, ct.team_code, ct.category, ct.status, ct.original_rank, pm.status, pm.amount, brs.id, brs.claimed_at
-      ORDER BY average_score DESC, ct.original_rank ASC
+      ORDER BY average_score DESC, ct.original_rank ASC NULLS LAST, ct.team_code ASC
     `);
     return Array.isArray(res) ? res : (res as any).rows ?? [];
   },

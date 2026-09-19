@@ -171,7 +171,7 @@ export const scoringService = {
   },
 
   /**
-   * Get team scoreboard with aggregated scores (Phase 1 leaderboard)
+   * Get team scoreboard with aggregated scores, payment status, and BR slot claim status
    */
   async getLeaderboard() {
     const res = await db.execute(sql`
@@ -180,14 +180,31 @@ export const scoringService = {
         ct.team_name,
         ct.team_code,
         ct.category,
+        ct.status AS team_status,
         COALESCE(AVG(js.final_score::numeric), 0)::float AS average_score,
-        COUNT(js.id) AS judge_count
+        COUNT(DISTINCT js.id)::int AS judge_count,
+        COALESCE(pm.status::text, 'UNPAID') AS payment_status,
+        pm.amount AS payment_amount,
+        brs.id AS slot_id,
+        brs.claimed_at AS slot_claimed_at,
+        CASE
+          WHEN ct.category = 'INTERNATIONAL' THEN true
+          WHEN ct.category IN ('NATIONAL', 'MIX') AND pm.status::text IN ('APPROVED', 'VERIFIED') THEN true
+          ELSE false
+        END AS is_payment_cleared
       FROM competition_teams ct
       LEFT JOIN judge_scores js ON ct.id = js.team_id
-      WHERE ct.status IN ('VERIFIED', 'SUBMITTED', 'JUDGED')
-      GROUP BY ct.id, ct.team_name, ct.team_code, ct.category
+      LEFT JOIN (
+        SELECT DISTINCT ON (team_id) team_id, status::text AS status, amount
+        FROM payments
+        ORDER BY team_id, submitted_at DESC
+      ) pm ON ct.id = pm.team_id
+      LEFT JOIN battle_royale_slots brs ON ct.id = brs.claimed_by
+      WHERE ct.status::text != 'DROPPED'
+      GROUP BY ct.id, ct.team_name, ct.team_code, ct.category, ct.status, ct.original_rank, pm.status, pm.amount, brs.id, brs.claimed_at
       ORDER BY average_score DESC, ct.original_rank ASC
     `);
     return Array.isArray(res) ? res : (res as any).rows ?? [];
   },
 };
+

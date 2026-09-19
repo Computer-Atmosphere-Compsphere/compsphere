@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { NeonButton } from "@/components/compsphere/NeonButton";
@@ -16,6 +17,9 @@ import {
   ChevronRight,
   UserCheck,
   UserX,
+  Lock,
+  ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,11 +45,13 @@ function JudgeStatusBadge({ status }: { status: string }) {
 }
 
 export function Judges() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"judges" | "matrix" | "leaderboard">("judges");
   const [expandedJudge, setExpandedJudge] = useState<string | null>(null);
   const [confirmGenerate, setConfirmGenerate] = useState(false);
+  const [confirmClosePhase1, setConfirmClosePhase1] = useState(false);
   const [confirmToggle, setConfirmToggle] = useState<{ judgeId: string; judgeName: string; currentStatus: string } | null>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<JudgeForm>();
 
@@ -64,6 +70,11 @@ export function Judges() {
     queryKey: ["admin-judges-leaderboard"],
     queryFn: () => api.get("/api/judges/leaderboard"),
     enabled: activeTab === "leaderboard",
+  });
+
+  const { data: configData } = useQuery<any[]>({
+    queryKey: ["admin-config"],
+    queryFn: () => api.get("/api/config"),
   });
 
   const addJudgeMutation = useMutation({
@@ -100,36 +111,143 @@ export function Judges() {
     },
   });
 
+  const closePhase1Mutation = useMutation({
+    mutationFn: () => api.post<any>("/api/judges/close-phase-1"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-judges"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-judges-matrix"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-judges-leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-config"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-br-phase1-leaderboard"] });
+      setConfirmClosePhase1(false);
+      navigate("/admin/battle-royale");
+    },
+  });
+
   const onSubmit = (data: JudgeForm) => addJudgeMutation.mutate(data);
 
   const progress = leaderboardData?.progress;
   const isToggling = removeJudgeMutation.isPending || activateJudgeMutation.isPending;
+
+  // Check if assignments already exist or if closed
+  const hasAssignments = (judges?.some((j: any) => (j.assignedTeamCount || 0) > 0)) || false;
+  const isPhase1Closed = configData?.find((c: any) => c.key === "judging_phase_1_closed")?.value === "true";
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="pb-6 border-b border-border flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-text-primary">Judge Panel</h1>
-          <p className="text-xs text-text-secondary mt-1">
-            Manage judges, generate assignments, and track scoring progress.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-text-primary">Judge Panel</h1>
+            {isPhase1Closed && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 className="w-3 h-3" /> Phase 1 Closed
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-text-muted mt-1">
+            Manage judges, generate assignments, track scoring progress, and finalize Phase 1.
           </p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!isPhase1Closed ? (
+            hasAssignments && (
+              <NeonButton
+                onClick={() => setConfirmClosePhase1(true)}
+                disabled={closePhase1Mutation.isPending}
+                size="sm"
+                variant="secondary"
+                className="text-amber-400 border-amber-500/40 hover:border-amber-400 hover:text-amber-300"
+              >
+                <Lock className="w-3.5 h-3.5 mr-1.5" />
+                {closePhase1Mutation.isPending ? "Closing..." : "Close Phase 1"}
+              </NeonButton>
+            )
+          ) : (
+            <NeonButton
+              onClick={() => navigate("/admin/battle-royale")}
+              size="sm"
+              variant="secondary"
+            >
+              Open Battle Royale <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+            </NeonButton>
+          )}
+
           <NeonButton
             onClick={() => setConfirmGenerate(true)}
             disabled={generatePhase1Mutation.isPending}
-            className="flex items-center gap-2"
+            size="sm"
+            className="flex items-center gap-1.5"
           >
-            <RefreshCw className={cn("w-4 h-4", generatePhase1Mutation.isPending && "animate-spin")} />
+            <RefreshCw className={cn("w-3.5 h-3.5", generatePhase1Mutation.isPending && "animate-spin")} />
             {generatePhase1Mutation.isPending ? "Generating..." : "Generate Phase 1"}
           </NeonButton>
-          <NeonButton onClick={() => setShowForm(!showForm)} variant="secondary" className="flex items-center gap-2">
-            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+
+          <NeonButton onClick={() => setShowForm(!showForm)} variant="ghost" size="sm" className="flex items-center gap-1.5 border border-border">
+            {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
             {showForm ? "Cancel" : "Add Judge"}
           </NeonButton>
         </div>
       </div>
+
+      {/* Clean Status Banner */}
+      {!isPhase1Closed ? (
+        hasAssignments && (
+          <GlassPanel className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-5 border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-bg-surface border border-border flex items-center justify-center text-text-secondary shrink-0">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Phase 1 Evaluation Active</p>
+                <p className="text-xs text-text-muted">
+                  Close Phase 1 judging once all proposals are scored to freeze rankings and transfer data to Battle Royale.
+                </p>
+              </div>
+            </div>
+
+            <NeonButton
+              onClick={() => setConfirmClosePhase1(true)}
+              disabled={closePhase1Mutation.isPending}
+              size="sm"
+              variant="secondary"
+              className="shrink-0 text-amber-400 border-amber-500/40 hover:border-amber-400"
+            >
+              <Lock className="w-3.5 h-3.5 mr-1.5" />
+              {closePhase1Mutation.isPending ? "Closing..." : "Close Phase 1 Judging"}
+            </NeonButton>
+          </GlassPanel>
+        )
+      ) : (
+        <GlassPanel className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-5 border-emerald-500/20 bg-emerald-950/10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-text-primary">Phase 1 Judging Finalized</p>
+              <p className="text-xs text-text-muted">
+                Scores are locked and the leaderboard snapshot has been transferred to Battle Royale for ranking adjustments.
+              </p>
+            </div>
+          </div>
+
+          <NeonButton
+            onClick={() => navigate("/admin/battle-royale")}
+            size="sm"
+            variant="primary"
+            className="shrink-0"
+          >
+            Go to Battle Royale <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          </NeonButton>
+        </GlassPanel>
+      )}
+
+
+
+
 
       {/* Generate result */}
       {generatePhase1Mutation.data && (
@@ -560,6 +678,76 @@ export function Judges() {
           </div>
         </div>
       )}
+
+      {/* Confirm Close Phase 1 Modal */}
+      {confirmClosePhase1 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md p-6 rounded-xl bg-bg-surface border border-border shadow-xl space-y-5 text-left">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-base text-text-primary">
+                  Close Phase 1 Judging?
+                </h3>
+                <p className="text-xs text-text-muted">
+                  Freeze judging scores and transfer data to Battle Royale
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg bg-bg-primary/50 border border-border space-y-2 text-xs text-text-secondary">
+              <p className="font-medium text-text-primary text-[11px] uppercase tracking-wider">Action Summary:</p>
+              <ul className="list-disc list-inside space-y-1 text-text-muted text-xs pl-0.5 leading-relaxed">
+                <li>Saves a permanent snapshot of the Phase 1 final leaderboard.</li>
+                <li>Transitions the competition phase to <strong>Battle Royale (BR)</strong>.</li>
+                <li>You will be redirected automatically to the <strong>Battle Royale</strong> management page to reorder rankings.</li>
+              </ul>
+            </div>
+
+            {closePhase1Mutation.isError && (
+              <div className="p-3 rounded bg-red-950/30 border border-red-900/40 text-red-400 text-xs">
+                {(closePhase1Mutation.error as any)?.message || "Failed to close Phase 1 judging. Please try again."}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <NeonButton
+                onClick={() => setConfirmClosePhase1(false)}
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                disabled={closePhase1Mutation.isPending}
+              >
+                Cancel
+              </NeonButton>
+              <NeonButton
+                onClick={() => closePhase1Mutation.mutate()}
+                disabled={closePhase1Mutation.isPending}
+                size="sm"
+                variant="primary"
+                className="flex-1"
+              >
+                {closePhase1Mutation.isPending ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin mr-1.5" />
+                    Closing...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
+                    Close & Proceed
+                  </>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }
+

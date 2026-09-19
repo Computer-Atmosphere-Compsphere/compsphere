@@ -13,6 +13,7 @@ import { Timeline } from "@/pages/public/Timeline";
 import { Announcements } from "@/pages/public/Announcements";
 import { SubEventDetail } from "@/pages/public/SubEventDetail";
 import { JoinTeam } from "@/pages/public/JoinTeam";
+import { BattleRoyaleResponse } from "@/pages/public/BattleRoyaleResponse";
 
 // Auth
 import { AuthCallback } from "@/pages/auth/AuthCallback";
@@ -105,10 +106,12 @@ export default function App() {
         <Route path="/events/:id" element={<SubEventDetail />} />
       </Route>
 
-      {/* ── Auth callback & Team Invite ──────────────── */}
+      {/* ── Auth callback & Team Invite & Slot Response ───────── */}
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/join" element={<JoinTeam />} />
       <Route path="/invite/:token" element={<JoinTeam />} />
+      <Route path="/battle-royale/response" element={<BattleRoyaleResponse />} />
+      <Route path="/slot-response" element={<BattleRoyaleResponse />} />
 
       {/* ── Onboarding ───────────────────────────────── */}
       <Route

@@ -1007,5 +1007,93 @@ router.get("/leaderboard", requireAuth, requireRole("ADMIN"), async (req, res, n
   }
 });
 
+/**
+ * Close Phase 1 Judging — snapshot leaderboard & transition to Battle Royale
+ * POST /api/judges/close-phase-1
+ */
+router.post("/close-phase-1", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser!;
+    const leaderboard = await scoringService.getLeaderboard();
+
+    await db.transaction(async (tx) => {
+      // 1. Mark phase 1 judging closed
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "judging_phase_1_closed",
+          value: "true",
+          type: "BOOLEAN",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: {
+            value: "true",
+            updatedAt: new Date(),
+            updatedBy: admin.profileId,
+          },
+        });
+
+      // 2. Snapshot leaderboard to systemConfig
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "phase1_leaderboard",
+          value: JSON.stringify(leaderboard),
+          type: "STRING",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: {
+            value: JSON.stringify(leaderboard),
+            updatedAt: new Date(),
+            updatedBy: admin.profileId,
+          },
+        });
+
+      // 3. Set competition phase to Battle Royale (BR)
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "competition_phase",
+          value: "BR",
+          type: "STRING",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: {
+            value: "BR",
+            updatedAt: new Date(),
+            updatedBy: admin.profileId,
+          },
+        });
+
+      await auditService.log(tx, {
+        actorId: admin.profileId,
+        action: "PHASE_1_JUDGING_CLOSED",
+        entityType: "judging",
+        entityId: "phase_1",
+        metadata: { teamCount: leaderboard.length },
+      });
+    });
+
+    res.json({
+      success: true,
+      message: "Phase 1 Judging successfully closed and transferred to Battle Royale.",
+      data: {
+        totalTeams: leaderboard.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
 

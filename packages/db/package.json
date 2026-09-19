@@ -12,7 +12,8 @@
     "db:seed": "tsx src/seed.ts",
     "db:seed-dummy": "tsx src/seed-dummy.ts",
     "db:seed-phase1": "tsx src/seed-phase1-test.ts",
-    "db:reset": "tsx src/reset.ts"
+    "db:reset": "tsx src/reset.ts",
+    "db:cleanup-fresh": "tsx src/cleanup-for-fresh-start.ts"
   },
   "dependencies": {
     "@compsphere/types": "*",

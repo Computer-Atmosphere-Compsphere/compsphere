@@ -31,7 +31,6 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
-  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -218,16 +217,6 @@ export function BattleRoyale() {
   };
 
   // Mutations
-  const syncLeaderboardMutation = useMutation({
-    mutationFn: () => api.post("/api/battle-royale/sync-leaderboard"),
-    onSuccess: (res: any) => {
-      const list = res?.data ?? (Array.isArray(res) ? res : []);
-      if (Array.isArray(list) && list.length > 0) {
-        setLeaderboard(list);
-      }
-      queryClient.invalidateQueries({ queryKey: ["admin-br-phase1-leaderboard"] });
-    },
-  });
 
   const reorderMutation = useMutation({
     mutationFn: (newLeaderboard: LeaderboardTeam[]) =>
@@ -462,18 +451,6 @@ export function BattleRoyale() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Sync from DB Button */}
-          <NeonButton
-            onClick={() => syncLeaderboardMutation.mutate()}
-            disabled={syncLeaderboardMutation.isPending}
-            variant="secondary"
-            size="sm"
-            className="flex items-center gap-1.5 text-xs text-brand-primary border-brand-primary/30 hover:border-brand-primary"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", syncLeaderboardMutation.isPending && "animate-spin")} />
-            {syncLeaderboardMutation.isPending ? "Syncing..." : "Sync from DB"}
-          </NeonButton>
-
           {/* Email Blast Button */}
           <NeonButton
             onClick={() => {
@@ -712,15 +689,6 @@ export function BattleRoyale() {
                 <NeonButton size="sm" variant="secondary" onClick={() => refetchLeaderboard()}>
                   Retry
                 </NeonButton>
-                <NeonButton
-                  size="sm"
-                  variant="primary"
-                  onClick={() => syncLeaderboardMutation.mutate()}
-                  disabled={syncLeaderboardMutation.isPending}
-                >
-                  <RefreshCw className={cn("w-3.5 h-3.5 mr-1", syncLeaderboardMutation.isPending && "animate-spin")} />
-                  Sync from DB
-                </NeonButton>
               </div>
             </GlassPanel>
           ) : isLeaderboardLoading ? (
@@ -732,20 +700,8 @@ export function BattleRoyale() {
               <Trophy className="w-10 h-10 mx-auto text-text-muted opacity-40" />
               <p className="text-sm font-semibold text-text-primary">No Leaderboard Data Loaded</p>
               <p className="text-xs text-text-muted max-w-md mx-auto">
-                No active leaderboard rankings found. Click the button below to synchronize all competition teams directly from the database.
+                No active leaderboard rankings found.
               </p>
-              <div className="pt-2">
-                <NeonButton
-                  onClick={() => syncLeaderboardMutation.mutate()}
-                  disabled={syncLeaderboardMutation.isPending}
-                  size="sm"
-                  variant="primary"
-                  className="inline-flex items-center gap-1.5"
-                >
-                  <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", syncLeaderboardMutation.isPending && "animate-spin")} />
-                  {syncLeaderboardMutation.isPending ? "Synchronizing..." : "Synchronize Leaderboard from DB"}
-                </NeonButton>
-              </div>
             </GlassPanel>
           ) : (
             <div className="space-y-1.5">

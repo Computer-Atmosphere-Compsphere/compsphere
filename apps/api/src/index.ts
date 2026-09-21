@@ -41,6 +41,7 @@ import express from "express";
 import helmet from "helmet";
 import compression from "compression";
 import path from "path";
+import fs from "fs";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth";
 import { errorHandler } from "./middleware/error.middleware";

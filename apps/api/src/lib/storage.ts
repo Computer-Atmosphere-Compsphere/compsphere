@@ -5,11 +5,19 @@ import crypto from "crypto";
 export const isHostinger =
   process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
 
-const uploadsDir =
-  process.env.UPLOAD_DIR ||
-  (process.env.VERCEL
-    ? "/tmp/uploads"
-    : path.join(__dirname, "../../../uploads"));
+// Resolve uploads directory relative to CWD so it works correctly in both
+// ts-node and esbuild CJS bundle.
+function resolveUploadsDir(): string {
+  if (process.env.VERCEL) return "/tmp/uploads";
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  const fromCwd = path.join(process.cwd(), "apps/api/uploads");
+  if (fs.existsSync(fromCwd)) return fromCwd;
+  const fromCwdDirect = path.join(process.cwd(), "uploads");
+  if (fs.existsSync(fromCwdDirect)) return fromCwdDirect;
+  return path.join(process.cwd(), "uploads");
+}
+
+const uploadsDir = resolveUploadsDir();
 
 /**
  * Upload a file to the Hostinger PHP storage bridge (production)

@@ -3,9 +3,21 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
-const uploadsDir = process.env.VERCEL
-  ? "/tmp/uploads"
-  : (process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads"));
+// Resolve uploads directory relative to CWD so it works correctly in both
+// ts-node (CWD = monorepo root or apps/api) and esbuild CJS bundle (CWD = wherever the server is started).
+// Priority: UPLOAD_DIR env > <cwd>/apps/api/uploads > <cwd>/uploads
+function resolveUploadsDir(): string {
+  if (process.env.VERCEL) return "/tmp/uploads";
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  const fromCwd = path.join(process.cwd(), "apps/api/uploads");
+  if (fs.existsSync(fromCwd)) return fromCwd;
+  const fromCwdDirect = path.join(process.cwd(), "uploads");
+  if (fs.existsSync(fromCwdDirect)) return fromCwdDirect;
+  // Fallback: assume CWD is apps/api
+  return path.join(process.cwd(), "uploads");
+}
+
+const uploadsDir = resolveUploadsDir();
 
 // Ensure upload directories exist (wrapped in try/catch for read-only environments like Vercel)
 try {

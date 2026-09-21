@@ -64983,6 +64983,15 @@ __export(storage_exports, {
   isHostinger: () => isHostinger,
   uploadFileToStorage: () => uploadFileToStorage
 });
+function resolveUploadsDir2() {
+  if (process.env.VERCEL) return "/tmp/uploads";
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  const fromCwd = import_path3.default.join(process.cwd(), "apps/api/uploads");
+  if (import_fs2.default.existsSync(fromCwd)) return fromCwd;
+  const fromCwdDirect = import_path3.default.join(process.cwd(), "uploads");
+  if (import_fs2.default.existsSync(fromCwdDirect)) return fromCwdDirect;
+  return import_path3.default.join(process.cwd(), "uploads");
+}
 async function uploadFileToStorage(bucketName, localTempPath, fileName, mimeType) {
   const checkHostinger = process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
   if (checkHostinger) {
@@ -65081,7 +65090,7 @@ var init_storage = __esm({
     import_path3 = __toESM(require("path"));
     import_crypto9 = __toESM(require("crypto"));
     isHostinger = process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
-    uploadsDir2 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path3.default.join(__dirname, "../../../uploads"));
+    uploadsDir2 = resolveUploadsDir2();
   }
 });
 
@@ -65676,6 +65685,7 @@ var helmet = Object.assign(
 // src/index.ts
 var import_compression = __toESM(require_compression());
 var import_path7 = __toESM(require("path"));
+var import_fs5 = __toESM(require("fs"));
 
 // ../../node_modules/better-auth/node_modules/set-cookie-parser/lib/set-cookie.js
 var defaultParseOptions = {
@@ -102338,7 +102348,16 @@ var import_multer = __toESM(require_multer());
 var import_path2 = __toESM(require("path"));
 var import_fs = __toESM(require("fs"));
 var import_crypto8 = __toESM(require("crypto"));
-var uploadsDir = process.env.VERCEL ? "/tmp/uploads" : process.env.UPLOAD_DIR || import_path2.default.join(__dirname, "../../uploads");
+function resolveUploadsDir() {
+  if (process.env.VERCEL) return "/tmp/uploads";
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  const fromCwd = import_path2.default.join(process.cwd(), "apps/api/uploads");
+  if (import_fs.default.existsSync(fromCwd)) return fromCwd;
+  const fromCwdDirect = import_path2.default.join(process.cwd(), "uploads");
+  if (import_fs.default.existsSync(fromCwdDirect)) return fromCwdDirect;
+  return import_path2.default.join(process.cwd(), "uploads");
+}
+var uploadsDir = resolveUploadsDir();
 try {
   const dirs = ["payments", "proposals", "presentations", "documents", "qris"];
   dirs.forEach((dir) => {
@@ -117853,7 +117872,7 @@ var uploadServeHandler = async (req, res, next) => {
       import_path7.default.resolve("/tmp/uploads", storageKey)
     ].filter(Boolean);
     for (const filePath of candidatePaths) {
-      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      if (import_fs5.default.existsSync(filePath) && import_fs5.default.statSync(filePath).isFile()) {
         return res.sendFile(filePath);
       }
     }

@@ -18,7 +18,7 @@ export function OnboardingUser() {
     try {
       await api.post("/api/onboarding/user");
       await refetch();
-      navigate("/", { replace: true });
+      navigate("/user", { replace: true });
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to complete regular user onboarding.");
     } finally {

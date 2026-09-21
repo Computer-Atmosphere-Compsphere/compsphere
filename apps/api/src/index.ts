@@ -66,6 +66,7 @@ import configRoutes from "./routes/config.routes";
 import auditRoutes from "./routes/audit.routes";
 import sseRoutes from "./routes/sse.routes";
 import migrationRoutes from "./routes/migration.routes";
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -227,6 +228,7 @@ app.use("/api/config", configRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/sse", sseRoutes);
 app.use("/api/migration", migrationRoutes);
+app.use("/api/user", userRoutes);
 
 // -------------------------------------------------------------------------
 // better-auth handler (handles /api/auth/sign-in, /callback, /get-session...)

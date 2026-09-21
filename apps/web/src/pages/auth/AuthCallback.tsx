@@ -76,7 +76,7 @@ export function AuthCallback() {
     } else if (user.role === "PARTICIPANT") {
       navigate("/dashboard", { replace: true });
     } else {
-      navigate("/", { replace: true }); // USER role with COMPLETE onboarding -> landing page
+      navigate("/user", { replace: true }); // Regular user -> Dedicated Explorer Dashboard
     }
   }, [isAuthenticated, isAuthenticating, isLoading, hasGoogleSession, needsOnboarding, user, navigate, refetch]);
 

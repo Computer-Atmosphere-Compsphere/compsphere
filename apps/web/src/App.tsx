@@ -5,6 +5,7 @@ import { PublicLayout } from "@/layouts/PublicLayout";
 import { ParticipantLayout } from "@/layouts/ParticipantLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { JudgeLayout } from "@/layouts/JudgeLayout";
+import { UserLayout } from "@/layouts/UserLayout";
 
 // Public pages
 import { Landing } from "@/pages/public/Landing";
@@ -24,6 +25,9 @@ import { OnboardingUser } from "@/pages/onboarding/OnboardingUser";
 import { OnboardingParticipant } from "@/pages/onboarding/OnboardingParticipant";
 import { OnboardingAdmin } from "@/pages/onboarding/OnboardingAdmin";
 import { OnboardingJudge } from "@/pages/onboarding/OnboardingJudge";
+
+// User pages
+import { UserDashboard } from "@/pages/user/UserDashboard";
 
 // Participant pages
 import { Dashboard as ParticipantDashboard } from "@/pages/participant/Dashboard";
@@ -71,7 +75,13 @@ function RequireAuth({ children, role }: { children: React.ReactNode; role?: str
   }
 
   if (!user) return <Navigate to="/" replace />;
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (role && user.role !== role) {
+    if (user.role === "ADMIN") return <Navigate to="/admin" replace />;
+    if (user.role === "JUDGE") return <Navigate to="/judge" replace />;
+    if (user.role === "PARTICIPANT") return <Navigate to="/dashboard" replace />;
+    if (user.role === "USER") return <Navigate to="/user" replace />;
+    return <Navigate to="/" replace />;
+  }
 
   return <>{children}</>;
 }
@@ -154,6 +164,18 @@ export default function App() {
           </RequireGoogleSession>
         }
       />
+
+      {/* ── Regular User console ──────────────────────── */}
+      <Route
+        path="/user"
+        element={
+          <RequireAuth role="USER">
+            <UserLayout />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<UserDashboard />} />
+      </Route>
 
       {/* ── Participant console ───────────────────────── */}
       <Route

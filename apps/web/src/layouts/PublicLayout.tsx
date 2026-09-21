@@ -68,7 +68,13 @@ function PublicNavbar() {
   };
 
   const dashboardPath =
-    user?.role === "ADMIN" ? "/admin" : user?.role === "JUDGE" ? "/judge" : "/dashboard";
+    user?.role === "ADMIN"
+      ? "/admin"
+      : user?.role === "JUDGE"
+      ? "/judge"
+      : user?.role === "PARTICIPANT"
+      ? "/dashboard"
+      : "/user";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">

@@ -19325,17 +19325,17 @@ var require_router = __commonJS({
     var toString = Object.prototype.toString;
     var proto = module2.exports = function(options) {
       var opts = options || {};
-      function router18(req, res, next) {
-        router18.handle(req, res, next);
+      function router19(req, res, next) {
+        router19.handle(req, res, next);
       }
-      setPrototypeOf(router18, proto);
-      router18.params = {};
-      router18._params = [];
-      router18.caseSensitive = opts.caseSensitive;
-      router18.mergeParams = opts.mergeParams;
-      router18.strict = opts.strict;
-      router18.stack = [];
-      return router18;
+      setPrototypeOf(router19, proto);
+      router19.params = {};
+      router19._params = [];
+      router19.caseSensitive = opts.caseSensitive;
+      router19.mergeParams = opts.mergeParams;
+      router19.strict = opts.strict;
+      router19.stack = [];
+      return router19;
     };
     proto.param = function param(name2, fn) {
       if (typeof name2 === "function") {
@@ -22352,7 +22352,7 @@ var require_application = __commonJS({
   "../../node_modules/express/lib/application.js"(exports2, module2) {
     "use strict";
     var finalhandler = require_finalhandler();
-    var Router17 = require_router();
+    var Router18 = require_router();
     var methods2 = require_methods();
     var middleware = require_init();
     var query = require_query();
@@ -22417,7 +22417,7 @@ var require_application = __commonJS({
     };
     app2.lazyrouter = function lazyrouter() {
       if (!this._router) {
-        this._router = new Router17({
+        this._router = new Router18({
           caseSensitive: this.enabled("case sensitive routing"),
           strict: this.enabled("strict routing")
         });
@@ -22426,17 +22426,17 @@ var require_application = __commonJS({
       }
     };
     app2.handle = function handle(req, res, callback) {
-      var router18 = this._router;
+      var router19 = this._router;
       var done = callback || finalhandler(req, res, {
         env: this.get("env"),
         onerror: logerror.bind(this)
       });
-      if (!router18) {
+      if (!router19) {
         debug("no routes defined on app");
         done();
         return;
       }
-      router18.handle(req, res, done);
+      router19.handle(req, res, done);
     };
     app2.use = function use(fn) {
       var offset = 0;
@@ -22456,15 +22456,15 @@ var require_application = __commonJS({
         throw new TypeError("app.use() requires a middleware function");
       }
       this.lazyrouter();
-      var router18 = this._router;
+      var router19 = this._router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router18.use(path11, fn2);
+          return router19.use(path11, fn2);
         }
         debug(".use app under %s", path11);
         fn2.mountpath = path11;
         fn2.parent = this;
-        router18.use(path11, function mounted_app(req, res, next) {
+        router19.use(path11, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             setPrototypeOf(req, orig.request);
@@ -24281,7 +24281,7 @@ var require_express = __commonJS({
     var mixin = require_merge_descriptors();
     var proto = require_application();
     var Route = require_route();
-    var Router17 = require_router();
+    var Router18 = require_router();
     var req = require_request();
     var res = require_response();
     exports2 = module2.exports = createApplication;
@@ -24304,7 +24304,7 @@ var require_express = __commonJS({
     exports2.request = req;
     exports2.response = res;
     exports2.Route = Route;
-    exports2.Router = Router17;
+    exports2.Router = Router18;
     exports2.json = bodyParser.json;
     exports2.query = require_query();
     exports2.raw = bodyParser.raw;
@@ -65075,20 +65075,20 @@ function generatePresignedUrl(storageKey, ttlSeconds = 3600, displayName) {
   }
   const expires = Math.floor(Date.now() / 1e3) + ttlSeconds;
   const payload = `${storageKey}:${expires}`;
-  const sig2 = import_crypto9.default.createHmac("sha256", signingKey).update(payload).digest("hex");
+  const sig2 = import_crypto10.default.createHmac("sha256", signingKey).update(payload).digest("hex");
   let url = `${storageUrl}?key=${encodeURIComponent(storageKey)}&expires=${expires}&sig=${sig2}`;
   if (displayName) {
     url += `&name=${encodeURIComponent(displayName)}`;
   }
   return url;
 }
-var import_fs2, import_path3, import_crypto9, isHostinger, uploadsDir2;
+var import_fs2, import_path3, import_crypto10, isHostinger, uploadsDir2;
 var init_storage = __esm({
   "src/lib/storage.ts"() {
     "use strict";
     import_fs2 = __toESM(require("fs"));
     import_path3 = __toESM(require("path"));
-    import_crypto9 = __toESM(require("crypto"));
+    import_crypto10 = __toESM(require("crypto"));
     isHostinger = process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger";
     uploadsDir2 = resolveUploadsDir2();
   }
@@ -65113,7 +65113,7 @@ module.exports = __toCommonJS(index_exports);
 })();
 
 // src/index.ts
-var import_express17 = __toESM(require_express2());
+var import_express18 = __toESM(require_express2());
 
 // ../../node_modules/helmet/index.mjs
 var dashify = (str) => str.replace(/[A-Z]/g, (capitalLetter) => "-" + capitalLetter.toLowerCase());
@@ -77132,13 +77132,13 @@ var createRouter$1 = (endpoints, config4) => {
       return new Response(getHTML(schema2, openapi.scalar), { headers: { "Content-Type": "text/html" } });
     });
   }
-  const router18 = createRouter();
+  const router19 = createRouter();
   const middlewareRouter = createRouter();
   for (const endpoint of Object.values(endpoints)) {
     if (!endpoint.options || !endpoint.path) continue;
     if (endpoint.options?.metadata?.SERVER_ONLY) continue;
     const methods2 = Array.isArray(endpoint.options?.method) ? endpoint.options.method : [endpoint.options?.method];
-    for (const method of methods2) addRoute(router18, method, endpoint.path, endpoint);
+    for (const method of methods2) addRoute(router19, method, endpoint.path, endpoint);
   }
   if (config4?.routerMiddleware?.length) for (const { path: path11, middleware } of config4.routerMiddleware) addRoute(middlewareRouter, "*", path11, middleware);
   const basePath = config4?.basePath && config4.basePath !== "/" ? config4.basePath.replace(/\/+$/, "") : "";
@@ -77157,7 +77157,7 @@ var createRouter$1 = (endpoints, config4) => {
       status: 404,
       statusText: "Not Found"
     });
-    const route = findRoute(router18, request.method, path11);
+    const route = findRoute(router19, request.method, path11);
     if (path11.endsWith("/") !== route?.data?.path?.endsWith("/") && !config4?.skipTrailingSlashes) return new Response(null, {
       status: 404,
       statusText: "Not Found"
@@ -101786,8 +101786,215 @@ var tokenService = {
         entityId: profileId,
         metadata: { role: requestedRole }
       });
-      return { success: true, role: requestedRole };
+      return {
+        success: true,
+        role: requestedRole,
+        redirectUrl: requestedRole === "ADMIN" ? "/admin" : "/judge",
+        message: `Successfully authenticated and upgraded to ${requestedRole}.`
+      };
     });
+  },
+  /**
+   * Universal token redemption for regular users.
+   * Auto-detects token type: Committee / Admin, Judge, Team Leader, or Team Member Invite.
+   */
+  async redeemUniversalToken(profileId, rawToken) {
+    const cleanToken = (rawToken || "").trim();
+    if (!cleanToken) {
+      throw new AppError(400, "Access token is required.", "TOKEN_REQUIRED");
+    }
+    const committeeToken = process.env.COMMITTEE_ACCESS_TOKEN;
+    if (committeeToken && cleanToken === committeeToken) {
+      return await this.redeemRoleToken(profileId, cleanToken, "ADMIN");
+    }
+    const judgeToken = process.env.JUDGE_ACCESS_TOKEN;
+    if (judgeToken && cleanToken === judgeToken) {
+      return await this.redeemRoleToken(profileId, cleanToken, "JUDGE");
+    }
+    const tokenHash = hashToken(cleanToken);
+    const teamToken = await db.query.teamAccessTokens.findFirst({
+      where: eq(schema_exports.teamAccessTokens.tokenHash, tokenHash),
+      with: { team: true }
+    });
+    if (teamToken) {
+      if (teamToken.status === "REVOKED") {
+        throw new AppError(400, "This team access token has been revoked by the committee.", "TOKEN_REVOKED");
+      }
+      if (teamToken.status === "EXPIRED" || teamToken.expiresAt && new Date(teamToken.expiresAt) < /* @__PURE__ */ new Date()) {
+        throw new AppError(400, "This team access token has expired.", "TOKEN_EXPIRED");
+      }
+      const team = teamToken.team;
+      if (!team) {
+        throw new AppError(404, "Associated competition team was not found.", "TEAM_NOT_FOUND");
+      }
+      const existingMembership = await db.query.teamMembers.findFirst({
+        where: and(
+          eq(schema_exports.teamMembers.teamId, team.id),
+          eq(schema_exports.teamMembers.userId, profileId),
+          eq(schema_exports.teamMembers.status, "ACTIVE")
+        )
+      });
+      if (existingMembership) {
+        return {
+          success: true,
+          role: "PARTICIPANT",
+          memberRole: existingMembership.role,
+          teamName: team.teamName,
+          teamCode: team.teamCode,
+          redirectUrl: "/dashboard",
+          message: `You are already a member of team "${team.teamName}".`
+        };
+      }
+      if (teamToken.status === "ACTIVATED") {
+        throw new AppError(400, "This team access token has already been activated. Please ask your Team Leader for a member invite link or code.", "TOKEN_ALREADY_ACTIVATED");
+      }
+      return await db.transaction(async (tx) => {
+        const existingLeader = await tx.query.teamMembers.findFirst({
+          where: and(
+            eq(schema_exports.teamMembers.teamId, team.id),
+            eq(schema_exports.teamMembers.role, "TEAM_LEADER"),
+            eq(schema_exports.teamMembers.status, "ACTIVE")
+          )
+        });
+        const isLeader = !existingLeader;
+        const memberRole = isLeader ? "TEAM_LEADER" : "TEAM_MEMBER";
+        await tx.update(schema_exports.teamAccessTokens).set({
+          status: "ACTIVATED",
+          activatedBy: profileId,
+          activatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(schema_exports.teamAccessTokens.id, teamToken.id));
+        await tx.insert(schema_exports.teamMembers).values({
+          teamId: team.id,
+          userId: profileId,
+          role: memberRole,
+          status: "ACTIVE",
+          verifiedAt: /* @__PURE__ */ new Date()
+        });
+        if (isLeader) {
+          const deadline = new Date(Date.now() + 48 * 60 * 60 * 1e3);
+          await tx.update(schema_exports.competitionTeams).set({
+            status: "AWAITING_CONFIRMATION",
+            confirmationStartedAt: /* @__PURE__ */ new Date(),
+            confirmationDeadline: deadline
+          }).where(eq(schema_exports.competitionTeams.id, team.id));
+        }
+        await tx.update(schema_exports.roleAssignments).set({
+          revokedAt: /* @__PURE__ */ new Date()
+        }).where(
+          and(
+            eq(schema_exports.roleAssignments.userId, profileId),
+            isNull2(schema_exports.roleAssignments.revokedAt)
+          )
+        );
+        await tx.insert(schema_exports.roleAssignments).values({
+          userId: profileId,
+          role: "PARTICIPANT",
+          source: "team_token",
+          teamId: team.id
+        });
+        await tx.update(schema_exports.profiles).set({
+          onboardingStatus: "COMPLETE",
+          preferredRole: "PARTICIPANT"
+        }).where(eq(schema_exports.profiles.id, profileId));
+        await auditService.log(tx, {
+          actorId: profileId,
+          action: isLeader ? "TEAM_LEADER_ACTIVATED_VIA_TOKEN" : "TEAM_MEMBER_JOINED_VIA_TOKEN",
+          entityType: "team",
+          entityId: team.id,
+          metadata: { tokenId: teamToken.id, role: memberRole }
+        });
+        return {
+          success: true,
+          role: "PARTICIPANT",
+          memberRole,
+          teamName: team.teamName,
+          teamCode: team.teamCode,
+          redirectUrl: "/dashboard",
+          message: isLeader ? `Successfully activated ${team.teamName} as Team Leader!` : `Successfully joined ${team.teamName} as Team Member!`
+        };
+      });
+    }
+    const invite = await db.query.memberInvites.findFirst({
+      where: eq(schema_exports.memberInvites.inviteHash, tokenHash),
+      with: { team: true }
+    });
+    if (invite) {
+      if (invite.status === "REVOKED") {
+        throw new AppError(400, "This invitation code has been revoked by the team leader.", "INVITE_REVOKED");
+      }
+      if (invite.status === "EXPIRED" || new Date(invite.expiresAt) < /* @__PURE__ */ new Date()) {
+        throw new AppError(400, "This invitation code has expired.", "INVITE_EXPIRED");
+      }
+      if (invite.status === "ACCEPTED") {
+        throw new AppError(400, "This invitation code has already been used.", "INVITE_ALREADY_USED");
+      }
+      const team = invite.team;
+      if (!team) {
+        throw new AppError(404, "Associated team not found for this invitation.", "TEAM_NOT_FOUND");
+      }
+      return await db.transaction(async (tx) => {
+        const existingMember = await tx.query.teamMembers.findFirst({
+          where: and(
+            eq(schema_exports.teamMembers.userId, profileId),
+            eq(schema_exports.teamMembers.status, "ACTIVE")
+          )
+        });
+        if (existingMember) {
+          throw new AppError(400, "You are already a member of an active team.", "ALREADY_IN_TEAM");
+        }
+        await tx.insert(schema_exports.teamMembers).values({
+          teamId: team.id,
+          userId: profileId,
+          role: "TEAM_MEMBER",
+          status: "ACTIVE",
+          verifiedAt: /* @__PURE__ */ new Date()
+        });
+        await tx.update(schema_exports.memberInvites).set({
+          status: "ACCEPTED",
+          usedBy: profileId,
+          usedAt: /* @__PURE__ */ new Date()
+        }).where(eq(schema_exports.memberInvites.id, invite.id));
+        await tx.update(schema_exports.roleAssignments).set({
+          revokedAt: /* @__PURE__ */ new Date()
+        }).where(
+          and(
+            eq(schema_exports.roleAssignments.userId, profileId),
+            isNull2(schema_exports.roleAssignments.revokedAt)
+          )
+        );
+        await tx.insert(schema_exports.roleAssignments).values({
+          userId: profileId,
+          role: "PARTICIPANT",
+          source: "team_token",
+          teamId: team.id
+        });
+        await tx.update(schema_exports.profiles).set({
+          onboardingStatus: "COMPLETE",
+          preferredRole: "PARTICIPANT"
+        }).where(eq(schema_exports.profiles.id, profileId));
+        await auditService.log(tx, {
+          actorId: profileId,
+          action: "TEAM_MEMBER_JOINED_VIA_INVITE_TOKEN",
+          entityType: "team",
+          entityId: team.id,
+          metadata: { inviteId: invite.id }
+        });
+        return {
+          success: true,
+          role: "PARTICIPANT",
+          memberRole: "TEAM_MEMBER",
+          teamName: team.teamName,
+          teamCode: team.teamCode,
+          redirectUrl: "/dashboard",
+          message: `Successfully joined ${team.teamName} via invitation code!`
+        };
+      });
+    }
+    throw new AppError(
+      400,
+      "Invalid access token. Please verify your token and try again, or contact the CompSphere committee.",
+      "INVALID_TOKEN"
+    );
   }
 };
 
@@ -102347,7 +102554,7 @@ var paymentService = {
 var import_multer = __toESM(require_multer());
 var import_path2 = __toESM(require("path"));
 var import_fs = __toESM(require("fs"));
-var import_crypto8 = __toESM(require("crypto"));
+var import_crypto9 = __toESM(require("crypto"));
 function resolveUploadsDir() {
   if (process.env.VERCEL) return "/tmp/uploads";
   if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
@@ -102381,7 +102588,7 @@ function createStorage(subDir) {
       cb(null, dest);
     },
     filename: (_req, file, cb) => {
-      const uniqueId = import_crypto8.default.randomBytes(16).toString("hex");
+      const uniqueId = import_crypto9.default.randomBytes(16).toString("hex");
       const ext = import_path2.default.extname(file.originalname);
       cb(null, `${uniqueId}${ext}`);
     }
@@ -114670,7 +114877,7 @@ var nodemailer = {
 var nodemailer_default = nodemailer;
 
 // src/services/email.service.ts
-var import_crypto10 = __toESM(require("crypto"));
+var import_crypto11 = __toESM(require("crypto"));
 var import_dotenv = __toESM(require_main());
 var import_path4 = __toESM(require("path"));
 var APP_URL = process.env.APP_URL || process.env.BETTER_AUTH_URL?.replace(":3001", ":5173") || "http://localhost:5173";
@@ -114711,7 +114918,7 @@ var EmailService = class {
     const expiresAt = Date.now() + hoursValid * 60 * 60 * 1e3;
     const createToken = (action) => {
       const payload = `${teamId}:${teamCode}:${action}:${expiresAt}`;
-      const signature = import_crypto10.default.createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
+      const signature = import_crypto11.default.createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
       return Buffer.from(`${payload}:${signature}`).toString("base64url");
     };
     const claimToken = createToken("CLAIM");
@@ -114735,7 +114942,7 @@ var EmailService = class {
       if (parts.length !== 5) return { valid: false };
       const [teamId, teamCode, action, expStr, signature] = parts;
       const expectedPayload = `${teamId}:${teamCode}:${action}:${expStr}`;
-      const expectedSignature = import_crypto10.default.createHmac("sha256", TOKEN_SECRET).update(expectedPayload).digest("hex");
+      const expectedSignature = import_crypto11.default.createHmac("sha256", TOKEN_SECRET).update(expectedPayload).digest("hex");
       if (signature !== expectedSignature) {
         return { valid: false };
       }
@@ -115620,7 +115827,7 @@ var battleRoyale_routes_default = router8;
 var import_express8 = __toESM(require_express2());
 var import_fs3 = __toESM(require("fs"));
 var import_path5 = __toESM(require("path"));
-var import_crypto11 = __toESM(require("crypto"));
+var import_crypto12 = __toESM(require("crypto"));
 init_storage();
 var router9 = (0, import_express8.Router)();
 function generateRichProposalPDF(title, teamName, teamCode, category, idx) {
@@ -115999,7 +116206,7 @@ router9.post("/sync-dummy-pdfs", requireAuth, async (req, res, next) => {
       } else {
         await db.execute(sql2`
           INSERT INTO proposal_files (id, proposal_id, storage_key, original_filename, mime_type, size_bytes)
-          VALUES (${import_crypto11.default.randomUUID()}, ${prop.id}, ${storageKey}, ${`proposal_${prop.team_code}.pdf`}, 'application/pdf', ${pdfBuffer.length})
+          VALUES (${import_crypto12.default.randomUUID()}, ${prop.id}, ${storageKey}, ${`proposal_${prop.team_code}.pdf`}, 'application/pdf', ${pdfBuffer.length})
         `);
       }
       syncedCount++;
@@ -117026,7 +117233,7 @@ var audit_routes_default = router15;
 
 // src/routes/sse.routes.ts
 var import_express15 = __toESM(require_express2());
-var import_crypto13 = __toESM(require("crypto"));
+var import_crypto14 = __toESM(require("crypto"));
 var router16 = (0, import_express15.Router)();
 router16.get("/", optionalAuth, (req, res) => {
   res.removeHeader("Cross-Origin-Opener-Policy");
@@ -117037,7 +117244,7 @@ router16.get("/", optionalAuth, (req, res) => {
     "Cache-Control": "no-cache",
     "Connection": "keep-alive"
   });
-  const clientId = import_crypto13.default.randomBytes(16).toString("hex");
+  const clientId = import_crypto14.default.randomBytes(16).toString("hex");
   res.write(`: ok
 
 `);
@@ -117059,7 +117266,7 @@ var import_express16 = __toESM(require_express2());
 var import_multer2 = __toESM(require_multer());
 var import_fs4 = __toESM(require("fs"));
 var import_path6 = __toESM(require("path"));
-var import_crypto14 = __toESM(require("crypto"));
+var import_crypto15 = __toESM(require("crypto"));
 init_storage();
 var PDFParse = null;
 async function loadPDFParse() {
@@ -117260,7 +117467,7 @@ ${xp}
         } else {
           await db.execute(sql2`
             INSERT INTO proposal_files (id, proposal_id, storage_key, original_filename, mime_type, size_bytes)
-            VALUES (${import_crypto14.default.randomUUID()}, ${p.id}, ${storageKey}, ${filename}, 'application/pdf', ${pdfBuf.length})
+            VALUES (${import_crypto15.default.randomUUID()}, ${p.id}, ${storageKey}, ${filename}, 'application/pdf', ${pdfBuf.length})
           `);
         }
         synced++;
@@ -117616,7 +117823,7 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
         console.log(`[submit-team] Existing profile for ${targetEmail}:`, profile ? profile.id : "NOT FOUND");
         if (!profile) {
           [profile] = await tx.insert(schema_exports.profiles).values({
-            googleSub: `manual_${import_crypto14.default.randomUUID()}`,
+            googleSub: `manual_${import_crypto15.default.randomUUID()}`,
             email: targetEmail,
             fullName: member.fullName,
             preferredRole: "PARTICIPANT",
@@ -117733,6 +117940,34 @@ router17.get("/recent-teams", async (req, res, next) => {
 });
 var migration_routes_default = router17;
 
+// src/routes/user.routes.ts
+var import_express17 = __toESM(require_express2());
+var router18 = (0, import_express17.Router)();
+router18.post("/redeem-token", requireAuth, async (req, res, next) => {
+  try {
+    const sessionUser = req.sessionUser;
+    const bodySchema = external_exports.object({
+      token: external_exports.string().min(1, "Access token is required")
+    });
+    const { token } = bodySchema.parse(req.body);
+    const result = await tokenService.redeemUniversalToken(sessionUser.profileId, token);
+    res.json({
+      success: true,
+      message: result.message || "Access token successfully activated.",
+      data: result
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router18.get("/profile", requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    data: req.sessionUser
+  });
+});
+var user_routes_default = router18;
+
 // src/index.ts
 if (typeof globalThis.DOMMatrix === "undefined") {
   globalThis.DOMMatrix = class DOMMatrix {
@@ -117787,7 +118022,7 @@ if (typeof globalThis.Path2D === "undefined") {
     }
   };
 }
-var app = (0, import_express17.default)();
+var app = (0, import_express18.default)();
 var PORT = process.env.PORT || 3001;
 var ALLOWED_ORIGINS = [
   ...new Set(
@@ -117841,8 +118076,8 @@ app.use(
     }
   })
 );
-app.use(import_express17.default.json({ limit: "10mb" }));
-app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
+app.use(import_express18.default.json({ limit: "10mb" }));
+app.use(import_express18.default.urlencoded({ extended: true, limit: "10mb" }));
 var uploadsDir3 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path7.default.join(__dirname, "../uploads"));
 var uploadServeHandler = async (req, res, next) => {
   let storageKey = req.params[0];
@@ -117900,6 +118135,7 @@ app.use("/api/config", config_routes_default);
 app.use("/api/audit", audit_routes_default);
 app.use("/api/sse", sse_routes_default);
 app.use("/api/migration", migration_routes_default);
+app.use("/api/user", user_routes_default);
 app.all("/api/auth/*", toNodeHandler2(auth));
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });

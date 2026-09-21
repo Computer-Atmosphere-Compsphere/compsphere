@@ -17,17 +17,30 @@ export class ApiError extends Error {
 // Set VITE_API_URL only when the backend is on a different origin.
 export const API_BASE = import.meta.env.VITE_API_URL || "";
 
-/**
- * Generate a full URL pointing to the API upload server.
- * Ensures cross-origin requests (e.g. frontend on www -> api on api.compsphere12.id) work properly.
- */
 export function getUploadUrl(storageKey: string | null | undefined): string {
   if (!storageKey) return "";
-  if (storageKey.startsWith("http://") || storageKey.startsWith("https://")) {
-    return storageKey;
+  const trimmed = storageKey.trim();
+  if (!trimmed) return "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:")
+  ) {
+    return trimmed;
   }
-  const cleanKey = storageKey.startsWith("/") ? storageKey : `/${storageKey}`;
-  return `${API_BASE}/api/uploads${cleanKey}`;
+  let cleanKey = trimmed;
+  if (cleanKey.startsWith("/api/uploads/")) {
+    cleanKey = cleanKey.replace("/api/uploads/", "");
+  } else if (cleanKey.startsWith("api/uploads/")) {
+    cleanKey = cleanKey.replace("api/uploads/", "");
+  } else if (cleanKey.startsWith("/uploads/")) {
+    cleanKey = cleanKey.replace("/uploads/", "");
+  } else if (cleanKey.startsWith("uploads/")) {
+    cleanKey = cleanKey.replace("uploads/", "");
+  }
+  cleanKey = cleanKey.replace(/^\/+/, "");
+  return `${API_BASE}/api/uploads/${cleanKey}`;
 }
 
 class ApiClient {

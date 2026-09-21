@@ -312,24 +312,52 @@ export interface Sponsor {
 export const sponsors: Sponsor[] = [
   { name: "Threepoint", monogram: "TP", style: "font-black tracking-tighter text-purple-400", image: "/threepoint-logo.png", imgClassName: "scale-125 md:scale-135" },
   { name: "Featherless AI", monogram: "FA", style: "font-extralight tracking-[0.25em]", image: "/sponsor6-featherless.png" },
-  { name: "NordVPN", monogram: "NV", style: "font-extrabold tracking-widest", image: "/sponsor1-nordvpn.png", url: "http://nordvpn.com/hackathons" },
+  { name: "NordVPN", monogram: "NV", style: "font-extrabold tracking-widest", image: "/sponsor1-nordvpn.png", imgClassName: "scale-135 md:scale-145", url: "http://nordvpn.com/hackathons" },
   { name: "KitaLulus", monogram: "KL", style: "font-extrabold tracking-widest text-sky-400", image: "/kitalulus-logo.png" },
-  { name: "OMG Beauty", monogram: "OMG", style: "font-black uppercase text-pink-400", image: "/omg-beauty-logo.png", imgClassName: "scale-135 md:scale-145" },
-  { name: "Pocket Studio", monogram: "PS", style: "font-bold italic tracking-tight text-amber-400", image: "/pocket-studio-logo.png", imgClassName: "scale-125 md:scale-135" },
+  { name: "OMG Beauty", monogram: "OMG", style: "font-black uppercase text-pink-400", image: "/omg-beauty-logo.png", imgClassName: "scale-150 md:scale-165" },
   { name: "SeaBank", monogram: "SB", style: "font-mono font-bold text-orange-400", image: "/seabank-logo.webp" },
   { name: "NordPass", monogram: "NP", style: "font-black uppercase", image: "/sponsor2-nordpass.png", url: "http://nordpass.com/" },
+  { name: "Pocket Studio", monogram: "PS", style: "font-bold italic tracking-tight text-amber-400", image: "/pocket-studio-logo.png", imgClassName: "scale-150 md:scale-165" },
   { name: "Incogni", monogram: "IN", style: "font-bold italic tracking-tight", image: "/sponsor3-incogni.png", url: "http://incogni.com/" },
   { name: "Saily", monogram: "SL", style: "font-mono font-bold", image: "/sponsor4-saily.png", url: "http://saily.com/" },
-  { name: "Cloura", monogram: "CL", style: "font-black tracking-tighter", image: "/sponsor5-cloura.png", imgClassName: "scale-135 md:scale-145" },
+  { name: "Cloura", monogram: "CL", style: "font-black tracking-tighter", image: "/sponsor5-cloura.png", imgClassName: "scale-150 md:scale-165" },
 ];
 
-export const partners = [
-  "Partner 1",
-  "Partner 2",
-  "Partner 3",
-  "Partner 4",
-  "Partner 5",
-  "Partner 6",
-  "Partner 7",
-  "Partner 8",
+export interface Partner {
+  name: string;
+  image: string;
+  imgClassName?: string;
+  url?: string;
+}
+
+export const partnerTop: Partner = {
+  name: "MNC Media",
+  image: "/medpart1-mnc.png",
+};
+
+export const partnerBottom: Partner[] = [
+  {
+    name: "Tempo",
+    image: "/medpart3-tempo.png",
+  },
+  {
+    name: "AIESEC",
+    image: "/medpart2-aisec.png",
+    imgClassName: "scale-120 sm:scale-125",
+  },
+  {
+    name: "PUSC",
+    image: "/medpart4-pusc.png",
+    imgClassName: "scale-135 sm:scale-145",
+  },
+  {
+    name: "PUMA-IS",
+    image: "/medpart5-puma-is.png",
+    imgClassName: "scale-120 sm:scale-125",
+  },
+];
+
+export const partners: Partner[] = [
+  partnerTop,
+  ...partnerBottom,
 ];

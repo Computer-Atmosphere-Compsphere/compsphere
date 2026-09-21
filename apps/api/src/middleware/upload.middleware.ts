@@ -9,7 +9,7 @@ const uploadsDir = process.env.VERCEL
 
 // Ensure upload directories exist (wrapped in try/catch for read-only environments like Vercel)
 try {
-  const dirs = ["payments", "proposals", "presentations", "documents"];
+  const dirs = ["payments", "proposals", "presentations", "documents", "qris"];
   dirs.forEach((dir) => {
     const fullPath = path.join(uploadsDir, dir);
     if (!fs.existsSync(fullPath)) {
@@ -61,6 +61,7 @@ const MAX_PAYMENT_SIZE = 5 * 1024 * 1024;   // 5MB
 const MAX_SLIDE_SIZE = 10 * 1024 * 1024;    // 10MB
 const MAX_PROPOSAL_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_DOCUMENT_SIZE = 5 * 1024 * 1024;  // 5MB
+const MAX_QRIS_SIZE = 5 * 1024 * 1024;      // 5MB
 
 export const uploadPaymentProof = multer({
   storage: createStorage("payments"),
@@ -89,6 +90,12 @@ export const uploadDocument = multer({
   limits: { fileSize: MAX_DOCUMENT_SIZE },
   fileFilter: fileFilter(["image/jpeg", "image/png", "application/pdf"]),
 }).single("document");
+
+export const uploadQrisImage = multer({
+  storage: createStorage("qris"),
+  limits: { fileSize: MAX_QRIS_SIZE },
+  fileFilter: fileFilter(["image/jpeg", "image/png", "image/webp"]),
+}).single("qris");
 
 /**
  * Build a storage key from the uploaded file path relative to uploads dir.

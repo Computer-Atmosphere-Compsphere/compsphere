@@ -154,7 +154,13 @@ const uploadsDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads
 // or serves the file directly from local disk in development.
 const uploadServeHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Capture whatever comes after /uploads/* or /api/uploads/*
-  const storageKey = req.params[0];
+  let storageKey = req.params[0];
+  if (!storageKey) {
+    return res.status(404).send("File not found");
+  }
+
+  // Sanitize key (strip leading slashes)
+  storageKey = storageKey.replace(/^\/+/, "");
 
   if (process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger") {
     try {
@@ -167,14 +173,27 @@ const uploadServeHandler = async (req: express.Request, res: express.Response, n
     }
   }
 
-  // Local dev fallback — serve file directly from disk
+  // Local disk fallback — search all candidate paths where uploads might exist
   try {
-    const filePath = path.resolve(uploadsDir, storageKey);
-    return res.sendFile(filePath, (err) => {
-      if (err) {
-        res.status(404).send("File not found");
+    const candidatePaths = [
+      process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR, storageKey) : null,
+      path.resolve(process.cwd(), "uploads", storageKey),
+      path.resolve(process.cwd(), "apps/api/uploads", storageKey),
+      path.resolve(process.cwd(), "../uploads", storageKey),
+      path.resolve(__dirname, "../uploads", storageKey),
+      path.resolve(__dirname, "../../uploads", storageKey),
+      path.resolve(__dirname, "../../../uploads", storageKey),
+      path.resolve("/tmp/uploads", storageKey),
+    ].filter(Boolean) as string[];
+
+    for (const filePath of candidatePaths) {
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        return res.sendFile(filePath);
       }
-    });
+    }
+
+    console.warn(`[Upload Serve] File not found for key "${storageKey}". Checked paths:`, candidatePaths);
+    return res.status(404).send("File not found");
   } catch (err) {
     return next(err);
   }

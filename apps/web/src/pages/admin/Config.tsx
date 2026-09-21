@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getUploadUrl } from "@/lib/api";
 import { GlassPanel } from "@/components/compsphere/GlassPanel";
 import { NeonButton } from "@/components/compsphere/NeonButton";
 import {
@@ -16,6 +16,11 @@ import {
   ChevronRight,
   EyeOff,
   Link2,
+  QrCode,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -84,14 +89,18 @@ const CATEGORIES: ConfigCategory[] = [
   },
   {
     id: "payment",
-    label: "Payment & Fees",
-    description: "Slot confirmation fees per team category",
+    label: "Payment & Transfer Details",
+    description: "Slot confirmation fees, Bank Transfer details, and QRIS barcode image",
     icon: <CreditCard className="w-4 h-4" />,
     color: "text-emerald-400",
     keys: [
       "payment_amount_national",
       "payment_amount_mix",
       "payment_amount_international",
+      "payment_bank_name",
+      "payment_bank_account_number",
+      "payment_bank_account_name",
+      "payment_qris_image_key",
     ],
   },
   {
@@ -166,6 +175,10 @@ const KEY_LABELS: Record<string, string> = {
   payment_amount_national: "National Fee",
   payment_amount_mix: "Mix Fee",
   payment_amount_international: "International Fee",
+  payment_bank_name: "Bank Name",
+  payment_bank_account_number: "Account Number (No Rekening)",
+  payment_bank_account_name: "Account Holder Name (Atas Nama)",
+  payment_qris_image_key: "QRIS Image Upload",
   top30_total_slots: "Total Slots",
   allocation_national_mix_ratio: "National + Mix Ratio",
   allocation_international_ratio: "International Ratio",
@@ -208,6 +221,10 @@ const KEY_DESCRIPTIONS: Record<string, string> = {
   payment_amount_national: "Slot confirmation fee for National teams (Rp)",
   payment_amount_mix: "Slot confirmation fee for Mix teams (Rp)",
   payment_amount_international: "Slot confirmation fee for International teams (Rp)",
+  payment_bank_name: "Name of target bank (e.g. BCA, Bank Mandiri, SeaBank)",
+  payment_bank_account_number: "Target bank account number for registration fee transfer",
+  payment_bank_account_name: "Registered account holder or organization name",
+  payment_qris_image_key: "Upload and manage the official QRIS barcode image for participant scanning",
   top30_total_slots: "Number of confirmed Top 30 slots available",
   allocation_national_mix_ratio: "Proportion of slots allocated to National + Mix teams (0-1)",
   allocation_international_ratio: "Proportion of slots allocated to International teams (0-1)",
@@ -241,7 +258,7 @@ const KEY_DESCRIPTIONS: Record<string, string> = {
 
 /** Format value for display */
 function formatValue(key: string, value: string): string {
-  if (KEY_LABELS[key]?.includes("Fee") || KEY_LABELS[key]?.includes("Fee")) {
+  if (KEY_LABELS[key]?.includes("Fee")) {
     const num = Number(value);
     if (!isNaN(num) && num > 0) return `Rp${num.toLocaleString("id-ID")}`;
     if (num === 0) return "Free";
@@ -268,6 +285,8 @@ export function Config() {
   const queryClient = useQueryClient();
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [qrisUploadError, setQrisUploadError] = useState<string | null>(null);
+  const qrisFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: configs, isLoading } = useQuery<ConfigItem[]>({
     queryKey: ["admin-config"],
@@ -279,17 +298,39 @@ export function Config() {
       api.put("/api/config", [{ key, value }]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-config"] });
-      setEdits((prev) => {
-        const next = { ...prev };
-        // Remove the saved key from edits
-        return next;
-      });
+      queryClient.invalidateQueries({ queryKey: ["public-config"] });
+    },
+  });
+
+  const qrisUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("qris", file);
+      return api.post<{ success: boolean; data: { storageKey: string; url: string } }>(
+        "/api/config/upload-qris",
+        formData
+      );
+    },
+    onSuccess: () => {
+      setQrisUploadError(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-config"] });
+      queryClient.invalidateQueries({ queryKey: ["public-config"] });
+    },
+    onError: (err: any) => {
+      setQrisUploadError(err.message || "Failed to upload QRIS image.");
     },
   });
 
   const handleSave = (key: string) => {
     if (edits[key] !== undefined) {
       updateMutation.mutate({ key, value: edits[key] });
+    }
+  };
+
+  const handleQrisFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      qrisUploadMutation.mutate(file);
     }
   };
 
@@ -377,16 +418,120 @@ export function Config() {
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {cat.keys.map((key) => {
                       const cfg = configsByKey[key];
-                      // For hacksphere link keys, always render with empty default
-                      // so admins can fill them without needing to seed first
-                      const fallback = cat.id === "hacksphere_links"
-                        ? { key, value: "", type: "STRING", updatedAt: undefined }
-                        : null;
-                      if (!cfg && !fallback) return null;
-                      const effectiveCfg = cfg ?? fallback!;
+                      // Fallback for newly added keys before seeding
+                      const fallback = { key, value: "", type: "STRING", updatedAt: undefined };
+                      const effectiveCfg = cfg ?? fallback;
                       const isDirty =
                         edits[key] !== undefined && edits[key] !== effectiveCfg.value;
                       const displayValue = formatValue(key, edits[key] ?? effectiveCfg.value);
+
+                      // Special Handler: QRIS Image Upload Card
+                      if (key === "payment_qris_image_key") {
+                        const currentKey = effectiveCfg.value;
+                        const hasQris = Boolean(currentKey && currentKey.trim().length > 0);
+                        const qrisUrl = hasQris ? getUploadUrl(currentKey) : null;
+
+                        return (
+                          <div
+                            key={key}
+                            className={cn(
+                              "p-4 rounded-lg border transition-colors md:col-span-2 lg:col-span-3",
+                              "border-brand-primary/20 bg-brand-dim/5"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-4 mb-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <QrCode className="w-4 h-4 text-brand-primary" />
+                                  <p className="text-xs font-bold text-text-primary">
+                                    {KEY_LABELS[key]}
+                                  </p>
+                                </div>
+                                <p className="text-[10px] text-text-muted mt-1">
+                                  {KEY_DESCRIPTIONS[key]}
+                                </p>
+                              </div>
+                              {hasQris && (
+                                <button
+                                  onClick={() => updateMutation.mutate({ key, value: "" })}
+                                  disabled={updateMutation.isPending}
+                                  className="inline-flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 font-semibold px-2 py-1 rounded bg-red-950/20 border border-red-900/40"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Remove QRIS
+                                </button>
+                              )}
+                            </div>
+
+                            {qrisUploadError && (
+                              <p className="text-xs text-red-400 mb-3">{qrisUploadError}</p>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-lg bg-bg-surface/40 border border-border/40">
+                              {hasQris && qrisUrl ? (
+                                <div className="relative group shrink-0">
+                                  <div className="w-32 h-32 rounded-xl bg-white p-2 flex items-center justify-center border border-white/20 shadow-md">
+                                    <img
+                                      src={qrisUrl}
+                                      alt="QRIS Preview"
+                                      className="w-full h-full object-contain rounded-lg"
+                                    />
+                                  </div>
+                                  <a
+                                    href={qrisUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-xs text-brand-primary font-semibold transition-opacity backdrop-blur-xs"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    View Full
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border/60 bg-bg-surface flex flex-col items-center justify-center gap-2 text-text-muted shrink-0">
+                                  <ImageIcon className="w-8 h-8 opacity-40" />
+                                  <span className="text-[10px] font-semibold">No QRIS Image</span>
+                                </div>
+                              )}
+
+                              <div className="space-y-3 flex-1 text-center sm:text-left">
+                                <div>
+                                  <p className="text-xs font-semibold text-text-primary">
+                                    {hasQris ? "Replace QRIS Barcode" : "Upload Official QRIS Barcode"}
+                                  </p>
+                                  <p className="text-[10px] text-text-muted mt-0.5">
+                                    PNG, JPG, or WEBP up to 5MB. This QRIS will be shown directly to participants on their payment dashboard.
+                                  </p>
+                                </div>
+
+                                <input
+                                  type="file"
+                                  ref={qrisFileInputRef}
+                                  onChange={handleQrisFileChange}
+                                  accept="image/png,image/jpeg,image/webp"
+                                  className="hidden"
+                                />
+
+                                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                                  <NeonButton
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => qrisFileInputRef.current?.click()}
+                                    disabled={qrisUploadMutation.isPending}
+                                  >
+                                    <Upload className="w-3.5 h-3.5 mr-1.5" />
+                                    {qrisUploadMutation.isPending
+                                      ? "Uploading to Server..."
+                                      : hasQris
+                                      ? "Upload New Image"
+                                      : "Select Image to Upload"}
+                                  </NeonButton>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
 
                       return (
                         <div
@@ -411,7 +556,9 @@ export function Config() {
                             <p className="text-[10px] text-text-muted mb-3 leading-relaxed">
                               {KEY_DESCRIPTIONS[key]}
                             </p>
-                          )}                          {/* Boolean toggle button */}
+                          )}
+
+                          {/* Boolean toggle button */}
                           {key.includes("enabled") || key.includes("show_login") ? (
                             <button
                               onClick={() => {
@@ -439,12 +586,14 @@ export function Config() {
                                 "w-10 h-5 rounded-full transition-colors relative",
                                 (edits[key] ?? effectiveCfg.value) === "true" ? "bg-green-500/40" : "bg-bg-surface"
                               )}>
-                                <div className={cn(
-                                  "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-                                  (edits[key] ?? effectiveCfg.value) === "true"
-                                    ? "left-[22px] bg-green-400"
-                                    : "left-0.5 bg-text-muted"
-                                )} />
+                                <div
+                                  className={cn(
+                                    "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                                    (edits[key] ?? effectiveCfg.value) === "true"
+                                      ? "left-[22px] bg-green-400"
+                                      : "left-0.5 bg-text-muted"
+                                  )}
+                                />
                               </div>
                             </button>
                           ) : (
@@ -452,7 +601,7 @@ export function Config() {
                               {/* Current formatted value */}
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Current</span>
-                                <span className="text-xs font-mono text-brand-primary font-semibold">{displayValue}</span>
+                                <span className="text-xs font-mono text-brand-primary font-semibold">{displayValue || "-"}</span>
                               </div>
                               {/* Input + Save row */}
                               <div className="flex gap-2 items-center">
@@ -486,3 +635,4 @@ export function Config() {
     </div>
   );
 }
+

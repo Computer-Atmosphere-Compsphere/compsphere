@@ -104,7 +104,7 @@ var require_package = __commonJS({
 // ../../node_modules/dotenv/lib/main.js
 var require_main = __commonJS({
   "../../node_modules/dotenv/lib/main.js"(exports2, module2) {
-    var fs9 = require("fs");
+    var fs10 = require("fs");
     var path11 = require("path");
     var os4 = require("os");
     var crypto16 = require("crypto");
@@ -213,7 +213,7 @@ var require_main = __commonJS({
       if (options && options.path && options.path.length > 0) {
         if (Array.isArray(options.path)) {
           for (const filepath of options.path) {
-            if (fs9.existsSync(filepath)) {
+            if (fs10.existsSync(filepath)) {
               possibleVaultPath = filepath.endsWith(".vault") ? filepath : `${filepath}.vault`;
             }
           }
@@ -223,7 +223,7 @@ var require_main = __commonJS({
       } else {
         possibleVaultPath = path11.resolve(process.cwd(), ".env.vault");
       }
-      if (fs9.existsSync(possibleVaultPath)) {
+      if (fs10.existsSync(possibleVaultPath)) {
         return possibleVaultPath;
       }
       return null;
@@ -272,7 +272,7 @@ var require_main = __commonJS({
       const parsedAll = {};
       for (const path12 of optionPaths) {
         try {
-          const parsed = DotenvModule.parse(fs9.readFileSync(path12, { encoding }));
+          const parsed = DotenvModule.parse(fs10.readFileSync(path12, { encoding }));
           DotenvModule.populate(parsedAll, parsed, options);
         } catch (e) {
           if (debug) {
@@ -1697,8 +1697,8 @@ var require_node = __commonJS({
           }
           break;
         case "FILE":
-          var fs9 = require("fs");
-          stream2 = new fs9.SyncWriteStream(fd2, { autoClose: false });
+          var fs10 = require("fs");
+          stream2 = new fs10.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -18130,8 +18130,8 @@ var require_node2 = __commonJS({
           }
           break;
         case "FILE":
-          var fs9 = require("fs");
-          stream2 = new fs9.SyncWriteStream(fd2, { autoClose: false });
+          var fs10 = require("fs");
+          stream2 = new fs10.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -18849,8 +18849,8 @@ var require_node3 = __commonJS({
           }
           break;
         case "FILE":
-          var fs9 = require("fs");
-          stream2 = new fs9.SyncWriteStream(fd2, { autoClose: false });
+          var fs10 = require("fs");
+          stream2 = new fs10.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -19744,7 +19744,7 @@ var require_view = __commonJS({
     "use strict";
     var debug = require_src3()("express:view");
     var path11 = require("path");
-    var fs9 = require("fs");
+    var fs10 = require("fs");
     var dirname = path11.dirname;
     var basename = path11.basename;
     var extname = path11.extname;
@@ -19810,7 +19810,7 @@ var require_view = __commonJS({
     function tryStat(path12) {
       debug('stat "%s"', path12);
       try {
-        return fs9.statSync(path12);
+        return fs10.statSync(path12);
       } catch (e) {
         return void 0;
       }
@@ -20415,8 +20415,8 @@ var require_node4 = __commonJS({
           }
           break;
         case "FILE":
-          var fs9 = require("fs");
-          stream2 = new fs9.SyncWriteStream(fd2, { autoClose: false });
+          var fs10 = require("fs");
+          stream2 = new fs10.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -20589,7 +20589,7 @@ var require_types = __commonJS({
 var require_mime = __commonJS({
   "../../node_modules/mime/mime.js"(exports2, module2) {
     var path11 = require("path");
-    var fs9 = require("fs");
+    var fs10 = require("fs");
     function Mime() {
       this.types = /* @__PURE__ */ Object.create(null);
       this.extensions = /* @__PURE__ */ Object.create(null);
@@ -20610,7 +20610,7 @@ var require_mime = __commonJS({
     };
     Mime.prototype.load = function(file) {
       this._loading = file;
-      var map3 = {}, content = fs9.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
+      var map3 = {}, content = fs10.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
       lines.forEach(function(line3) {
         var fields = line3.replace(/\s*#.*|^\s*|\s*$/g, "").split(/\s+/);
         map3[fields.shift()] = fields;
@@ -20848,7 +20848,7 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs9 = require("fs");
+    var fs10 = require("fs");
     var mime = require_mime();
     var ms = require_ms5();
     var onFinished = require_on_finished();
@@ -21181,7 +21181,7 @@ var require_send = __commonJS({
       var i = 0;
       var self2 = this;
       debug('stat "%s"', path12);
-      fs9.stat(path12, function onstat(err, stat) {
+      fs10.stat(path12, function onstat(err, stat) {
         if (err && err.code === "ENOENT" && !extname(path12) && path12[path12.length - 1] !== sep) {
           return next(err);
         }
@@ -21196,7 +21196,7 @@ var require_send = __commonJS({
         }
         var p = path12 + "." + self2._extensions[i++];
         debug('stat "%s"', p);
-        fs9.stat(p, function(err2, stat) {
+        fs10.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -21214,7 +21214,7 @@ var require_send = __commonJS({
         }
         var p = join(path12, self2._index[i]);
         debug('stat "%s"', p);
-        fs9.stat(p, function(err2, stat) {
+        fs10.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -21226,7 +21226,7 @@ var require_send = __commonJS({
     SendStream.prototype.stream = function stream(path12, options) {
       var self2 = this;
       var res = this.res;
-      var stream2 = fs9.createReadStream(path12, options);
+      var stream2 = fs10.createReadStream(path12, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -34615,8 +34615,8 @@ var require_node5 = __commonJS({
           }
           break;
         case "FILE":
-          var fs9 = require("fs");
-          stream2 = new fs9.SyncWriteStream(fd2, { autoClose: false });
+          var fs10 = require("fs");
+          stream2 = new fs10.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -62021,7 +62021,7 @@ var require_make_middleware = __commonJS({
 var require_mkdirp = __commonJS({
   "../../node_modules/mkdirp/index.js"(exports2, module2) {
     var path11 = require("path");
-    var fs9 = require("fs");
+    var fs10 = require("fs");
     var _0777 = parseInt("0777", 8);
     module2.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
     function mkdirP(p, opts, f, made) {
@@ -62032,7 +62032,7 @@ var require_mkdirp = __commonJS({
         opts = { mode: opts };
       }
       var mode = opts.mode;
-      var xfs = opts.fs || fs9;
+      var xfs = opts.fs || fs10;
       if (mode === void 0) {
         mode = _0777;
       }
@@ -62071,7 +62071,7 @@ var require_mkdirp = __commonJS({
         opts = { mode: opts };
       }
       var mode = opts.mode;
-      var xfs = opts.fs || fs9;
+      var xfs = opts.fs || fs10;
       if (mode === void 0) {
         mode = _0777;
       }
@@ -62108,7 +62108,7 @@ var require_mkdirp = __commonJS({
 // ../../node_modules/multer/storage/disk.js
 var require_disk = __commonJS({
   "../../node_modules/multer/storage/disk.js"(exports2, module2) {
-    var fs9 = require("fs");
+    var fs10 = require("fs");
     var os4 = require("os");
     var path11 = require("path");
     var crypto16 = require("crypto");
@@ -62139,7 +62139,7 @@ var require_disk = __commonJS({
         that.getFilename(req, file, function(err2, filename) {
           if (err2) return cb(err2);
           var finalPath = path11.join(destination, filename);
-          var outStream = fs9.createWriteStream(finalPath);
+          var outStream = fs10.createWriteStream(finalPath);
           file.stream.pipe(outStream);
           outStream.on("error", cb);
           outStream.on("finish", function() {
@@ -62158,7 +62158,7 @@ var require_disk = __commonJS({
       delete file.destination;
       delete file.filename;
       delete file.path;
-      fs9.unlink(path12, cb);
+      fs10.unlink(path12, cb);
     };
     module2.exports = function(opts) {
       return new DiskStorage(opts);
@@ -102340,7 +102340,7 @@ var import_fs = __toESM(require("fs"));
 var import_crypto8 = __toESM(require("crypto"));
 var uploadsDir = process.env.VERCEL ? "/tmp/uploads" : process.env.UPLOAD_DIR || import_path2.default.join(__dirname, "../../uploads");
 try {
-  const dirs = ["payments", "proposals", "presentations", "documents"];
+  const dirs = ["payments", "proposals", "presentations", "documents", "qris"];
   dirs.forEach((dir) => {
     const fullPath = import_path2.default.join(uploadsDir, dir);
     if (!import_fs.default.existsSync(fullPath)) {
@@ -102385,6 +102385,7 @@ var MAX_PAYMENT_SIZE = 5 * 1024 * 1024;
 var MAX_SLIDE_SIZE = 10 * 1024 * 1024;
 var MAX_PROPOSAL_SIZE = 20 * 1024 * 1024;
 var MAX_DOCUMENT_SIZE = 5 * 1024 * 1024;
+var MAX_QRIS_SIZE = 5 * 1024 * 1024;
 var uploadPaymentProof = (0, import_multer.default)({
   storage: createStorage("payments"),
   limits: { fileSize: MAX_PAYMENT_SIZE },
@@ -102409,6 +102410,11 @@ var uploadDocument = (0, import_multer.default)({
   limits: { fileSize: MAX_DOCUMENT_SIZE },
   fileFilter: fileFilter(["image/jpeg", "image/png", "application/pdf"])
 }).single("document");
+var uploadQrisImage = (0, import_multer.default)({
+  storage: createStorage("qris"),
+  limits: { fileSize: MAX_QRIS_SIZE },
+  fileFilter: fileFilter(["image/jpeg", "image/png", "image/webp"])
+}).single("qris");
 
 // src/routes/payments.routes.ts
 init_storage();
@@ -116773,6 +116779,7 @@ var notifications_routes_default = router13;
 
 // src/routes/config.routes.ts
 var import_express13 = __toESM(require_express2());
+init_storage();
 var router14 = (0, import_express13.Router)();
 router14.get("/public", async (req, res, next) => {
   try {
@@ -116784,7 +116791,14 @@ router14.get("/public", async (req, res, next) => {
       "show_login_buttons",
       "hacksphere_devpost_url",
       "hacksphere_discord_url",
-      "hacksphere_guidebook_url"
+      "hacksphere_guidebook_url",
+      "payment_amount_national",
+      "payment_amount_mix",
+      "payment_amount_international",
+      "payment_bank_name",
+      "payment_bank_account_number",
+      "payment_bank_account_name",
+      "payment_qris_image_key"
     ];
     const configs = await db.query.systemConfig.findMany();
     const publicConfigs = configs.filter((c) => keys.includes(c.key)).reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {});
@@ -116847,6 +116861,59 @@ router14.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
     next(error4);
   }
 });
+router14.post(
+  "/upload-qris",
+  requireAuth,
+  requireRole("ADMIN"),
+  (req, res, next) => {
+    uploadQrisImage(req, res, async (err) => {
+      if (err) return next(err);
+      try {
+        const admin = req.sessionUser;
+        if (!req.file) {
+          throw new AppError(400, "No image file provided.");
+        }
+        const storageKey = await uploadFileToStorage(
+          "qris",
+          req.file.path,
+          req.file.filename,
+          req.file.mimetype
+        );
+        await db.insert(schema_exports.systemConfig).values({
+          key: "payment_qris_image_key",
+          value: storageKey,
+          type: "STRING",
+          updatedAt: /* @__PURE__ */ new Date(),
+          updatedBy: admin.profileId
+        }).onConflictDoUpdate({
+          target: schema_exports.systemConfig.key,
+          set: {
+            value: storageKey,
+            updatedAt: /* @__PURE__ */ new Date(),
+            updatedBy: admin.profileId
+          }
+        });
+        await auditService.log(db, {
+          actorId: admin.profileId,
+          action: "SYSTEM_CONFIG_UPDATED",
+          entityType: "system_config",
+          entityId: "payment_qris_image_key",
+          metadata: { storageKey }
+        });
+        res.json({
+          success: true,
+          message: "QRIS image uploaded successfully.",
+          data: {
+            storageKey,
+            url: `/api/uploads/${storageKey}`
+          }
+        });
+      } catch (error4) {
+        next(error4);
+      }
+    });
+  }
+);
 router14.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
   try {
     const defaultConfigs = [
@@ -116864,6 +116931,10 @@ router14.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, re
       { key: "payment_amount_national", value: "120000", type: "NUMBER" },
       { key: "payment_amount_mix", value: "120000", type: "NUMBER" },
       { key: "payment_amount_international", value: "0", type: "NUMBER" },
+      { key: "payment_bank_name", value: "BCA", type: "STRING" },
+      { key: "payment_bank_account_number", value: "", type: "STRING" },
+      { key: "payment_bank_account_name", value: "", type: "STRING" },
+      { key: "payment_qris_image_key", value: "", type: "STRING" },
       { key: "top30_total_slots", value: "30", type: "NUMBER" },
       { key: "allocation_national_mix_ratio", value: "0.8", type: "NUMBER" },
       { key: "allocation_international_ratio", value: "0.2", type: "NUMBER" },
@@ -117755,7 +117826,11 @@ app.use(import_express17.default.json({ limit: "10mb" }));
 app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
 var uploadsDir3 = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : import_path7.default.join(__dirname, "../uploads"));
 var uploadServeHandler = async (req, res, next) => {
-  const storageKey = req.params[0];
+  let storageKey = req.params[0];
+  if (!storageKey) {
+    return res.status(404).send("File not found");
+  }
+  storageKey = storageKey.replace(/^\/+/, "");
   if (process.env.STORAGE_PROVIDER?.trim().toLowerCase() === "hostinger") {
     try {
       const { generatePresignedUrl: generatePresignedUrl2 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
@@ -117767,12 +117842,23 @@ var uploadServeHandler = async (req, res, next) => {
     }
   }
   try {
-    const filePath = import_path7.default.resolve(uploadsDir3, storageKey);
-    return res.sendFile(filePath, (err) => {
-      if (err) {
-        res.status(404).send("File not found");
+    const candidatePaths = [
+      process.env.UPLOAD_DIR ? import_path7.default.resolve(process.env.UPLOAD_DIR, storageKey) : null,
+      import_path7.default.resolve(process.cwd(), "uploads", storageKey),
+      import_path7.default.resolve(process.cwd(), "apps/api/uploads", storageKey),
+      import_path7.default.resolve(process.cwd(), "../uploads", storageKey),
+      import_path7.default.resolve(__dirname, "../uploads", storageKey),
+      import_path7.default.resolve(__dirname, "../../uploads", storageKey),
+      import_path7.default.resolve(__dirname, "../../../uploads", storageKey),
+      import_path7.default.resolve("/tmp/uploads", storageKey)
+    ].filter(Boolean);
+    for (const filePath of candidatePaths) {
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        return res.sendFile(filePath);
       }
-    });
+    }
+    console.warn(`[Upload Serve] File not found for key "${storageKey}". Checked paths:`, candidatePaths);
+    return res.status(404).send("File not found");
   } catch (err) {
     return next(err);
   }

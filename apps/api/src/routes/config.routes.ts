@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
+import { uploadQrisImage } from "../middleware/upload.middleware";
+import { uploadFileToStorage } from "../lib/storage";
+import { AppError } from "../middleware/error.middleware";
 import { db, schema } from "@compsphere/db";
 import { eq } from "drizzle-orm";
 import { auditService } from "../services/audit.service";
@@ -25,6 +28,13 @@ router.get("/public", async (req, res, next) => {
       "hacksphere_devpost_url",
       "hacksphere_discord_url",
       "hacksphere_guidebook_url",
+      "payment_amount_national",
+      "payment_amount_mix",
+      "payment_amount_international",
+      "payment_bank_name",
+      "payment_bank_account_number",
+      "payment_bank_account_name",
+      "payment_qris_image_key",
     ];
     const configs = await db.query.systemConfig.findMany();
     const publicConfigs = configs
@@ -108,6 +118,70 @@ router.put("/", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
 });
 
 /**
+ * Upload QRIS image for payment option configuration (Admin only)
+ * POST /api/config/upload-qris
+ */
+router.post(
+  "/upload-qris",
+  requireAuth,
+  requireRole("ADMIN"),
+  (req, res, next) => {
+    uploadQrisImage(req, res, async (err) => {
+      if (err) return next(err);
+      try {
+        const admin = req.sessionUser!;
+        if (!req.file) {
+          throw new AppError(400, "No image file provided.");
+        }
+        const storageKey = await uploadFileToStorage(
+          "qris",
+          req.file.path,
+          req.file.filename,
+          req.file.mimetype
+        );
+
+        await db
+          .insert(schema.systemConfig)
+          .values({
+            key: "payment_qris_image_key",
+            value: storageKey,
+            type: "STRING",
+            updatedAt: new Date(),
+            updatedBy: admin.profileId,
+          })
+          .onConflictDoUpdate({
+            target: schema.systemConfig.key,
+            set: {
+              value: storageKey,
+              updatedAt: new Date(),
+              updatedBy: admin.profileId,
+            },
+          });
+
+        await auditService.log(db, {
+          actorId: admin.profileId,
+          action: "SYSTEM_CONFIG_UPDATED",
+          entityType: "system_config",
+          entityId: "payment_qris_image_key",
+          metadata: { storageKey },
+        });
+
+        res.json({
+          success: true,
+          message: "QRIS image uploaded successfully.",
+          data: {
+            storageKey,
+            url: `/api/uploads/${storageKey}`,
+          },
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
+  }
+);
+
+/**
  * Seed missing config keys with defaults (Admin only, idempotent)
  * POST /api/config/seed-missing
  */
@@ -128,6 +202,10 @@ router.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, res,
       { key: "payment_amount_national", value: "120000", type: "NUMBER" as const },
       { key: "payment_amount_mix", value: "120000", type: "NUMBER" as const },
       { key: "payment_amount_international", value: "0", type: "NUMBER" as const },
+      { key: "payment_bank_name", value: "BCA", type: "STRING" as const },
+      { key: "payment_bank_account_number", value: "", type: "STRING" as const },
+      { key: "payment_bank_account_name", value: "", type: "STRING" as const },
+      { key: "payment_qris_image_key", value: "", type: "STRING" as const },
       { key: "top30_total_slots", value: "30", type: "NUMBER" as const },
       { key: "allocation_national_mix_ratio", value: "0.8", type: "NUMBER" as const },
       { key: "allocation_international_ratio", value: "0.2", type: "NUMBER" as const },
@@ -171,4 +249,5 @@ router.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, res,
 });
 
 export default router;
+
 

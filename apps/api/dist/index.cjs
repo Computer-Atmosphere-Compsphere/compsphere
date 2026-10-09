@@ -101333,6 +101333,10 @@ var teamService = {
       if (existingLeader) {
         throw new AppError(409, "Team already has a leader", "LEADER_EXISTS");
       }
+      const team = await tx.query.competitionTeams.findFirst({
+        where: eq(schema_exports.competitionTeams.id, teamId)
+      });
+      if (!team) throw new AppError(404, "Team not found");
       await tx.update(schema_exports.teamAccessTokens).set({
         status: "ACTIVATED",
         activatedBy: profileId,
@@ -101346,11 +101350,43 @@ var teamService = {
         verifiedAt: /* @__PURE__ */ new Date()
       }).returning();
       const deadline = new Date(Date.now() + 48 * 60 * 60 * 1e3);
-      await tx.update(schema_exports.competitionTeams).set({
-        status: "AWAITING_CONFIRMATION",
-        confirmationStartedAt: /* @__PURE__ */ new Date(),
-        confirmationDeadline: deadline
-      }).where(eq(schema_exports.competitionTeams.id, teamId));
+      if (team.category === "INTERNATIONAL") {
+        await tx.update(schema_exports.competitionTeams).set({
+          status: "VERIFIED",
+          confirmationStartedAt: /* @__PURE__ */ new Date(),
+          confirmationDeadline: deadline,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(schema_exports.competitionTeams.id, teamId));
+        const [autoPayment] = await tx.insert(schema_exports.payments).values({
+          teamId,
+          amount: 0,
+          status: "APPROVED",
+          proofStorageKey: null,
+          proofFilename: null,
+          submittedBy: profileId,
+          verifiedBy: profileId,
+          verifiedAt: /* @__PURE__ */ new Date()
+        }).returning();
+        await auditService.log(tx, {
+          actorId: profileId,
+          action: "INTERNATIONAL_AUTO_VERIFIED",
+          entityType: "team",
+          entityId: teamId,
+          metadata: { tokenId, teamId, paymentId: autoPayment.id }
+        });
+        await tx.insert(schema_exports.notifications).values({
+          teamId,
+          type: "TEAM_VERIFIED",
+          title: "Team Auto-Verified! \u{1F30F}",
+          message: "Your international team has been automatically verified. All features are now unlocked."
+        });
+      } else {
+        await tx.update(schema_exports.competitionTeams).set({
+          status: "AWAITING_CONFIRMATION",
+          confirmationStartedAt: /* @__PURE__ */ new Date(),
+          confirmationDeadline: deadline
+        }).where(eq(schema_exports.competitionTeams.id, teamId));
+      }
       await tx.insert(schema_exports.roleAssignments).values({
         userId: profileId,
         role: "PARTICIPANT",
@@ -101477,25 +101513,46 @@ var teamService = {
     });
     const competitionPhase = phaseConfig?.value || "1";
     const judgeScores2 = await db.query.judgeScores.findMany({
-      where: eq(schema_exports.judgeScores.teamId, teamId)
+      where: eq(schema_exports.judgeScores.teamId, teamId),
+      with: {
+        judge: {
+          with: {
+            user: true
+          }
+        }
+      },
+      orderBy: (js, { desc: desc5 }) => [desc5(js.submittedAt)]
     });
     const judgeCount = judgeScores2.length;
+    const averageScore = judgeCount > 0 ? Number(
+      (judgeScores2.reduce((acc, s) => acc + Number(s.finalScore || 0), 0) / judgeCount).toFixed(2)
+    ) : null;
     const canShowRank = judgeCount >= 2 && team.status === "JUDGED";
+    const topSlotsConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema_exports.systemConfig.key, "top30_total_slots")
+    });
+    const topSlotsLimit = parseInt(topSlotsConfig?.value || "30");
+    const isQualified = team.category === "INTERNATIONAL" || team.originalRank !== null && team.originalRank >= 1 && team.originalRank <= topSlotsLimit;
     return {
       team: {
         ...team,
         canShowRank,
         judgeCount,
-        competitionPhase
+        competitionPhase,
+        isQualified,
+        averageScore
       },
       members,
       proposal: proposal ? { ...proposal, files: proposalFiles2 } : null,
       payments: payments2,
       submissions: submissions2,
       attendance: attendance2,
+      scores: judgeScores2,
+      averageScore,
       token: latestToken ? tokenMeta : null,
       canShowRank,
-      competitionPhase
+      competitionPhase,
+      isQualified
     };
   },
   /**
@@ -101624,12 +101681,15 @@ var teamService = {
         status: "DROPPED",
         updatedAt: /* @__PURE__ */ new Date()
       }).where(eq(schema_exports.competitionTeams.id, teamId));
+      const deleteResult = await tx.execute(sql2`DELETE FROM judge_assignments WHERE team_id = ${teamId}`);
+      const deletedCount = deleteResult.rowCount ?? 0;
+      console.log(`[dropTeam] Removed ${deletedCount} judge assignment(s) for dropped team ${team.teamCode}`);
       await auditService.log(tx, {
         actorId: adminId,
         action: "TEAM_DROPPED",
         entityType: "team",
         entityId: teamId,
-        metadata: { previousStatus: team.status, reason }
+        metadata: { previousStatus: team.status, reason, judgeAssignmentsRemoved: deletedCount }
       });
       await tx.insert(schema_exports.notifications).values({
         teamId,
@@ -101639,7 +101699,69 @@ var teamService = {
       });
       sseService.sendToTeam(teamId, "team:status_changed", { teamId, newStatus: "DROPPED" });
       sseService.broadcast("admin:counter_updated", { event: "team_dropped", teamId });
-      return { teamId, newStatus: "DROPPED" };
+      return { teamId, newStatus: "DROPPED", judgeAssignmentsRemoved: deletedCount };
+    });
+  },
+  /**
+   * Admin: update team details (name, category, rank, status, payment settings)
+   * Works for both judged and unjudged teams.
+   */
+  async updateTeam(adminId, teamId, updates) {
+    return await db.transaction(async (tx) => {
+      const team = await tx.query.competitionTeams.findFirst({
+        where: eq(schema_exports.competitionTeams.id, teamId)
+      });
+      if (!team) throw new AppError(404, "Team not found");
+      const setData = {
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      if (updates.teamName !== void 0) setData.teamName = updates.teamName.trim();
+      if (updates.category !== void 0) setData.category = updates.category;
+      if (updates.countryMix !== void 0) setData.countryMix = updates.countryMix;
+      if (updates.originalRank !== void 0) setData.originalRank = updates.originalRank;
+      if (updates.status !== void 0) setData.status = updates.status;
+      if (updates.paymentRequired !== void 0) setData.paymentRequired = updates.paymentRequired;
+      if (updates.paymentAmount !== void 0) setData.paymentAmount = updates.paymentAmount;
+      const [updatedTeam] = await tx.update(schema_exports.competitionTeams).set(setData).where(eq(schema_exports.competitionTeams.id, teamId)).returning();
+      let judgeAssignmentsRemoved = 0;
+      if (updates.status === "DROPPED" && team.status !== "DROPPED") {
+        const deleteResult = await tx.execute(
+          sql2`DELETE FROM judge_assignments WHERE team_id = ${teamId}`
+        );
+        judgeAssignmentsRemoved = deleteResult.rowCount ?? 0;
+      }
+      await auditService.log(tx, {
+        actorId: adminId,
+        action: "TEAM_UPDATED",
+        entityType: "team",
+        entityId: teamId,
+        metadata: {
+          previous: {
+            teamName: team.teamName,
+            category: team.category,
+            originalRank: team.originalRank,
+            status: team.status,
+            paymentRequired: team.paymentRequired,
+            paymentAmount: team.paymentAmount
+          },
+          updated: updates,
+          judgeAssignmentsRemoved
+        }
+      });
+      if (updates.status && updates.status !== team.status) {
+        await tx.insert(schema_exports.notifications).values({
+          teamId,
+          type: updates.status === "VERIFIED" ? "TEAM_VERIFIED" : updates.status === "DROPPED" ? "TEAM_DROPPED" : "ADMIN_ALERT",
+          title: "Team Details Updated",
+          message: `Your team status has been updated to ${updates.status}.`
+        });
+        sseService.sendToTeam(teamId, "team:status_changed", {
+          teamId,
+          newStatus: updates.status
+        });
+      }
+      sseService.broadcast("admin:counter_updated", { event: "team_updated", teamId });
+      return updatedTeam;
     });
   },
   /**
@@ -115731,6 +115853,8 @@ router8.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res,
     }
     const { emailLogs } = await getConfirmationAndEmailMaps();
     const sentResults = [];
+    const skippedResults = [];
+    const failedResults = [];
     const notificationsToInsert = [];
     const nowIso = (/* @__PURE__ */ new Date()).toISOString();
     for (const team of targetTeams) {
@@ -115738,6 +115862,16 @@ router8.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res,
       const actualLeaderEmail = leader?.email || team.leader_email || "";
       const recipientEmail = testEmailOverride?.trim() ? testEmailOverride.trim() : actualLeaderEmail;
       const recipientName = leader?.name || team.leader_name || team.team_name + " Leader";
+      if (!recipientEmail) {
+        skippedResults.push({
+          teamId: team.team_id,
+          teamName: team.team_name,
+          teamCode: team.team_code,
+          reason: "No leader email found \u2014 team leader may not have activated their account yet"
+        });
+        console.warn(`[send-emails] Skipping team ${team.team_code}: no leader email in database`);
+        continue;
+      }
       const sendRes = await emailService.sendTeamEmail({
         to: recipientEmail,
         recipientName,
@@ -115753,26 +115887,38 @@ router8.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res,
         },
         deadlineHours
       });
-      emailLogs[team.team_id] = {
-        lastSentAt: nowIso,
-        emailType,
-        subject
-      };
-      notificationsToInsert.push({
-        teamId: team.team_id,
-        type: emailType === "SLOT_CONFIRMATION" ? "SLOT_CONFIRMATION_INVITATION" : "ADMIN_ANNOUNCEMENT",
-        title: subject,
-        message: emailType === "SLOT_CONFIRMATION" ? `Action required: Please confirm or decline your Phase 2 slot invitation.` : content.substring(0, 150) + "..."
-      });
-      sentResults.push({
-        teamId: team.team_id,
-        teamName: team.team_name,
-        teamCode: team.team_code,
-        recipientEmail,
-        success: sendRes.success,
-        isRealDelivery: sendRes.isRealDelivery,
-        error: !recipientEmail ? "No leader email found in database for this team" : sendRes.error
-      });
+      if (sendRes.success) {
+        emailLogs[team.team_id] = {
+          lastSentAt: nowIso,
+          emailType,
+          subject
+        };
+        notificationsToInsert.push({
+          teamId: team.team_id,
+          type: emailType === "SLOT_CONFIRMATION" ? "SLOT_CONFIRMATION_INVITATION" : "ADMIN_ANNOUNCEMENT",
+          title: subject,
+          message: emailType === "SLOT_CONFIRMATION" ? `Action required: Please confirm or decline your Phase 2 slot invitation.` : content.substring(0, 150) + "..."
+        });
+        sentResults.push({
+          teamId: team.team_id,
+          teamName: team.team_name,
+          teamCode: team.team_code,
+          recipientEmail,
+          success: true,
+          isRealDelivery: sendRes.isRealDelivery,
+          messageId: sendRes.messageId
+        });
+      } else {
+        failedResults.push({
+          teamId: team.team_id,
+          teamName: team.team_name,
+          teamCode: team.team_code,
+          recipientEmail,
+          success: false,
+          error: sendRes.error || "Unknown send error"
+        });
+        console.error(`[send-emails] Failed to send to ${team.team_code} (${recipientEmail}): ${sendRes.error}`);
+      }
     }
     await db.transaction(async (tx) => {
       await tx.insert(schema_exports.systemConfig).values({
@@ -115800,21 +115946,29 @@ router8.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res,
         metadata: {
           recipientType,
           totalSent: sentResults.length,
+          totalSkipped: skippedResults.length,
+          totalFailed: failedResults.length,
           emailType,
           subject
         }
       });
     });
     const realDeliveredCount = sentResults.filter((r) => r.isRealDelivery).length;
+    const totalAttempted = sentResults.length + failedResults.length;
     res.json({
       success: true,
-      message: emailService.isConfigured() ? `Successfully sent ${realDeliveredCount} real email(s) to team leaders.` : `Emails recorded in development simulation mode for ${sentResults.length} team(s). (To send real emails to inboxes, configure SMTP or RESEND_API_KEY in your .env).`,
+      message: emailService.isConfigured() ? `Sent: ${realDeliveredCount} real email(s) | Skipped (no email): ${skippedResults.length} team(s) | Failed: ${failedResults.length} team(s).` : `Simulated: ${sentResults.length} email(s) recorded | Skipped (no email): ${skippedResults.length} team(s) | Failed: ${failedResults.length} team(s). Configure SMTP or RESEND_API_KEY in .env for real delivery.`,
       data: {
         isEmailConfigured: emailService.isConfigured(),
-        totalRecipients: sentResults.length,
+        totalTargeted: targetTeams.length,
+        totalSent: sentResults.length,
         realDeliveredCount,
+        totalSkipped: skippedResults.length,
+        totalFailed: failedResults.length,
         emailType,
-        recipients: sentResults
+        sent: sentResults,
+        skipped: skippedResults,
+        failed: failedResults
       }
     });
   } catch (error4) {
@@ -116416,11 +116570,13 @@ router9.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req,
       throw new AppError(400, "At least 2 active judges are required for cross-judging.");
     }
     const teamRows = await db.execute(sql2`
-      SELECT id, team_code, team_name
+      SELECT id, team_code, team_name, status
       FROM competition_teams
+      WHERE status NOT IN ('DROPPED', 'WAITLIST', 'NEW')
       ORDER BY original_rank ASC
     `);
     const teams = Array.isArray(teamRows) ? teamRows : teamRows.rows ?? [];
+    console.log(`[generate-phase-1] Eligible teams for judging: ${teams.length} (excluded DROPPED/WAITLIST/NEW)`);
     if (teams.length === 0) {
       throw new AppError(400, "No teams found to assign.");
     }
@@ -116846,6 +117002,7 @@ var attendance_routes_default = router11;
 
 // src/routes/admin.routes.ts
 var import_express11 = __toESM(require_express2());
+var SCORE_SECURITY_PASSWORD = process.env.SCORE_OVERRIDE_AUTH_PASSWORD || "compsphere12jayajayajaya";
 var router12 = (0, import_express11.Router)();
 router12.use(requireAuth, requireRole("ADMIN"));
 router12.get("/metrics", async (req, res, next) => {
@@ -116960,6 +117117,216 @@ router12.post("/regenerate-team-token", async (req, res, next) => {
     next(error4);
   }
 });
+var updateTeamSchema = external_exports.object({
+  teamId: external_exports.string().uuid(),
+  teamName: external_exports.string().min(1).optional(),
+  category: external_exports.enum(["NATIONAL", "MIX", "INTERNATIONAL"]).optional(),
+  countryMix: external_exports.string().nullable().optional(),
+  originalRank: external_exports.number().int().min(1).optional(),
+  status: external_exports.enum([
+    "NEW",
+    "TOP30",
+    "AWAITING_CONFIRMATION",
+    "PAYMENT_PENDING",
+    "DOCUMENT_PENDING",
+    "VERIFICATION_PENDING",
+    "VERIFIED",
+    "DROPPED",
+    "WAITLIST",
+    "FINALIST",
+    "SUBMISSION_OPEN",
+    "SUBMITTED",
+    "JUDGED"
+  ]).optional(),
+  paymentRequired: external_exports.boolean().optional(),
+  paymentAmount: external_exports.number().int().min(0).optional(),
+  // Advanced overrides
+  leaderMemberId: external_exports.string().uuid().optional(),
+  // Select which existing member is the team leader
+  leaderEmail: external_exports.string().email().optional(),
+  // Override leader's Google profile email
+  leaderName: external_exports.string().min(1).optional(),
+  // Override leader's display name
+  scoreOverride: external_exports.number().min(0).max(100).optional(),
+  // Manual final_score override for judge scores
+  scoreAuthPassword: external_exports.string().optional()
+  // Security authorization password required to change scores
+});
+async function applyScoreOverride(adminId, teamId, scoreOverride) {
+  const existingScores = await db.query.judgeScores.findMany({
+    where: eq(schema_exports.judgeScores.teamId, teamId)
+  });
+  if (existingScores.length > 0) {
+    await db.execute(
+      sql2`UPDATE judge_scores
+          SET final_score = ${scoreOverride},
+              technical_score = ${Math.round(scoreOverride)},
+              problem_score = ${Math.round(scoreOverride)},
+              innovation_score = ${Math.round(scoreOverride)},
+              market_score = ${Math.round(scoreOverride)},
+              document_score = ${Math.round(scoreOverride)},
+              updated_at = NOW()
+          WHERE team_id = ${teamId}`
+    );
+  } else {
+    const assignments = await db.query.judgeAssignments.findMany({
+      where: eq(schema_exports.judgeAssignments.teamId, teamId)
+    });
+    let judgeIds = assignments.map((a) => a.judgeId);
+    if (judgeIds.length === 0) {
+      const activeJudges = await db.query.judges.findMany({
+        limit: 2
+      });
+      for (const j of activeJudges) {
+        await db.insert(schema_exports.judgeAssignments).values({
+          judgeId: j.id,
+          teamId
+        }).onConflictDoNothing();
+      }
+      judgeIds = activeJudges.map((j) => j.id);
+    }
+    for (const judgeId of judgeIds) {
+      await db.insert(schema_exports.judgeScores).values({
+        judgeId,
+        teamId,
+        technicalScore: Math.round(scoreOverride),
+        problemScore: Math.round(scoreOverride),
+        innovationScore: Math.round(scoreOverride),
+        marketScore: Math.round(scoreOverride),
+        documentScore: Math.round(scoreOverride),
+        finalScore: scoreOverride.toFixed(2),
+        submittedAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).onConflictDoUpdate({
+        target: [schema_exports.judgeScores.judgeId, schema_exports.judgeScores.teamId],
+        set: {
+          finalScore: scoreOverride.toFixed(2),
+          technicalScore: Math.round(scoreOverride),
+          problemScore: Math.round(scoreOverride),
+          innovationScore: Math.round(scoreOverride),
+          marketScore: Math.round(scoreOverride),
+          documentScore: Math.round(scoreOverride),
+          updatedAt: /* @__PURE__ */ new Date()
+        }
+      });
+    }
+  }
+  await auditService.log(db, {
+    actorId: adminId,
+    action: "TEAM_UPDATED",
+    entityType: "team",
+    entityId: teamId,
+    metadata: { type: "score_override", scoreOverride, existingScoresCount: existingScores.length }
+  });
+}
+router12.put("/update-team", async (req, res, next) => {
+  try {
+    const admin = req.sessionUser;
+    const parsed = updateTeamSchema.parse(req.body);
+    const { teamId, leaderMemberId, leaderEmail, leaderName, scoreOverride, scoreAuthPassword, ...teamUpdates } = parsed;
+    if (scoreOverride !== void 0) {
+      if (!scoreAuthPassword || scoreAuthPassword !== SCORE_SECURITY_PASSWORD) {
+        throw new AppError(
+          403,
+          "Invalid security authorization password for score modifications. Access restricted to authorized committee members.",
+          "INVALID_SCORE_AUTH_PASSWORD"
+        );
+      }
+    }
+    const result = await teamService.updateTeam(admin.profileId, teamId, teamUpdates);
+    if (leaderMemberId) {
+      await db.update(schema_exports.teamMembers).set({ role: "TEAM_MEMBER" }).where(eq(schema_exports.teamMembers.teamId, teamId));
+      await db.update(schema_exports.teamMembers).set({ role: "TEAM_LEADER" }).where(and(eq(schema_exports.teamMembers.teamId, teamId), eq(schema_exports.teamMembers.id, leaderMemberId)));
+    }
+    if (leaderEmail !== void 0 || leaderName !== void 0) {
+      const leaderMember = await db.query.teamMembers.findFirst({
+        where: and(
+          eq(schema_exports.teamMembers.teamId, teamId),
+          eq(schema_exports.teamMembers.role, "TEAM_LEADER"),
+          eq(schema_exports.teamMembers.status, "ACTIVE")
+        ),
+        with: { user: true }
+      });
+      if (leaderMember) {
+        const profileUpdates = { updatedAt: /* @__PURE__ */ new Date() };
+        if (leaderEmail !== void 0) profileUpdates.email = leaderEmail.toLowerCase().trim();
+        if (leaderName !== void 0) profileUpdates.fullName = leaderName.trim();
+        await db.update(schema_exports.profiles).set(profileUpdates).where(eq(schema_exports.profiles.id, leaderMember.userId));
+        await auditService.log(db, {
+          actorId: admin.profileId,
+          action: "TEAM_UPDATED",
+          entityType: "team",
+          entityId: teamId,
+          metadata: { type: "leader_profile_override", leaderUserId: leaderMember.userId, profileUpdates }
+        });
+      }
+    }
+    if (scoreOverride !== void 0) {
+      await applyScoreOverride(admin.profileId, teamId, scoreOverride);
+    }
+    res.json({
+      success: true,
+      message: "Team updated successfully.",
+      data: result
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router12.patch("/teams/:teamId", async (req, res, next) => {
+  try {
+    const admin = req.sessionUser;
+    const teamId = req.params.teamId;
+    const { leaderMemberId, leaderEmail, leaderName, scoreOverride, scoreAuthPassword, ...rest } = updateTeamSchema.omit({ teamId: true }).parse(req.body);
+    if (scoreOverride !== void 0) {
+      if (!scoreAuthPassword || scoreAuthPassword !== SCORE_SECURITY_PASSWORD) {
+        throw new AppError(
+          403,
+          "Invalid security authorization password for score modifications. Access restricted to authorized committee members.",
+          "INVALID_SCORE_AUTH_PASSWORD"
+        );
+      }
+    }
+    const result = await teamService.updateTeam(admin.profileId, teamId, rest);
+    if (leaderMemberId) {
+      await db.update(schema_exports.teamMembers).set({ role: "TEAM_MEMBER" }).where(eq(schema_exports.teamMembers.teamId, teamId));
+      await db.update(schema_exports.teamMembers).set({ role: "TEAM_LEADER" }).where(and(eq(schema_exports.teamMembers.teamId, teamId), eq(schema_exports.teamMembers.id, leaderMemberId)));
+    }
+    if (leaderEmail !== void 0 || leaderName !== void 0) {
+      const leaderMember = await db.query.teamMembers.findFirst({
+        where: and(
+          eq(schema_exports.teamMembers.teamId, teamId),
+          eq(schema_exports.teamMembers.role, "TEAM_LEADER"),
+          eq(schema_exports.teamMembers.status, "ACTIVE")
+        ),
+        with: { user: true }
+      });
+      if (leaderMember) {
+        const profileUpdates = { updatedAt: /* @__PURE__ */ new Date() };
+        if (leaderEmail !== void 0) profileUpdates.email = leaderEmail.toLowerCase().trim();
+        if (leaderName !== void 0) profileUpdates.fullName = leaderName.trim();
+        await db.update(schema_exports.profiles).set(profileUpdates).where(eq(schema_exports.profiles.id, leaderMember.userId));
+        await auditService.log(db, {
+          actorId: admin.profileId,
+          action: "TEAM_UPDATED",
+          entityType: "team",
+          entityId: teamId,
+          metadata: { type: "leader_profile_override", leaderUserId: leaderMember.userId, profileUpdates }
+        });
+      }
+    }
+    if (scoreOverride !== void 0) {
+      await applyScoreOverride(admin.profileId, teamId, scoreOverride);
+    }
+    res.json({
+      success: true,
+      message: "Team updated successfully.",
+      data: result
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
 var admin_routes_default = router12;
 
 // src/routes/notifications.routes.ts
@@ -117011,9 +117378,17 @@ router14.get("/public", async (req, res, next) => {
   try {
     const keys = [
       "countdown_compsphere_enabled",
+      "countdown_compsphere_date",
       "countdown_talksphere_enabled",
+      "countdown_talksphere_date",
+      "countdown_exposphere_enabled",
+      "countdown_exposphere_date",
       "countdown_enabled",
+      "countdown_hacksphere_date",
       "countdown_24h_enabled",
+      "countdown_24h_end_date",
+      "countdown_festsphere_enabled",
+      "countdown_festsphere_date",
       "show_login_buttons",
       "hacksphere_devpost_url",
       "hacksphere_discord_url",
@@ -117146,9 +117521,17 @@ router14.post("/seed-missing", requireAuth, requireRole("ADMIN"), async (req, re
       { key: "competition_name", value: "COMPSPHERE 2026", type: "STRING" },
       { key: "competition_phase", value: "2", type: "NUMBER" },
       { key: "countdown_compsphere_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_compsphere_date", value: "2026-10-05T08:00:00+07:00", type: "STRING" },
       { key: "countdown_talksphere_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_talksphere_date", value: "2026-10-07T08:00:00+07:00", type: "STRING" },
+      { key: "countdown_exposphere_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_exposphere_date", value: "2026-10-30T08:00:00+07:00", type: "STRING" },
       { key: "countdown_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_hacksphere_date", value: "2026-11-21T08:00:00+07:00", type: "STRING" },
       { key: "countdown_24h_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_24h_end_date", value: "2026-11-22T09:00:00+07:00", type: "STRING" },
+      { key: "countdown_festsphere_enabled", value: "false", type: "BOOLEAN" },
+      { key: "countdown_festsphere_date", value: "2026-11-22T14:00:00+07:00", type: "STRING" },
       { key: "show_login_buttons", value: "true", type: "BOOLEAN" },
       { key: "confirmation_window_hours", value: "48", type: "NUMBER" },
       { key: "submission_deadline", value: "2026-10-11T10:00:00+07:00", type: "STRING" },

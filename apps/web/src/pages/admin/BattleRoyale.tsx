@@ -1137,16 +1137,57 @@ export function BattleRoyale() {
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex-1 space-y-5 text-xs bg-[#11141c]">
               {sendSuccessResult ? (
-                <div className="py-12 text-center space-y-4">
+                <div className="py-6 text-center space-y-5">
                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-base font-bold text-text-primary">Emails Dispatched Successfully</h3>
+                    <h3 className="text-base font-bold text-text-primary">Email Dispatch Completed</h3>
                     <p className="text-xs text-text-muted max-w-md mx-auto">
-                      Dispatched {sendSuccessResult.totalRecipients || modalTargetTeams.length} email(s) with personalized verification links directly to team leaders.
+                      Processed {sendSuccessResult.totalTargeted || modalTargetTeams.length} target team(s).
                     </p>
                   </div>
+
+                  {/* Summary Metric Badges */}
+                  <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto text-center">
+                    <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-900/40">
+                      <span className="text-[10px] uppercase font-bold text-emerald-400/80 block">Sent</span>
+                      <span className="font-mono font-bold text-emerald-400 text-lg">
+                        {sendSuccessResult.totalSent ?? 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-900/40">
+                      <span className="text-[10px] uppercase font-bold text-amber-400/80 block">Skipped (No Email)</span>
+                      <span className="font-mono font-bold text-amber-400 text-lg">
+                        {sendSuccessResult.totalSkipped ?? 0}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/40">
+                      <span className="text-[10px] uppercase font-bold text-red-400/80 block">Failed</span>
+                      <span className="font-mono font-bold text-red-400 text-lg">
+                        {sendSuccessResult.totalFailed ?? 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Skipped Teams Warning List */}
+                  {Array.isArray(sendSuccessResult.skipped) && sendSuccessResult.skipped.length > 0 && (
+                    <div className="max-w-lg mx-auto text-left p-3.5 rounded-lg bg-amber-950/20 border border-amber-900/40 space-y-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Skipped Teams (Leader not registered/activated yet):</span>
+                      </div>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {sendSuccessResult.skipped.map((s: any, idx: number) => (
+                          <div key={idx} className="text-[11px] text-text-muted flex justify-between">
+                            <span>{s.teamName} ({s.teamCode})</span>
+                            <span className="text-amber-400/70 text-[10px]">No Leader Email</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-2">
                     <NeonButton
                       variant="primary"

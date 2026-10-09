@@ -61,7 +61,7 @@ export const subEvents: SubEvent[] = [
     tagline: "Innovation & Startup Expo",
     description:
       "Exposphere is the largest innovation and startup expo in the Compsphere series. Held at two strategic locations, AEON Deltamas Cikarang and Lobby A President University, this expo serves as the ultimate platform for innovators, founders, and tech builders to showcase their best work to the public.",
-    date: "Sep 29 - Oct 6, 2026",
+    date: "Oct 30 - Nov 8, 2026",
     venue: "AEON Deltamas Cikarang & Lobby A President University",
     tag: "GENESIS EXPO",
     accent: "text-status-submitted",
@@ -70,27 +70,27 @@ export const subEvents: SubEvent[] = [
     icon: Rocket,
     activities: [
       {
-        time: "Sep 29",
-        title: "Booth Setup",
+        time: "Oct 30",
+        title: "Booth Setup & Opening",
         desc: "Exhibitors deploy booths at AEON Deltamas & President University.",
       },
       {
-        time: "Sep 30",
-        title: "Opening Ceremony",
-        desc: "Official opening and exhibition walk-through.",
+        time: "Nov 1",
+        title: "Innovation Showcase",
+        desc: "Official exhibition walk-through and public showcases.",
       },
       {
-        time: "Oct 2",
-        title: "Showcase Day",
-        desc: "Public day to explore all projects and startups.",
-      },
-      {
-        time: "Oct 4",
+        time: "Nov 4",
         title: "Founders Meetup",
         desc: "Direct interaction with the founders behind the tech.",
       },
       {
-        time: "Oct 6",
+        time: "Nov 6",
+        title: "Community Day",
+        desc: "Workshops and interactive demos with the tech community.",
+      },
+      {
+        time: "Nov 8",
         title: "Closing & Awards",
         desc: "Best-booth awards and official expo closing.",
       },
@@ -200,8 +200,8 @@ export const subEvents: SubEvent[] = [
     name: "Hacksphere",
     tagline: "24-Hour Build Mainnet",
     description:
-      "Hacksphere is an international 24-hour hackathon that brings together top teams from around the world to build innovative tech solutions in one high-adrenaline competitive session. The competition spans two phases: an Online Qualifier Round (Aug 25 – Sep 30, 2026) where teams submit a PDF-based Idea Proposal, and an Offline Round (Oct 10–11, 2026) at President University, Cikarang, where the top 30 teams code for 24 hours straight and present their products live before a panel of professional judges.",
-    date: "Oct 10-11, 2026",
+      "Hacksphere is an international 24-hour hackathon that brings together top teams from around the world to build innovative tech solutions in one high-adrenaline competitive session. The competition spans two phases: an Online Qualifier Round (Aug 25 – Oct 15, 2026) where teams submit a PDF-based Idea Proposal, and an Offline Round (Nov 21–22, 2026) at President University, Cikarang, where the top 30 teams code for 24 hours straight and present their products live before a panel of professional judges.",
+    date: "Nov 21-22, 2026",
     venue: "Auditorium Charles Hirmawan, President University, Cikarang",
     tag: "24H BUILD",
     accent: "text-brand-primary",
@@ -210,32 +210,32 @@ export const subEvents: SubEvent[] = [
     icon: Code2,
     activities: [
       {
-        time: "Aug 25 – Sep 18",
+        time: "Aug 25 – Oct 15",
         title: "Registration & Proposal Submission",
-        desc: "Register, form teams, download the Guidebook, and submit your Idea Proposal (PDF) by Sep 18. Free entry.",
+        desc: "Register, form teams, download the Guidebook, and submit your Idea Proposal (PDF). Free entry.",
       },
       {
-        time: "Sep 19 – Sep 25",
+        time: "Oct 16 – Oct 25",
         title: "Judging",
         desc: "Professional judges evaluate proposals using the Two-Judge Overlap System.",
       },
       {
-        time: "Sep 26",
+        time: "Oct 26",
         title: "Top 30 Announcement",
         desc: "Qualified teams are announced and begin confirming offline attendance.",
       },
       {
-        time: "Sep 30",
+        time: "Nov 10",
         title: "Technical Meeting",
         desc: "Online briefing: schedule, rules, and what to bring for the Offline Round.",
       },
       {
-        time: "Oct 10",
+        time: "Nov 21",
         title: "Offline Check-In & Hacking Starts",
         desc: "Check in at President University. 24-hour coding period begins at 10:00 WIB.",
       },
       {
-        time: "Oct 11",
+        time: "Nov 22",
         title: "Code Freeze, Pitching & Winners",
         desc: "Submit final deliverables, pitch live to judges, and see who takes the crown.",
       },
@@ -261,7 +261,7 @@ export const subEvents: SubEvent[] = [
     tagline: "Creative Block: Art & Culture",
     description:
       "Festsphere is the grand finale celebration of the Compsphere chain, bringing together art, culture, community, and technology in one night full of expression. From art walks and community performances to the awarding ceremony that closes the entire Compsphere series.",
-    date: "Oct 11, 2026",
+    date: "Nov 22, 2026",
     venue: "Auditorium Charles Hirmawan, President University, Cikarang",
     tag: "CREATIVE BLOCK",
     accent: "text-status-waitlist",

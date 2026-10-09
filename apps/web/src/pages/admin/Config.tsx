@@ -21,6 +21,9 @@ import {
   Image as ImageIcon,
   Trash2,
   ExternalLink,
+  Calendar,
+  CalendarDays,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +55,24 @@ const CATEGORIES: ConfigCategory[] = [
   },
   {
     id: "countdown",
-    label: "Countdown & Launch",
-    description: "Control live countdown timers on the public landing page",
+    label: "Countdown & Timeline Launch",
+    description: "Control countdown timer toggles and dynamic target dates on the public landing page",
     icon: <Clock className="w-4 h-4" />,
     color: "text-cyan-400",
-    keys: ["countdown_compsphere_enabled", "countdown_talksphere_enabled", "countdown_enabled", "countdown_24h_enabled"],
+    keys: [
+      "countdown_compsphere_enabled",
+      "countdown_compsphere_date",
+      "countdown_talksphere_enabled",
+      "countdown_talksphere_date",
+      "countdown_exposphere_enabled",
+      "countdown_exposphere_date",
+      "countdown_enabled",
+      "countdown_hacksphere_date",
+      "countdown_24h_enabled",
+      "countdown_24h_end_date",
+      "countdown_festsphere_enabled",
+      "countdown_festsphere_date",
+    ],
   },
   {
     id: "landing",
@@ -199,10 +215,21 @@ const KEY_LABELS: Record<string, string> = {
 
   score_min: "Min Score Limit",
   score_max: "Max Score Limit",
-  countdown_compsphere_enabled: "Compsphere (Oct 5)",
-  countdown_talksphere_enabled: "TalkSphere (Oct 7)",
-  countdown_enabled: "Hacksphere (Oct 10)",
-  countdown_24h_enabled: "24-Hour Hackathon (Oct 10–11)",
+
+  // Countdown Toggles & Dates
+  countdown_compsphere_enabled: "Compsphere Countdown (Active/Off)",
+  countdown_compsphere_date: "Compsphere Target Date (ISO 8601)",
+  countdown_talksphere_enabled: "TalkSphere Countdown (Active/Off)",
+  countdown_talksphere_date: "TalkSphere Target Date (ISO 8601)",
+  countdown_exposphere_enabled: "ExpoSphere Countdown (Active/Off)",
+  countdown_exposphere_date: "ExpoSphere Target Date (ISO 8601)",
+  countdown_enabled: "Hacksphere Countdown (Active/Off)",
+  countdown_hacksphere_date: "Hacksphere Target Date (ISO 8601)",
+  countdown_24h_enabled: "24-Hour Hackathon Countdown (Active/Off)",
+  countdown_24h_end_date: "24-Hour End Target Date (ISO 8601)",
+  countdown_festsphere_enabled: "FestSphere Countdown (Active/Off)",
+  countdown_festsphere_date: "FestSphere Target Date (ISO 8601)",
+
   battle_royale_enabled: "Battle Royale",
   show_login_buttons: "Show Login & Register",
   hacksphere_devpost_url: "Devpost URL",
@@ -245,10 +272,20 @@ const KEY_DESCRIPTIONS: Record<string, string> = {
 
   score_min: "Minimum score a judge can give (default 1)",
   score_max: "Maximum score a judge can give (default 100)",
-  countdown_compsphere_enabled: "Show countdown to Oct 5 (Compsphere opening) on the landing page",
-  countdown_talksphere_enabled: "Show countdown to Oct 7 (TalkSphere session day) on the landing page",
-  countdown_enabled: "Show countdown to Oct 10 (Hacksphere hackathon day) on the landing page",
-  countdown_24h_enabled: "Show 24-hour hackathon timer (Oct 10 → Oct 11) on the landing page",
+
+  countdown_compsphere_enabled: "Show countdown to Compsphere opening on the landing page",
+  countdown_compsphere_date: "Target start date & time for Compsphere opening (e.g. 2026-10-05T08:00:00+07:00)",
+  countdown_talksphere_enabled: "Show countdown to TalkSphere on the landing page",
+  countdown_talksphere_date: "Target start date & time for TalkSphere session (e.g. 2026-10-07T08:00:00+07:00)",
+  countdown_exposphere_enabled: "Show countdown to ExpoSphere (Oct 30) on the landing page",
+  countdown_exposphere_date: "Target start date & time for ExpoSphere (e.g. 2026-10-30T08:00:00+07:00)",
+  countdown_enabled: "Show countdown to Hacksphere on the landing page",
+  countdown_hacksphere_date: "Target start date & time for Hacksphere main event (e.g. 2026-11-21T08:00:00+07:00)",
+  countdown_24h_enabled: "Show 24-hour hackathon timer on the landing page",
+  countdown_24h_end_date: "Target end date & time for 24-hour hackathon marathon (e.g. 2026-11-22T09:00:00+07:00)",
+  countdown_festsphere_enabled: "Show countdown to FestSphere on the landing page",
+  countdown_festsphere_date: "Target start date & time for FestSphere closing celebration (e.g. 2026-11-22T14:00:00+07:00)",
+
   battle_royale_enabled: "Enable Battle Royale slot claiming for waitlisted teams (true/false)",
   show_login_buttons: "Show the Login and Register buttons on the landing page. When disabled, buttons are hidden and a discreet login link appears in the footer.",
   hacksphere_devpost_url: "Full URL to the Hacksphere Devpost registration page (e.g. https://hacksphere2026.devpost.com). Leave empty to show Coming Soon.",
@@ -280,6 +317,130 @@ function formatValue(key: string, value: string): string {
   }
   return value;
 }
+
+/** Convert ISO 8601 string to YYYY-MM-DDTHH:mm for datetime-local input */
+function isoToDatetimeLocal(isoStr?: string): string {
+  if (!isoStr) return "";
+  try {
+    const date = new Date(isoStr);
+    if (isNaN(date.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = date.getDate();
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  } catch {
+    return "";
+  }
+}
+
+/** Convert YYYY-MM-DDTHH:mm from datetime-local input to full ISO string with timezone offset */
+function datetimeLocalToIso(localStr: string): string {
+  if (!localStr) return "";
+  try {
+    const date = new Date(localStr);
+    if (isNaN(date.getTime())) return "";
+    const offsetMinutes = -date.getTimezoneOffset();
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const pad = (n: number) => String(Math.abs(n)).padStart(2, "0");
+    const offsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
+    const offsetMins = pad(Math.abs(offsetMinutes) % 60);
+    const offsetStr = `${sign}${offsetHours}:${offsetMins}`;
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = date.getDate();
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = "00";
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetStr}`;
+  } catch {
+    return localStr;
+  }
+}
+
+/** Format ISO timestamp to easy-to-read date & time string */
+function formatHumanDateTime(isoStr?: string): string {
+  if (!isoStr) return "-";
+  try {
+    const date = new Date(isoStr);
+    if (isNaN(date.getTime())) return isoStr;
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  } catch {
+    return isoStr;
+  }
+}
+
+interface CountdownGroup {
+  id: string;
+  name: string;
+  badge: string;
+  description: string;
+  toggleKey: string;
+  dateKey: string;
+}
+
+const COUNTDOWN_GROUPS: CountdownGroup[] = [
+  {
+    id: "compsphere",
+    name: "Compsphere Opening",
+    badge: "October 5, 2026",
+    description: "Countdown timer to Compsphere official opening on the landing page",
+    toggleKey: "countdown_compsphere_enabled",
+    dateKey: "countdown_compsphere_date",
+  },
+  {
+    id: "talksphere",
+    name: "TalkSphere",
+    badge: "October 7, 2026",
+    description: "Countdown timer to TalkSphere seminars and tech talk sessions",
+    toggleKey: "countdown_talksphere_enabled",
+    dateKey: "countdown_talksphere_date",
+  },
+  {
+    id: "exposphere",
+    name: "ExpoSphere",
+    badge: "October 30 to November 8, 2026",
+    description: "Countdown timer to ExpoSphere exhibition and innovation showcase (Oct 30)",
+    toggleKey: "countdown_exposphere_enabled",
+    dateKey: "countdown_exposphere_date",
+  },
+  {
+    id: "hacksphere",
+    name: "HackSphere (Main Hackathon)",
+    badge: "November 21, 2026",
+    description: "Countdown timer to HackSphere competition day kickoff",
+    toggleKey: "countdown_enabled",
+    dateKey: "countdown_hacksphere_date",
+  },
+  {
+    id: "hackathon_24h",
+    name: "24-Hour Hackathon Timer",
+    badge: "November 21 to 22, 2026",
+    description: "Live 24-hour sprint timer until final project submission deadline",
+    toggleKey: "countdown_24h_enabled",
+    dateKey: "countdown_24h_end_date",
+  },
+  {
+    id: "festsphere",
+    name: "FestSphere",
+    badge: "November 22, 2026",
+    description: "Countdown timer to FestSphere awarding night and closing celebration",
+    toggleKey: "countdown_festsphere_enabled",
+    dateKey: "countdown_festsphere_date",
+  },
+];
 
 export function Config() {
   const queryClient = useQueryClient();
@@ -415,216 +576,403 @@ export function Config() {
 
                 {/* Config Items Grid */}
                 {!isCollapsed && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {cat.keys.map((key) => {
-                      const cfg = configsByKey[key];
-                      // Fallback for newly added keys before seeding
-                      const fallback = { key, value: "", type: "STRING", updatedAt: undefined };
-                      const effectiveCfg = cfg ?? fallback;
-                      const isDirty =
-                        edits[key] !== undefined && edits[key] !== effectiveCfg.value;
-                      const displayValue = formatValue(key, edits[key] ?? effectiveCfg.value);
+                  <div>
+                    {cat.id === "countdown" ? (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {COUNTDOWN_GROUPS.map((group) => {
+                          const toggleCfg = configsByKey[group.toggleKey] ?? { key: group.toggleKey, value: "false" };
+                          const dateCfg = configsByKey[group.dateKey] ?? { key: group.dateKey, value: "" };
 
-                      // Special Handler: QRIS Image Upload Card
-                      if (key === "payment_qris_image_key") {
-                        const currentKey = effectiveCfg.value;
-                        const hasQris = Boolean(currentKey && currentKey.trim().length > 0);
-                        const qrisUrl = hasQris ? getUploadUrl(currentKey) : null;
+                          const currentToggle = edits[group.toggleKey] ?? toggleCfg.value;
+                          const currentDate = edits[group.dateKey] ?? dateCfg.value;
 
-                        return (
-                          <div
-                            key={key}
-                            className={cn(
-                              "p-4 rounded-lg border transition-colors md:col-span-2 lg:col-span-3",
-                              "border-brand-primary/20 bg-brand-dim/5"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-4 mb-3">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <QrCode className="w-4 h-4 text-brand-primary" />
-                                  <p className="text-xs font-bold text-text-primary">
-                                    {KEY_LABELS[key]}
-                                  </p>
-                                </div>
-                                <p className="text-[10px] text-text-muted mt-1">
-                                  {KEY_DESCRIPTIONS[key]}
-                                </p>
-                              </div>
-                              {hasQris && (
-                                <button
-                                  onClick={() => updateMutation.mutate({ key, value: "" })}
-                                  disabled={updateMutation.isPending}
-                                  className="inline-flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 font-semibold px-2 py-1 rounded bg-red-950/20 border border-red-900/40"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  Remove QRIS
-                                </button>
-                              )}
-                            </div>
+                          const isToggleActive = currentToggle === "true";
+                          const isDateDirty = edits[group.dateKey] !== undefined && edits[group.dateKey] !== dateCfg.value;
 
-                            {qrisUploadError && (
-                              <p className="text-xs text-red-400 mb-3">{qrisUploadError}</p>
-                            )}
-
-                            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-lg bg-bg-surface/40 border border-border/40">
-                              {hasQris && qrisUrl ? (
-                                <div className="relative group shrink-0">
-                                  <div className="w-32 h-32 rounded-xl bg-white p-2 flex items-center justify-center border border-white/20 shadow-md">
-                                    <img
-                                      src={qrisUrl}
-                                      alt="QRIS Preview"
-                                      className="w-full h-full object-contain rounded-lg"
-                                    />
-                                  </div>
-                                  <a
-                                    href={qrisUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-xs text-brand-primary font-semibold transition-opacity backdrop-blur-xs"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                    View Full
-                                  </a>
-                                </div>
-                              ) : (
-                                <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border/60 bg-bg-surface flex flex-col items-center justify-center gap-2 text-text-muted shrink-0">
-                                  <ImageIcon className="w-8 h-8 opacity-40" />
-                                  <span className="text-[10px] font-semibold">No QRIS Image</span>
-                                </div>
-                              )}
-
-                              <div className="space-y-3 flex-1 text-center sm:text-left">
-                                <div>
-                                  <p className="text-xs font-semibold text-text-primary">
-                                    {hasQris ? "Replace QRIS Barcode" : "Upload Official QRIS Barcode"}
-                                  </p>
-                                  <p className="text-[10px] text-text-muted mt-0.5">
-                                    PNG, JPG, or WEBP up to 5MB. This QRIS will be shown directly to participants on their payment dashboard.
-                                  </p>
-                                </div>
-
-                                <input
-                                  type="file"
-                                  ref={qrisFileInputRef}
-                                  onChange={handleQrisFileChange}
-                                  accept="image/png,image/jpeg,image/webp"
-                                  className="hidden"
-                                />
-
-                                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                                  <NeonButton
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => qrisFileInputRef.current?.click()}
-                                    disabled={qrisUploadMutation.isPending}
-                                  >
-                                    <Upload className="w-3.5 h-3.5 mr-1.5" />
-                                    {qrisUploadMutation.isPending
-                                      ? "Uploading to Server..."
-                                      : hasQris
-                                      ? "Upload New Image"
-                                      : "Select Image to Upload"}
-                                  </NeonButton>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={key}
-                          className={cn(
-                            "p-4 rounded-lg border transition-colors",
-                            isDirty
-                              ? "border-amber-500/40 bg-amber-950/10"
-                              : "border-border/40 bg-bg-surface/20"
-                          )}
-                        >
-                          {/* Label + description */}
-                          <div className="flex items-start gap-2 mb-3">
-                            <p className="text-xs font-bold text-text-primary flex-1">
-                              {KEY_LABELS[key] ?? key}
-                              {isDirty && (
-                                <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 inline-block relative -top-px" />
-                              )}
-                            </p>
-                          </div>
-                          {KEY_DESCRIPTIONS[key] && (
-                            <p className="text-[10px] text-text-muted mb-3 leading-relaxed">
-                              {KEY_DESCRIPTIONS[key]}
-                            </p>
-                          )}
-
-                          {/* Boolean toggle button */}
-                          {key.includes("enabled") || key.includes("show_login") ? (
-                            <button
-                              onClick={() => {
-                                const currentVal = edits[key] ?? effectiveCfg.value;
-                                const newVal = currentVal === "true" ? "false" : "true";
-                                setEdits((prev) => ({ ...prev, [key]: newVal }));
-                                // Auto-save immediately for toggles
-                                updateMutation.mutate({ key, value: newVal });
-                              }}
-                              disabled={updateMutation.isPending}
+                          return (
+                            <div
+                              key={group.id}
                               className={cn(
-                                "w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all",
-                                (edits[key] ?? effectiveCfg.value) === "true"
-                                  ? "bg-green-950/30 border-green-900/50 hover:bg-green-950/50"
-                                  : "bg-bg-surface border-border/40 hover:bg-bg-surface/80"
+                                "p-5 rounded-xl border transition-all flex flex-col justify-between",
+                                isToggleActive
+                                  ? "border-brand-primary/40 bg-brand-dim/10 shadow-lg shadow-brand-primary/5"
+                                  : "border-border/50 bg-bg-surface/30 opacity-90"
                               )}
                             >
-                              <span className={cn(
-                                "text-xs font-bold",
-                                (edits[key] ?? effectiveCfg.value) === "true" ? "text-green-400" : "text-text-muted"
-                              )}>
-                                {(edits[key] ?? effectiveCfg.value) === "true" ? "ON — Active" : "OFF — Inactive"}
-                              </span>
-                              <div className={cn(
-                                "w-10 h-5 rounded-full transition-colors relative",
-                                (edits[key] ?? effectiveCfg.value) === "true" ? "bg-green-500/40" : "bg-bg-surface"
-                              )}>
-                                <div
-                                  className={cn(
-                                    "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-                                    (edits[key] ?? effectiveCfg.value) === "true"
-                                      ? "left-[22px] bg-green-400"
-                                      : "left-0.5 bg-text-muted"
+                              <div>
+                                {/* Event Header */}
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                  <div>
+                                    <h4 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                                      {group.name}
+                                    </h4>
+                                    <span className="inline-block text-[10px] font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-2 py-0.5 rounded-full mt-1">
+                                      {group.badge}
+                                    </span>
+                                  </div>
+                                  <div className="shrink-0">
+                                    <span
+                                      className={cn(
+                                        "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider",
+                                        isToggleActive
+                                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                          : "bg-bg-surface text-text-muted border border-border"
+                                      )}
+                                    >
+                                      {isToggleActive ? "Live ON" : "OFF"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <p className="text-[11px] text-text-muted mb-4 leading-relaxed">
+                                  {group.description}
+                                </p>
+
+                                {/* Toggle Switch */}
+                                <div className="mb-4 pt-3 border-t border-border/40">
+                                  <label className="text-[11px] font-semibold text-text-secondary block mb-1.5">
+                                    Landing Page Visibility:
+                                  </label>
+                                  <button
+                                    onClick={() => {
+                                      const newVal = isToggleActive ? "false" : "true";
+                                      setEdits((prev) => ({ ...prev, [group.toggleKey]: newVal }));
+                                      updateMutation.mutate({ key: group.toggleKey, value: newVal });
+                                    }}
+                                    disabled={updateMutation.isPending}
+                                    className={cn(
+                                      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border transition-all",
+                                      isToggleActive
+                                        ? "bg-green-950/40 border-green-800/60 hover:bg-green-950/60"
+                                        : "bg-bg-surface border-border/50 hover:bg-bg-surface/80"
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "text-xs font-bold",
+                                        isToggleActive ? "text-green-400" : "text-text-muted"
+                                      )}
+                                    >
+                                      {isToggleActive ? "Active (Visible)" : "Inactive (Hidden)"}
+                                    </span>
+                                    <div
+                                      className={cn(
+                                        "w-9 h-5 rounded-full transition-colors relative",
+                                        isToggleActive ? "bg-green-500/40" : "bg-border/60"
+                                      )}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                                          isToggleActive
+                                            ? "left-[18px] bg-green-400 shadow-sm shadow-green-400/50"
+                                            : "left-0.5 bg-text-muted"
+                                        )}
+                                      />
+                                    </div>
+                                  </button>
+                                </div>
+
+                                {/* Date & Time Picker */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-semibold text-text-secondary flex items-center gap-1.5">
+                                      <Calendar className="w-3.5 h-3.5 text-brand-primary" />
+                                      Target Date & Time:
+                                    </label>
+                                    {isDateDirty && (
+                                      <span className="text-[9px] text-amber-400 font-bold bg-amber-950/50 px-1.5 py-0.5 rounded">
+                                        Unsaved
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex gap-2 items-center">
+                                    <input
+                                      type="datetime-local"
+                                      value={isoToDatetimeLocal(currentDate)}
+                                      onChange={(e) => {
+                                        const iso = datetimeLocalToIso(e.target.value);
+                                        setEdits((prev) => ({ ...prev, [group.dateKey]: iso }));
+                                      }}
+                                      className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus:border-brand-primary [color-scheme:dark]"
+                                    />
+                                    <NeonButton
+                                      onClick={() => handleSave(group.dateKey)}
+                                      disabled={updateMutation.isPending || !isDateDirty}
+                                      size="sm"
+                                      className="shrink-0 h-9 px-3"
+                                    >
+                                      <Save className="w-3.5 h-3.5 mr-1" />
+                                      Save
+                                    </NeonButton>
+                                  </div>
+
+                                  {/* Formatted Date Preview */}
+                                  <div className="p-2 rounded-lg bg-bg-surface/50 border border-border/30 text-[10px] text-text-muted flex items-center justify-between">
+                                    <span className="truncate">
+                                      {formatHumanDateTime(currentDate)}
+                                    </span>
+                                    <span className="font-mono text-[9px] text-brand-primary/80 shrink-0 ml-1">
+                                      WIB (+07:00)
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {cat.keys.map((key) => {
+                          const cfg = configsByKey[key];
+                          // Fallback for newly added keys before seeding
+                          const fallback = { key, value: "", type: "STRING", updatedAt: undefined };
+                          const effectiveCfg = cfg ?? fallback;
+                          const isDirty =
+                            edits[key] !== undefined && edits[key] !== effectiveCfg.value;
+                          const displayValue = formatValue(key, edits[key] ?? effectiveCfg.value);
+
+                          // Special Handler: QRIS Image Upload Card
+                          if (key === "payment_qris_image_key") {
+                            const currentKey = effectiveCfg.value;
+                            const hasQris = Boolean(currentKey && currentKey.trim().length > 0);
+                            const qrisUrl = hasQris ? getUploadUrl(currentKey) : null;
+
+                            return (
+                              <div
+                                key={key}
+                                className={cn(
+                                  "p-4 rounded-lg border transition-colors md:col-span-2 lg:col-span-3",
+                                  "border-brand-primary/20 bg-brand-dim/5"
+                                )}
+                              >
+                                <div className="flex items-start justify-between gap-4 mb-3">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <QrCode className="w-4 h-4 text-brand-primary" />
+                                      <p className="text-xs font-bold text-text-primary">
+                                        {KEY_LABELS[key]}
+                                      </p>
+                                    </div>
+                                    <p className="text-[10px] text-text-muted mt-1">
+                                      {KEY_DESCRIPTIONS[key]}
+                                    </p>
+                                  </div>
+                                  {hasQris && (
+                                    <button
+                                      onClick={() => updateMutation.mutate({ key, value: "" })}
+                                      disabled={updateMutation.isPending}
+                                      className="inline-flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 font-semibold px-2 py-1 rounded bg-red-950/20 border border-red-900/40"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      Remove QRIS
+                                    </button>
                                   )}
-                                />
+                                </div>
+
+                                {qrisUploadError && (
+                                  <p className="text-xs text-red-400 mb-3">{qrisUploadError}</p>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-lg bg-bg-surface/40 border border-border/40">
+                                  {hasQris && qrisUrl ? (
+                                    <div className="relative group shrink-0">
+                                      <div className="w-32 h-32 rounded-xl bg-white p-2 flex items-center justify-center border border-white/20 shadow-md">
+                                        <img
+                                          src={qrisUrl}
+                                          alt="QRIS Preview"
+                                          className="w-full h-full object-contain rounded-lg"
+                                        />
+                                      </div>
+                                      <a
+                                        href={qrisUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-xs text-brand-primary font-semibold transition-opacity backdrop-blur-xs"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                        View Full
+                                      </a>
+                                    </div>
+                                  ) : (
+                                    <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border/60 bg-bg-surface flex flex-col items-center justify-center gap-2 text-text-muted shrink-0">
+                                      <ImageIcon className="w-8 h-8 opacity-40" />
+                                      <span className="text-[10px] font-semibold">No QRIS Image</span>
+                                    </div>
+                                  )}
+
+                                  <div className="space-y-3 flex-1 text-center sm:text-left">
+                                    <div>
+                                      <p className="text-xs font-semibold text-text-primary">
+                                        {hasQris ? "Replace QRIS Barcode" : "Upload Official QRIS Barcode"}
+                                      </p>
+                                      <p className="text-[10px] text-text-muted mt-0.5">
+                                        PNG, JPG, or WEBP up to 5MB. This QRIS will be shown directly to participants on their payment dashboard.
+                                      </p>
+                                    </div>
+
+                                    <input
+                                      type="file"
+                                      ref={qrisFileInputRef}
+                                      onChange={handleQrisFileChange}
+                                      accept="image/png,image/jpeg,image/webp"
+                                      className="hidden"
+                                    />
+
+                                    <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                                      <NeonButton
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => qrisFileInputRef.current?.click()}
+                                        disabled={qrisUploadMutation.isPending}
+                                      >
+                                        <Upload className="w-3.5 h-3.5 mr-1.5" />
+                                        {qrisUploadMutation.isPending
+                                          ? "Uploading to Server..."
+                                          : hasQris
+                                          ? "Upload New Image"
+                                          : "Select Image to Upload"}
+                                      </NeonButton>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </button>
-                          ) : (
-                            <>
-                              {/* Current formatted value */}
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Current</span>
-                                <span className="text-xs font-mono text-brand-primary font-semibold">{displayValue || "-"}</span>
+                            );
+                          }
+
+                          const isDateField = key.includes("deadline") || key.includes("date");
+
+                          return (
+                            <div
+                              key={key}
+                              className={cn(
+                                "p-4 rounded-lg border transition-colors flex flex-col justify-between",
+                                isDirty
+                                  ? "border-amber-500/40 bg-amber-950/10"
+                                  : "border-border/40 bg-bg-surface/20"
+                              )}
+                            >
+                              <div>
+                                {/* Label + description */}
+                                <div className="flex items-start gap-2 mb-2">
+                                  <p className="text-xs font-bold text-text-primary flex-1">
+                                    {KEY_LABELS[key] ?? key}
+                                    {isDirty && (
+                                      <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 inline-block relative -top-px" />
+                                    )}
+                                  </p>
+                                </div>
+                                {KEY_DESCRIPTIONS[key] && (
+                                  <p className="text-[10px] text-text-muted mb-3 leading-relaxed">
+                                    {KEY_DESCRIPTIONS[key]}
+                                  </p>
+                                )}
                               </div>
-                              {/* Input + Save row */}
-                              <div className="flex gap-2 items-center">
-                                <input
-                                  type="text"
-                                  value={edits[key] ?? effectiveCfg.value}
-                                  onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
-                                  className="flex-1 min-w-0 px-3 py-1.5 rounded bg-bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus:border-brand-primary"
-                                />
-                                <NeonButton
-                                  onClick={() => handleSave(key)}
-                                  disabled={updateMutation.isPending || edits[key] === undefined || edits[key] === effectiveCfg.value}
-                                  size="sm"
-                                  className="shrink-0"
-                                >
-                                  <Save className="w-3 h-3" />
-                                </NeonButton>
+
+                              <div>
+                                {/* Boolean toggle button */}
+                                {key.includes("enabled") || key.includes("show_login") ? (
+                                  <button
+                                    onClick={() => {
+                                      const currentVal = edits[key] ?? effectiveCfg.value;
+                                      const newVal = currentVal === "true" ? "false" : "true";
+                                      setEdits((prev) => ({ ...prev, [key]: newVal }));
+                                      // Auto-save immediately for toggles
+                                      updateMutation.mutate({ key, value: newVal });
+                                    }}
+                                    disabled={updateMutation.isPending}
+                                    className={cn(
+                                      "w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all",
+                                      (edits[key] ?? effectiveCfg.value) === "true"
+                                        ? "bg-green-950/30 border-green-900/50 hover:bg-green-950/50"
+                                        : "bg-bg-surface border-border/40 hover:bg-bg-surface/80"
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "text-xs font-bold",
+                                        (edits[key] ?? effectiveCfg.value) === "true" ? "text-green-400" : "text-text-muted"
+                                      )}
+                                    >
+                                      {(edits[key] ?? effectiveCfg.value) === "true" ? "Active" : "Inactive"}
+                                    </span>
+                                    <div
+                                      className={cn(
+                                        "w-10 h-5 rounded-full transition-colors relative",
+                                        (edits[key] ?? effectiveCfg.value) === "true" ? "bg-green-500/40" : "bg-bg-surface"
+                                      )}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+                                          (edits[key] ?? effectiveCfg.value) === "true"
+                                            ? "left-[22px] bg-green-400"
+                                            : "left-0.5 bg-text-muted"
+                                        )}
+                                      />
+                                    </div>
+                                  </button>
+                                ) : isDateField ? (
+                                  <div className="space-y-2">
+                                    <div className="flex gap-2 items-center">
+                                      <input
+                                        type="datetime-local"
+                                        value={isoToDatetimeLocal(edits[key] ?? effectiveCfg.value)}
+                                        onChange={(e) => {
+                                          const iso = datetimeLocalToIso(e.target.value);
+                                          setEdits((prev) => ({ ...prev, [key]: iso }));
+                                        }}
+                                        className="flex-1 min-w-0 px-3 py-1.5 rounded bg-bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus:border-brand-primary [color-scheme:dark]"
+                                      />
+                                      <NeonButton
+                                        onClick={() => handleSave(key)}
+                                        disabled={updateMutation.isPending || edits[key] === undefined || edits[key] === effectiveCfg.value}
+                                        size="sm"
+                                        className="shrink-0"
+                                      >
+                                        <Save className="w-3 h-3" />
+                                      </NeonButton>
+                                    </div>
+                                    <div className="p-1.5 rounded bg-bg-surface/50 border border-border/30 text-[10px] text-text-muted flex items-center justify-between">
+                                      <span className="truncate">
+                                        {formatHumanDateTime(edits[key] ?? effectiveCfg.value)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {/* Current formatted value */}
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Current</span>
+                                      <span className="text-xs font-mono text-brand-primary font-semibold">{displayValue || "-"}</span>
+                                    </div>
+                                    {/* Input + Save row */}
+                                    <div className="flex gap-2 items-center">
+                                      <input
+                                        type="text"
+                                        value={edits[key] ?? effectiveCfg.value}
+                                        onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                                        className="flex-1 min-w-0 px-3 py-1.5 rounded bg-bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus:border-brand-primary"
+                                      />
+                                      <NeonButton
+                                        onClick={() => handleSave(key)}
+                                        disabled={updateMutation.isPending || edits[key] === undefined || edits[key] === effectiveCfg.value}
+                                        size="sm"
+                                        className="shrink-0"
+                                      >
+                                        <Save className="w-3 h-3" />
+                                      </NeonButton>
+                                    </div>
+                                  </>
+                                )}
                               </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </GlassPanel>

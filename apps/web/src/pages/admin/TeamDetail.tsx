@@ -27,6 +27,18 @@ import {
   ShieldAlert,
   Eye,
   FileImage,
+  Edit3,
+  Save,
+  Mail,
+  Globe,
+  Award,
+  AlertTriangle,
+  UserCheck,
+  Hash,
+  Sparkles,
+  Scale,
+  Lock,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -120,7 +132,40 @@ export function TeamDetail() {
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showDropConfirm, setShowDropConfirm] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showScorePassword, setShowScorePassword] = useState(false);
+  const [initialScore, setInitialScore] = useState<string>("");
   const [viewerFile, setViewerFile] = useState<{ url: string; name: string } | null>(null);
+
+  const [editForm, setEditForm] = useState<{
+    teamName: string;
+    category: TeamCategory;
+    countryMix: string;
+    originalRank: number;
+    status: TeamStatus;
+    paymentRequired: boolean;
+    paymentAmount: number;
+    leaderMemberId: string;
+    leaderName: string;
+    leaderEmail: string;
+    scoreOverride: string;
+    scoreAuthPassword: string;
+    riskAcknowledged: boolean;
+  }>({
+    teamName: "",
+    category: "NATIONAL",
+    countryMix: "",
+    originalRank: 1,
+    status: "NEW",
+    paymentRequired: true,
+    paymentAmount: 0,
+    leaderMemberId: "",
+    leaderName: "",
+    leaderEmail: "",
+    scoreOverride: "",
+    scoreAuthPassword: "",
+    riskAcknowledged: false,
+  });
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["admin-team-detail", teamId],
@@ -129,6 +174,80 @@ export function TeamDetail() {
     refetchOnWindowFocus: true,
     refetchInterval: 30_000,
   });
+
+  const isScoreBeingModified =
+    editForm.scoreOverride.trim() !== "" &&
+    (editForm.scoreOverride.trim() !== initialScore.trim() || editForm.scoreAuthPassword.trim() !== "");
+
+  const updateTeamMutation = useMutation({
+    mutationFn: (form: typeof editForm) => {
+      const payload: Record<string, any> = {
+        teamId,
+        teamName: form.teamName.trim(),
+        category: form.category,
+        countryMix: form.countryMix.trim() || null,
+        originalRank: form.originalRank,
+        status: form.status,
+        paymentRequired: form.paymentRequired,
+        paymentAmount: form.paymentAmount,
+      };
+      if (form.leaderMemberId) {
+        payload.leaderMemberId = form.leaderMemberId;
+      }
+      if (form.leaderName && form.leaderName.trim()) {
+        payload.leaderName = form.leaderName.trim();
+      }
+      if (form.leaderEmail && form.leaderEmail.trim()) {
+        payload.leaderEmail = form.leaderEmail.trim();
+      }
+      if (isScoreBeingModified) {
+        payload.scoreOverride = Number(form.scoreOverride);
+        payload.scoreAuthPassword = form.scoreAuthPassword.trim();
+      }
+      return api.put("/api/admin/update-team", payload);
+    },
+    onSuccess: () => {
+      setShowEditModal(false);
+      queryClient.invalidateQueries({ queryKey: ["admin-team-detail", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-judges"] });
+    },
+  });
+
+  const handleOpenEdit = () => {
+    if (!data?.team) return;
+    const t = data.team;
+    const membersList = data.members || [];
+    const currentLeader = membersList.find((m: any) => m.role === "TEAM_LEADER") || membersList[0];
+
+    const currentScore =
+      data.averageScore !== null && data.averageScore !== undefined
+        ? String(data.averageScore)
+        : data.scores && data.scores.length > 0
+        ? String(data.scores[0].finalScore)
+        : "";
+
+    setInitialScore(currentScore);
+    setEditForm({
+      teamName: t.teamName || "",
+      category: t.category || "NATIONAL",
+      countryMix: t.countryMix || "",
+      originalRank: t.originalRank ?? 1,
+      status: t.status || "NEW",
+      paymentRequired: Boolean(t.paymentRequired),
+      paymentAmount: t.paymentAmount ?? 0,
+      leaderMemberId: currentLeader?.id || "",
+      leaderName: currentLeader?.user?.fullName || "",
+      leaderEmail: currentLeader?.user?.email || "",
+      scoreOverride: currentScore,
+      scoreAuthPassword: "",
+      riskAcknowledged: false,
+    });
+    setShowScorePassword(false);
+    setShowEditModal(true);
+  };
 
   const verifyMutation = useMutation({
     mutationFn: () => api.post("/api/admin/verify-team", { teamId }),
@@ -351,6 +470,14 @@ export function TeamDetail() {
         </div>
 
         <div className="flex gap-2 shrink-0">
+          <NeonButton
+            onClick={handleOpenEdit}
+            variant="secondary"
+            size="sm"
+          >
+            <Edit3 className="w-4 h-4 mr-1.5" />
+            Edit Team
+          </NeonButton>
           {team?.status === "VERIFICATION_PENDING" && (
             <NeonButton
               onClick={() => setShowApproveConfirm(true)}
@@ -386,8 +513,39 @@ export function TeamDetail() {
             </h3>
             <div className="grid sm:grid-cols-2 gap-y-3 gap-x-6 text-xs">
               <Detail label="Original Rank" value={`#${team?.originalRank}`} mono />
-              <Detail label="Category" value={team?.category} />
+              <Detail
+                label="Category"
+                value={
+                  team?.countryMix
+                    ? `${team?.category} (${team?.countryMix})`
+                    : team?.category
+                }
+              />
               <Detail label="Status" value={team?.status} />
+              <Detail
+                label="Phase 1 Judge Score"
+                value={
+                  data?.averageScore !== null && data?.averageScore !== undefined
+                    ? `${Number(data.averageScore).toFixed(2)} (${data.judgeCount ?? 0} judge${(data.judgeCount ?? 0) === 1 ? "" : "s"})`
+                    : team?.status === "JUDGED"
+                    ? "Judged (score pending)"
+                    : "Not judged yet"
+                }
+                mono
+              />
+              <Detail
+                label="Team Leader"
+                value={
+                  leader ? (
+                    <span>
+                      <span className="font-semibold text-text-primary">{leader.user?.fullName}</span>
+                      <span className="text-text-muted text-[11px] block">{leader.user?.email}</span>
+                    </span>
+                  ) : (
+                    "No leader assigned"
+                  )
+                }
+              />
               <Detail
                 label="Payment Required"
                 value={team?.paymentRequired ? `Yes (Rp${team?.paymentAmount.toLocaleString("id-ID")})` : "No"}
@@ -1231,6 +1389,402 @@ export function TeamDetail() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* ── Enhanced Edit Team Modal ── */}
+      {showEditModal && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-border/80 bg-bg-secondary shadow-2xl overflow-hidden my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-6 border-b border-border/40 bg-gradient-to-r from-bg-surface/90 to-bg-secondary flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-dim border border-brand-primary/30 flex items-center justify-center text-brand-primary shadow-inner">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-lg text-text-primary">
+                    Edit Team & Score Configuration
+                  </h3>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Administrative override for team identity, leader credentials, and judging scores
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-xs font-mono font-bold text-brand-primary bg-brand-dim border border-brand-primary/20 px-3 py-1 rounded-md block">
+                  {team?.teamCode}
+                </span>
+                <span className="text-[10px] text-text-muted font-mono mt-1 block">
+                  ID: {team?.id?.slice(0, 8)}...
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!editForm.riskAcknowledged) return;
+                updateTeamMutation.mutate(editForm);
+              }}
+              className="p-6 space-y-6 max-h-[75vh] overflow-y-auto"
+            >
+              {/* High-Risk Warning Callout */}
+              <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/30 text-amber-200/90 text-xs space-y-1.5 flex gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-amber-300">High-Risk Administrative Override</p>
+                  <p className="text-amber-200/80 leading-relaxed text-[11px]">
+                    Modifications made here bypass normal participant and judge workflows. Updating team status, leader email, or score overrides directly alters live leaderboards, authentication tokens, and tournament progression.
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: Team Identity & Category */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <Trophy className="w-4 h-4 text-brand-primary" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                    1. Team Identity & Lifecycle
+                  </h4>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                    Team Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.teamName}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, teamName: e.target.value }))}
+                    placeholder="e.g. Alpha Cybernetics"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand-primary"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Category
+                    </label>
+                    <select
+                      value={editForm.category}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value as TeamCategory }))}
+                      className="w-full px-3 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary focus:outline-none focus:border-brand-primary font-medium"
+                    >
+                      <option value="NATIONAL">NATIONAL</option>
+                      <option value="MIX">MIX</option>
+                      <option value="INTERNATIONAL">INTERNATIONAL</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Country Mix (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.countryMix}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, countryMix: e.target.value }))}
+                      placeholder="e.g. ID, SG, MY"
+                      className="w-full px-3 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Original Rank (#)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      required
+                      value={editForm.originalRank}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, originalRank: parseInt(e.target.value) || 1 }))}
+                      className="w-full px-3 py-2.5 rounded-lg bg-bg-surface border border-border text-sm font-mono text-text-primary focus:outline-none focus:border-brand-primary"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                    Team Lifecycle Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value as TeamStatus }))}
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary focus:outline-none focus:border-brand-primary font-mono font-medium"
+                  >
+                    <option value="NEW">NEW — Initial imported state</option>
+                    <option value="TOP30">TOP30 — Selected for qualification</option>
+                    <option value="AWAITING_CONFIRMATION">AWAITING_CONFIRMATION — 48h acceptance countdown</option>
+                    <option value="PAYMENT_PENDING">PAYMENT_PENDING — National/Mix awaiting fee transfer</option>
+                    <option value="DOCUMENT_PENDING">DOCUMENT_PENDING — International ID verification</option>
+                    <option value="VERIFICATION_PENDING">VERIFICATION_PENDING — Committee review underway</option>
+                    <option value="VERIFIED">VERIFIED — Confirmed for Phase 2</option>
+                    <option value="SUBMISSION_OPEN">SUBMISSION_OPEN — Phase 2 submission window active</option>
+                    <option value="SUBMITTED">SUBMITTED — Final deliverables provided</option>
+                    <option value="JUDGED">JUDGED — Evaluated by scoring panel</option>
+                    <option value="FINALIST">FINALIST — Advanced to grand finals</option>
+                    <option value="WAITLIST">WAITLIST — Standby pool</option>
+                    <option value="DROPPED">DROPPED — Revoked from competition</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Section 2: Team Leader & Contact Details */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <UserCheck className="w-4 h-4 text-brand-primary" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                    2. Team Leader & Contact Credentials
+                  </h4>
+                </div>
+
+                {members && members.length > 1 && (
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Assign Leader Role to Member
+                    </label>
+                    <select
+                      value={editForm.leaderMemberId}
+                      onChange={(e) => {
+                        const selectedId = e.target.value;
+                        const targetMember = members.find((m: any) => m.id === selectedId);
+                        setEditForm((prev) => ({
+                          ...prev,
+                          leaderMemberId: selectedId,
+                          leaderName: targetMember?.user?.fullName || prev.leaderName,
+                          leaderEmail: targetMember?.user?.email || prev.leaderEmail,
+                        }));
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                    >
+                      {members.map((m: any) => (
+                        <option key={m.id} value={m.id}>
+                          {m.user?.fullName} ({m.user?.email}) — {m.role === "TEAM_LEADER" ? "Current Leader" : "Member"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Leader Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.leaderName}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, leaderName: e.target.value }))}
+                      placeholder="e.g. Jane Doe"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Leader Account Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        value={editForm.leaderEmail}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, leaderEmail: e.target.value }))}
+                        placeholder="leader@gmail.com"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-lg bg-bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Note: Updating the email directly updates the Google user account associated with the team leader in the system database.
+                </p>
+              </div>
+
+              {/* Section 3: Financial & Payment Settings */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <CreditCard className="w-4 h-4 text-brand-primary" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                    3. Financial & Fee Requirements
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  <div>
+                    <label className="text-xs font-semibold text-text-secondary uppercase block mb-1.5">
+                      Registration Fee Amount (IDR)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={editForm.paymentAmount}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, paymentAmount: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-bg-surface border border-border text-sm font-mono text-text-primary focus:outline-none focus:border-brand-primary"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-lg bg-bg-surface border border-border flex items-center justify-between mt-auto">
+                    <div>
+                      <span className="text-xs font-bold text-text-primary block">Payment Mandatory</span>
+                      <span className="text-[11px] text-text-muted">Enforces payment verification before qualification</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="paymentRequiredCheckbox"
+                      checked={editForm.paymentRequired}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, paymentRequired: e.target.checked }))}
+                      className="w-5 h-5 rounded border-border bg-bg-surface text-brand-primary focus:ring-brand-primary cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Phase 1 Judging & Score Override */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <Scale className="w-4 h-4 text-brand-primary" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                    4. Phase 1 Score Override
+                  </h4>
+                </div>
+
+                <div className="p-4 rounded-xl bg-bg-surface border border-border/70 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-semibold text-text-secondary uppercase block">
+                        Final Score Override (0.00 — 100.00)
+                      </label>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        Sets the manual score across all judge scorecards for this team
+                      </p>
+                    </div>
+                    {data?.averageScore !== null && data?.averageScore !== undefined && (
+                      <span className="text-xs font-mono font-bold text-brand-primary bg-brand-dim px-2.5 py-1 rounded border border-brand-primary/20 shrink-0">
+                        Current Avg: {Number(data.averageScore).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={editForm.scoreOverride}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, scoreOverride: e.target.value }))}
+                    placeholder="e.g. 87.50"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-bg-secondary border border-border text-sm font-mono font-bold text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-brand-primary"
+                  />
+
+                  {/* Password gate for score modifications */}
+                  {editForm.scoreOverride.trim() !== "" && (
+                    <div className="p-3.5 rounded-xl bg-red-950/20 border border-red-500/30 space-y-2.5 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-red-400" />
+                        <label className="text-xs font-bold text-red-300 uppercase tracking-wider">
+                          Committee Security Password <span className="text-red-400">*</span>
+                        </label>
+                      </div>
+                      <p className="text-[11px] text-text-muted">
+                        Modifying score data requires committee security clearance. Please enter the committee password to apply score changes.
+                      </p>
+                      <div className="relative">
+                        <input
+                          type={showScorePassword ? "text" : "password"}
+                          required={editForm.scoreOverride.trim() !== ""}
+                          value={editForm.scoreAuthPassword}
+                          onChange={(e) => setEditForm((prev) => ({ ...prev, scoreAuthPassword: e.target.value }))}
+                          placeholder="Enter authorization password"
+                          className="w-full px-3.5 py-2.5 pr-10 rounded-lg bg-bg-surface border border-red-500/40 text-sm font-mono text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-red-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowScorePassword(!showScorePassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition"
+                        >
+                          {showScorePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* High-Risk Checkbox Confirmation */}
+              <div className="p-4 rounded-xl bg-red-950/20 border border-red-500/30 space-y-3">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="riskAcknowledgedCheckbox"
+                    required
+                    checked={editForm.riskAcknowledged}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, riskAcknowledged: e.target.checked }))}
+                    className="w-5 h-5 rounded border-red-500/50 bg-bg-surface text-red-500 focus:ring-red-500 cursor-pointer mt-0.5"
+                  />
+                  <label htmlFor="riskAcknowledgedCheckbox" className="text-xs font-semibold text-text-primary cursor-pointer leading-relaxed">
+                    I confirm that I have reviewed these modifications and understand that saving will immediately alter competition records, scores, and access permissions.
+                  </label>
+                </div>
+              </div>
+
+              {/* Mutation Error Display */}
+              {updateTeamMutation.isError && (
+                <div className="p-3.5 bg-red-950/40 border border-red-800 text-red-300 text-xs rounded-lg flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-red-200">
+                      {(updateTeamMutation.error as any)?.message || "Failed to update team details."}
+                    </p>
+                    {((updateTeamMutation.error as any)?.message?.toLowerCase().includes("password") ||
+                      (updateTeamMutation.error as any)?.code === "INVALID_SCORE_AUTH_PASSWORD") && (
+                      <p className="text-[11px] text-red-300/80 mt-1">
+                        Please re-enter the correct committee authorization password and try again.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer / Actions */}
+              <div className="flex items-center gap-3 pt-4 border-t border-border/40">
+                <NeonButton
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  variant="secondary"
+                  size="md"
+                  className="flex-1"
+                >
+                  Cancel
+                </NeonButton>
+                <NeonButton
+                  type="submit"
+                  disabled={
+                    updateTeamMutation.isPending ||
+                    !editForm.riskAcknowledged ||
+                    !editForm.teamName.trim() ||
+                    (isScoreBeingModified && !editForm.scoreAuthPassword.trim())
+                  }
+                  size="md"
+                  className="flex-1"
+                >
+                  {updateTeamMutation.isPending ? "Saving Changes..." : "Apply High-Risk Overrides"}
+                </NeonButton>
+              </div>
+            </form>
           </div>
         </div>
       , document.body)}

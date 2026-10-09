@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 interface CountdownTimerProps {
   targetDate: string;
   label: string;
-  variant?: "compsphere" | "talksphere" | "hacksphere" | "24h";
+  variant?: "compsphere" | "talksphere" | "exposphere" | "hacksphere" | "festsphere" | "24h";
 }
 
 function getTimeRemaining(targetDate: string) {
@@ -68,17 +68,29 @@ export function CountdownTimer({ targetDate, label, variant = "compsphere" }: Co
   const colorMap: Record<string, string> = {
     compsphere: "#00F5C8",
     talksphere: "#818cf8",
+    exposphere: "#38bdf8",
     hacksphere: "#f472b6",
+    festsphere: "#a855f7",
     "24h": "#f59e0b",
   };
-  const color = colorMap[variant ?? "compsphere"];
+  const color = colorMap[variant ?? "compsphere"] || "#00F5C8";
 
   if (time.isExpired) {
     return (
       <div className="flex flex-col items-center gap-3 py-4">
         <div className="px-6 py-2.5 rounded-full bg-white/[0.06] backdrop-blur-lg border border-white/[0.10]">
           <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">
-            {variant === "24h" ? "Hackathon is Live!" : variant === "talksphere" ? "TalkSphere is Live!" : variant === "hacksphere" ? "Hacksphere Has Begun!" : "Compsphere is Live!"}
+            {variant === "24h"
+              ? "Hackathon is Live!"
+              : variant === "talksphere"
+              ? "TalkSphere is Live!"
+              : variant === "exposphere"
+              ? "ExpoSphere is Open!"
+              : variant === "hacksphere"
+              ? "Hacksphere Has Begun!"
+              : variant === "festsphere"
+              ? "FestSphere is Live!"
+              : "Compsphere is Live!"}
           </span>
         </div>
       </div>

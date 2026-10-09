@@ -753,17 +753,21 @@ router.post("/generate-phase-1", requireAuth, requireRole("ADMIN"), async (req, 
       throw new AppError(400, "At least 2 active judges are required for cross-judging.");
     }
 
-    // 2. Get all teams ordered by rank (raw SQL)
+    // 2. Get only eligible teams (exclude DROPPED, WAITLIST, NEW) ordered by rank (raw SQL)
     const teamRows = await db.execute(sql`
-      SELECT id, team_code, team_name
+      SELECT id, team_code, team_name, status
       FROM competition_teams
+      WHERE status NOT IN ('DROPPED', 'WAITLIST', 'NEW')
       ORDER BY original_rank ASC
     `);
     const teams = (Array.isArray(teamRows) ? teamRows : (teamRows as any).rows ?? []) as {
       id: string;
       team_code: string;
       team_name: string;
+      status: string;
     }[];
+
+    console.log(`[generate-phase-1] Eligible teams for judging: ${teams.length} (excluded DROPPED/WAITLIST/NEW)`);
 
     if (teams.length === 0) {
       throw new AppError(400, "No teams found to assign.");

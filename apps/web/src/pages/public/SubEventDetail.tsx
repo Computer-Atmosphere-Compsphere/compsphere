@@ -569,7 +569,7 @@ function HacksphereJoinBlock() {
               { step: "02", title: "Form a Team & Register for Hacksphere", desc: "The team leader registers the team (max. 3 members) and invites members via username/email. Free entry for Phase 1." },
               { step: "03", title: "Download the Guidebook & Prepare Your Proposal", desc: "Download the official Guidebook and Idea Proposal Template (.docx) from Google Drive, then craft your proposal based on the given theme." },
               { step: "04", title: "Upload Proposal before Sep 18, 23:59 WIB", desc: "Submit your Idea Proposal (PDF) on https://compsphere12.devpost.com/ before the submission portal closes automatically." },
-              { step: "05", title: "Wait for Top 30 Announcement (Sep 26)", desc: "Selected teams will advance to the Offline Round at President University, Cikarang on Oct 10–11, 2026." },
+              { step: "05", title: "Wait for Top 30 Announcement (Oct 26)", desc: "Selected teams will advance to the Offline Round at President University, Cikarang on Nov 21–22, 2026." },
             ].map((s, i) => (
               <li key={s.step} className="flex items-start gap-4">
                 <span

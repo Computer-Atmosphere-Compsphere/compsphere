@@ -144,11 +144,11 @@ export function Payment() {
       {/* Header */}
       <div className="pb-6 border-b border-border">
         <h1 className="text-3xl font-extrabold text-text-primary">
-          {isInternational ? "Verification Document Upload" : "Payment & Slot Confirmation"}
+          {isInternational ? "International Team Verification" : "Payment & Slot Confirmation"}
         </h1>
         <p className="text-xs text-text-secondary mt-1">
           {isInternational
-            ? "Upload passport, national ID scan, or commitment letter to confirm your team."
+            ? "International teams are automatically verified and confirmed for Phase 2."
             : `Complete payment of ${formatRupiah(targetAmount)} via Bank Transfer or QRIS, then upload your receipt.`}
         </p>
       </div>
@@ -270,51 +270,83 @@ export function Payment() {
             </GlassPanel>
           )}
 
-          {/* Upload Form */}
-          <GlassPanel className="space-y-6">
-            <h3 className="font-bold text-sm text-text-primary">
-              {isInternational ? "Verification Document Upload" : "Submit Transfer Receipt"}
-            </h3>
+          {/* Form or International Auto-Verified Panel */}
+          {isInternational ? (
+            <GlassPanel className="space-y-5 border-purple-500/20 bg-purple-950/10 p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-purple-950/60 border border-purple-800/40 flex items-center justify-center text-purple-400">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-purple-300">
+                    International Team – Auto-Verified & Confirmed 🌏
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    No payment or commitment document upload required.
+                  </p>
+                </div>
+              </div>
 
-            {errorMsg && (
-              <div className="flex gap-2 p-3 bg-red-950/20 border border-red-900/30 text-red-400 text-xs rounded">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
+              <div className="p-4 rounded-xl bg-bg-surface/60 border border-border/60 space-y-2 text-xs text-text-secondary leading-relaxed">
+                <p>
+                  As an <strong className="text-text-primary">International Participant</strong>, your team workspace is fully unlocked and ready for Phase 2 competition activities.
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-text-muted text-[11px] pt-1">
+                  <li>Team Space & Member Invitation are fully accessible</li>
+                  <li>Submissions portal is ready for your deliverables</li>
+                  <li>QR Code check-in passes are available in your navigation menu</li>
+                </ul>
               </div>
-            )}
 
-            {successMsg && (
-              <div className="flex gap-2 p-3 bg-brand-dim border border-brand-primary/10 text-brand-primary text-xs rounded">
-                <CheckCircle className="w-4 h-4 shrink-0" />
-                <span>{successMsg}</span>
+              <div className="flex items-center gap-2 pt-2 text-xs font-semibold text-emerald-400">
+                <Check className="w-4 h-4" />
+                <span>All platform features unlocked for your team.</span>
               </div>
-            )}
+            </GlassPanel>
+          ) : (
+            <GlassPanel className="space-y-6">
+              <h3 className="font-bold text-sm text-text-primary">
+                Submit Transfer Receipt
+              </h3>
 
-            {!isLeader ? (
-              <div className="p-4 bg-bg-surface border border-border text-xs text-text-muted rounded flex gap-2">
-                <AlertCircle className="w-4.5 h-4.5 text-yellow-500 shrink-0" />
-                <span>
-                  Only the team leader is authorized to upload verification receipts or documents.
-                </span>
-              </div>
-            ) : payment && payment.status === "PENDING" ? (
-              <div className="p-4 bg-orange-950/20 border border-orange-900/30 text-orange-400 text-xs rounded flex gap-2">
-                <Upload className="w-4.5 h-4.5 shrink-0 animate-pulse" />
-                <span>
-                  Your document has been submitted and is currently in the review queue. You cannot upload a new one unless the current document is rejected by the committee.
-                </span>
-              </div>
-            ) : payment && payment.status === "APPROVED" ? (
-              <div className="p-4 bg-brand-dim border border-brand-primary/10 text-brand-primary text-xs rounded flex gap-2">
-                <CheckCircle className="w-4.5 h-4.5 shrink-0" />
-                <span>
-                  Verification approved! Your team slot is officially confirmed.
-                </span>
-              </div>
-            ) : (
-              <>
-                <form id="payment-upload-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  {!isInternational && (
+              {errorMsg && (
+                <div className="flex gap-2 p-3 bg-red-950/20 border border-red-900/30 text-red-400 text-xs rounded">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="flex gap-2 p-3 bg-brand-dim border border-brand-primary/10 text-brand-primary text-xs rounded">
+                  <CheckCircle className="w-4 h-4 shrink-0" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
+              {!isLeader ? (
+                <div className="p-4 bg-bg-surface border border-border text-xs text-text-muted rounded flex gap-2">
+                  <AlertCircle className="w-4.5 h-4.5 text-yellow-500 shrink-0" />
+                  <span>
+                    Only the team leader is authorized to upload verification receipts or documents.
+                  </span>
+                </div>
+              ) : payment && payment.status === "PENDING" ? (
+                <div className="p-4 bg-orange-950/20 border border-orange-900/30 text-orange-400 text-xs rounded flex gap-2">
+                  <Upload className="w-4.5 h-4.5 shrink-0 animate-pulse" />
+                  <span>
+                    Your document has been submitted and is currently in the review queue. You cannot upload a new one unless the current document is rejected by the committee.
+                  </span>
+                </div>
+              ) : payment && payment.status === "APPROVED" ? (
+                <div className="p-4 bg-brand-dim border border-brand-primary/10 text-brand-primary text-xs rounded flex gap-2">
+                  <CheckCircle className="w-4.5 h-4.5 shrink-0" />
+                  <span>
+                    Verification approved! Your team slot is officially confirmed.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <form id="payment-upload-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-1">
                       <label htmlFor="amount" className="text-xs font-semibold text-text-secondary uppercase">
                         Payment Amount
@@ -327,78 +359,76 @@ export function Payment() {
                         className="w-full px-3 py-2 rounded bg-bg-surface border border-border text-sm font-mono text-text-primary focus:outline-none"
                       />
                     </div>
-                  )}
 
-                  <div className="space-y-1">
-                    <label htmlFor="proof" className="text-xs font-semibold text-text-secondary uppercase">
-                      {isInternational ? "ID Scan or Commitment Letter (PDF/JPG)" : "Payment Proof Image / PDF Receipt"}
-                    </label>
-                    <input
-                      id="proof"
-                      type="file"
-                      accept="image/jpeg,image/png,application/pdf"
-                      className="w-full px-3 py-2 rounded bg-bg-surface border border-border text-sm text-text-secondary focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-brand-dim file:text-brand-primary cursor-pointer"
-                      {...register("proof", { required: "Document file is required" })}
-                    />
-                    {errors.proof && (
-                      <span className="text-[10px] text-red-400 font-semibold">{errors.proof.message}</span>
-                    )}
-                  </div>
-
-                  <NeonButton
-                    type="submit"
-                    disabled={submitMutation.isPending}
-                    className="w-full mt-6"
-                  >
-                    {submitMutation.isPending ? "Uploading..." : "Submit File for Review"}
-                  </NeonButton>
-                </form>
-
-                {!isInternational && (
-                  <>
-                    <div className="flex items-center gap-3 text-text-muted">
-                      <div className="flex-1 h-px bg-border" />
-                      <span className="text-[10px] font-semibold uppercase tracking-widest">Or</span>
-                      <div className="flex-1 h-px bg-border" />
+                    <div className="space-y-1">
+                      <label htmlFor="proof" className="text-xs font-semibold text-text-secondary uppercase">
+                        Payment Proof Image / PDF Receipt
+                      </label>
+                      <input
+                        id="proof"
+                        type="file"
+                        accept="image/jpeg,image/png,application/pdf"
+                        className="w-full px-3 py-2 rounded bg-bg-surface border border-border text-sm text-text-secondary focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-brand-dim file:text-brand-primary cursor-pointer"
+                        {...register("proof", { required: "Document file is required" })}
+                      />
+                      {errors.proof && (
+                        <span className="text-[10px] text-red-400 font-semibold">{errors.proof.message}</span>
+                      )}
                     </div>
 
-                    <p className="text-[11px] text-text-muted text-center leading-relaxed">
-                      You can also confirm your payment directly via WhatsApp to the committee.
-                      Your team details will be sent automatically.
-                    </p>
-
-                    <a
-                      href={whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400 text-xs font-semibold transition-all duration-300 hover:border-emerald-500/40 hover:bg-emerald-500/15 hover:-translate-y-0.5 active:scale-[0.97]"
+                    <NeonButton
+                      type="submit"
+                      disabled={submitMutation.isPending}
+                      className="w-full mt-6"
                     >
-                      <MessageCircle className="w-4 h-4" />
-                      Confirm via WhatsApp
-                    </a>
-                  </>
-                )}
-              </>
-            )}
-          </GlassPanel>
+                      {submitMutation.isPending ? "Uploading..." : "Submit File for Review"}
+                    </NeonButton>
+                  </form>
+
+                  <div className="flex items-center gap-3 text-text-muted">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest">Or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <p className="text-[11px] text-text-muted text-center leading-relaxed">
+                    You can also confirm your payment directly via WhatsApp to the committee.
+                    Your team details will be sent automatically.
+                  </p>
+
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400 text-xs font-semibold transition-all duration-300 hover:border-emerald-500/40 hover:bg-emerald-500/15 hover:-translate-y-0.5 active:scale-[0.97]"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Confirm via WhatsApp
+                  </a>
+                </>
+              )}
+            </GlassPanel>
+          )}
         </div>
 
         {/* Info Box */}
         <GlassPanel className="space-y-6">
           <h3 className="font-bold text-sm text-text-primary">Verification Status</h3>
-          {payment ? (
+          {payment || team.status === "VERIFIED" || isInternational ? (
             <div className="space-y-4 text-xs">
               {/* Status with visual indicator */}
               <div className="p-3 rounded-md border flex items-center gap-2.5">
-                {payment.status === "APPROVED" ? (
+                {payment?.status === "APPROVED" || team.status === "VERIFIED" || isInternational ? (
                   <>
                     <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] shrink-0" />
                     <div>
                       <p className="font-bold text-emerald-400">Verified & Approved</p>
-                      <p className="text-[10px] text-text-muted mt-0.5">Your payment has been confirmed by the committee.</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">
+                        {isInternational ? "International team auto-verified." : "Your payment has been confirmed by the committee."}
+                      </p>
                     </div>
                   </>
-                ) : payment.status === "PENDING" ? (
+                ) : payment?.status === "PENDING" ? (
                   <>
                     <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.5)] shrink-0" />
                     <div>

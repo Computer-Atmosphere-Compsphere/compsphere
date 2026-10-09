@@ -53,21 +53,28 @@ export function ParticipantLayout() {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Determine if payment is verified (approved)
+  // Determine qualification and verification status
+  const isQualified = myTeam?.team?.isQualified ?? true;
+  const isInternational = myTeam?.team?.category === "INTERNATIONAL";
   const latestPayment = myTeam?.payments?.[0] ?? null;
   const isPaymentApproved = latestPayment?.status === "APPROVED";
   const teamStatus = myTeam?.team?.status;
-  // Team is verified if payment is approved OR team status is already VERIFIED
-  const isVerified = isPaymentApproved || teamStatus === "VERIFIED";
+  // Team is verified if international, payment is approved, or team status is VERIFIED
+  const isVerified = isInternational || isPaymentApproved || teamStatus === "VERIFIED";
+
+  // If user is not qualified and attempts to visit sub-pages, redirect to dashboard
+  if (myTeam?.team && isQualified === false && location.pathname !== "/dashboard") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" />, locked: false },
-    { label: "Verification", path: "/dashboard/payment", icon: <CreditCard className="w-4 h-4" />, locked: false },
-    { label: "SLA Countdown", path: "/dashboard/confirmation", icon: <Clock className="w-4 h-4" />, locked: false },
-    { label: "Notifications", path: "/dashboard/notifications", icon: <Bell className="w-4 h-4" />, locked: false },
-    { label: "Team Space", path: "/dashboard/team", icon: <Users className="w-4 h-4" />, locked: !isVerified },
-    { label: "Submissions", path: "/dashboard/submission", icon: <Code2 className="w-4 h-4" />, locked: !isVerified },
-    { label: "My QR Code", path: "/dashboard/qr", icon: <QrCode className="w-4 h-4" />, locked: !isVerified },
+    { label: "Verification", path: "/dashboard/payment", icon: <CreditCard className="w-4 h-4" />, locked: !isQualified },
+    { label: "SLA Countdown", path: "/dashboard/confirmation", icon: <Clock className="w-4 h-4" />, locked: !isQualified },
+    { label: "Notifications", path: "/dashboard/notifications", icon: <Bell className="w-4 h-4" />, locked: !isQualified },
+    { label: "Team Space", path: "/dashboard/team", icon: <Users className="w-4 h-4" />, locked: !isQualified || !isVerified },
+    { label: "Submissions", path: "/dashboard/submission", icon: <Code2 className="w-4 h-4" />, locked: !isQualified || !isVerified },
+    { label: "My QR Code", path: "/dashboard/qr", icon: <QrCode className="w-4 h-4" />, locked: !isQualified || !isVerified },
   ];
 
   return (
@@ -115,8 +122,20 @@ export function ParticipantLayout() {
           </div>
         </div>
 
-        {/* Payment status banner */}
-        {!isVerified && (
+        {/* Qualification & Payment status banners */}
+        {myTeam?.team && isQualified === false ? (
+          <div className="mx-4 mt-4 p-3 rounded-lg bg-zinc-900/80 border border-zinc-800">
+            <div className="flex items-start gap-2">
+              <Lock className="w-3.5 h-3.5 text-zinc-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wide">Not Qualified</p>
+                <p className="text-[10px] text-zinc-400/80 mt-0.5 leading-relaxed">
+                  Your team is outside the top qualification quota for Phase 2.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : !isVerified && (
           <div className="mx-4 mt-4 p-3 rounded-lg bg-orange-950/30 border border-orange-900/30">
             <div className="flex items-start gap-2">
               <Lock className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />

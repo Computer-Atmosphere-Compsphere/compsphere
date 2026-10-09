@@ -672,6 +672,8 @@ router.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res, 
     // 4. Get and prepare email logs
     const { emailLogs } = await getConfirmationAndEmailMaps();
     const sentResults: any[] = [];
+    const skippedResults: any[] = [];
+    const failedResults: any[] = [];
     const notificationsToInsert: any[] = [];
     const nowIso = new Date().toISOString();
 
@@ -680,6 +682,18 @@ router.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res, 
       const actualLeaderEmail = leader?.email || team.leader_email || "";
       const recipientEmail = testEmailOverride?.trim() ? testEmailOverride.trim() : actualLeaderEmail;
       const recipientName = leader?.name || team.leader_name || team.team_name + " Leader";
+
+      // Skip teams with no email address — track explicitly
+      if (!recipientEmail) {
+        skippedResults.push({
+          teamId: team.team_id,
+          teamName: team.team_name,
+          teamCode: team.team_code,
+          reason: "No leader email found — team leader may not have activated their account yet",
+        });
+        console.warn(`[send-emails] Skipping team ${team.team_code}: no leader email in database`);
+        continue;
+      }
 
       const sendRes = await emailService.sendTeamEmail({
         to: recipientEmail,
@@ -697,31 +711,43 @@ router.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res, 
         deadlineHours,
       });
 
-      emailLogs[team.team_id] = {
-        lastSentAt: nowIso,
-        emailType,
-        subject,
-      };
+      if (sendRes.success) {
+        emailLogs[team.team_id] = {
+          lastSentAt: nowIso,
+          emailType,
+          subject,
+        };
 
-      notificationsToInsert.push({
-        teamId: team.team_id,
-        type: emailType === "SLOT_CONFIRMATION" ? "SLOT_CONFIRMATION_INVITATION" : "ADMIN_ANNOUNCEMENT",
-        title: subject,
-        message:
-          emailType === "SLOT_CONFIRMATION"
-            ? `Action required: Please confirm or decline your Phase 2 slot invitation.`
-            : content.substring(0, 150) + "...",
-      });
+        notificationsToInsert.push({
+          teamId: team.team_id,
+          type: emailType === "SLOT_CONFIRMATION" ? "SLOT_CONFIRMATION_INVITATION" : "ADMIN_ANNOUNCEMENT",
+          title: subject,
+          message:
+            emailType === "SLOT_CONFIRMATION"
+              ? `Action required: Please confirm or decline your Phase 2 slot invitation.`
+              : content.substring(0, 150) + "...",
+        });
 
-      sentResults.push({
-        teamId: team.team_id,
-        teamName: team.team_name,
-        teamCode: team.team_code,
-        recipientEmail,
-        success: sendRes.success,
-        isRealDelivery: sendRes.isRealDelivery,
-        error: !recipientEmail ? "No leader email found in database for this team" : sendRes.error,
-      });
+        sentResults.push({
+          teamId: team.team_id,
+          teamName: team.team_name,
+          teamCode: team.team_code,
+          recipientEmail,
+          success: true,
+          isRealDelivery: sendRes.isRealDelivery,
+          messageId: sendRes.messageId,
+        });
+      } else {
+        failedResults.push({
+          teamId: team.team_id,
+          teamName: team.team_name,
+          teamCode: team.team_code,
+          recipientEmail,
+          success: false,
+          error: sendRes.error || "Unknown send error",
+        });
+        console.error(`[send-emails] Failed to send to ${team.team_code} (${recipientEmail}): ${sendRes.error}`);
+      }
     }
 
     // 5. Persist updated email logs and batch insert notifications
@@ -756,6 +782,8 @@ router.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res, 
         metadata: {
           recipientType,
           totalSent: sentResults.length,
+          totalSkipped: skippedResults.length,
+          totalFailed: failedResults.length,
           emailType,
           subject,
         },
@@ -763,18 +791,24 @@ router.post("/send-emails", requireAuth, requireRole("ADMIN"), async (req, res, 
     });
 
     const realDeliveredCount = sentResults.filter((r) => r.isRealDelivery).length;
+    const totalAttempted = sentResults.length + failedResults.length;
 
     res.json({
       success: true,
       message: emailService.isConfigured()
-        ? `Successfully sent ${realDeliveredCount} real email(s) to team leaders.`
-        : `Emails recorded in development simulation mode for ${sentResults.length} team(s). (To send real emails to inboxes, configure SMTP or RESEND_API_KEY in your .env).`,
+        ? `Sent: ${realDeliveredCount} real email(s) | Skipped (no email): ${skippedResults.length} team(s) | Failed: ${failedResults.length} team(s).`
+        : `Simulated: ${sentResults.length} email(s) recorded | Skipped (no email): ${skippedResults.length} team(s) | Failed: ${failedResults.length} team(s). Configure SMTP or RESEND_API_KEY in .env for real delivery.`,
       data: {
         isEmailConfigured: emailService.isConfigured(),
-        totalRecipients: sentResults.length,
+        totalTargeted: targetTeams.length,
+        totalSent: sentResults.length,
         realDeliveredCount,
+        totalSkipped: skippedResults.length,
+        totalFailed: failedResults.length,
         emailType,
-        recipients: sentResults,
+        sent: sentResults,
+        skipped: skippedResults,
+        failed: failedResults,
       },
     });
   } catch (error) {

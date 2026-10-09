@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/compsphere/StatusBadge";
 import { RankingCard } from "@/components/compsphere/RankingCard";
 import { VerificationCard } from "@/components/compsphere/VerificationCard";
 import { SubmissionCard } from "@/components/compsphere/SubmissionCard";
-import { Trophy, ShieldAlert, CheckCircle, Bell, ArrowRight } from "lucide-react";
+import { Trophy, ShieldAlert, CheckCircle, Bell, ArrowRight, Info, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function Dashboard() {
@@ -47,6 +47,64 @@ export function Dashboard() {
   }
 
   const { team, members, proposal, payments, submissions } = myTeam;
+
+  // Restricted view for teams that did not qualify for Top 30/40
+  if (team?.isQualified === false) {
+    return (
+      <div className="space-y-8 max-w-4xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-border">
+          <div>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-800 px-2.5 py-0.5 rounded">
+              {team.teamCode}
+            </span>
+            <h1 className="text-3xl font-extrabold text-text-primary mt-2">{team.teamName}</h1>
+            <p className="text-xs text-text-secondary mt-1">Category: {team.category}</p>
+          </div>
+          <StatusBadge status={team.status} className="text-sm px-4 py-1.5" />
+        </div>
+
+        {/* Qualification Notice */}
+        <GlassPanel className="p-8 border-zinc-700/60 bg-zinc-900/40 space-y-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-lg font-bold text-text-primary">Phase 2 Qualification Status</h2>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Thank you for participating in CompSphere. Your team is currently not within the Top Qualified Teams selected to advance to Phase 2 (Offline Round & Deliverables).
+              </p>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Your dashboard access is restricted to read-only summary mode. Competition action items (deliverable submissions, slot payments, and venue check-in tokens) are inactive.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4 pt-4 border-t border-border/40 text-xs">
+            <div className="p-3.5 rounded-lg bg-bg-surface/60 border border-border/60">
+              <span className="text-[10px] text-text-muted uppercase tracking-wider block">Team Code</span>
+              <span className="font-mono font-bold text-text-primary text-sm mt-0.5 block">{team.teamCode}</span>
+            </div>
+            <div className="p-3.5 rounded-lg bg-bg-surface/60 border border-border/60">
+              <span className="text-[10px] text-text-muted uppercase tracking-wider block">Category</span>
+              <span className="font-semibold text-text-primary text-sm mt-0.5 block">{team.category}</span>
+            </div>
+            <div className="p-3.5 rounded-lg bg-bg-surface/60 border border-border/60">
+              <span className="text-[10px] text-text-muted uppercase tracking-wider block">Team Status</span>
+              <span className="font-mono font-semibold text-text-primary text-sm mt-0.5 block">{team.status}</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-lg bg-bg-surface/30 border border-border/40 text-[11px] text-text-muted flex items-center gap-2.5">
+            <Info className="w-4 h-4 text-text-secondary shrink-0" />
+            <span>If you believe this status is in error or have any questions, please contact the CompSphere organizing committee.</span>
+          </div>
+        </GlassPanel>
+      </div>
+    );
+  }
+
   // Derive latest payment & submission from the arrays the API returns
   const payment = payments?.[0] ?? null;
   const submission = submissions?.[0] ?? null;

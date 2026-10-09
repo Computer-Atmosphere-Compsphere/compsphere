@@ -19,12 +19,6 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
 };
 
-// Target dates
-const COMPSPHERE_DATE = "2026-10-05T08:00:00+07:00"; // Oct 5, 8am WIB
-const TALKSPHERE_DATE = "2026-10-07T08:00:00+07:00"; // Oct 7, 8am WIB
-const HACKSPHERE_DATE = "2026-10-10T08:00:00+07:00"; // Oct 10, 8am WIB
-const HACKATHON_24H_END = "2026-10-11T09:00:00+07:00"; // Oct 11, 9am WIB
-
 export function HeroSection() {
   const { isAuthenticated, user, signInWithGoogle } = useAuth();
 
@@ -36,10 +30,20 @@ export function HeroSection() {
     staleTime: 15_000,
   });
 
+  // Dynamic target dates with fallback defaults
+  const compsphereDate = countdownConfig?.countdown_compsphere_date || "2026-10-05T08:00:00+07:00";
+  const talkSphereDate = countdownConfig?.countdown_talksphere_date || "2026-10-07T08:00:00+07:00";
+  const expoSphereDate = countdownConfig?.countdown_exposphere_date || "2026-10-30T08:00:00+07:00";
+  const hacksphereDate = countdownConfig?.countdown_hacksphere_date || "2026-11-21T08:00:00+07:00";
+  const hackathon24hEnd = countdownConfig?.countdown_24h_end_date || "2026-11-22T09:00:00+07:00";
+  const festSphereDate = countdownConfig?.countdown_festsphere_date || "2026-11-22T14:00:00+07:00";
+
   const showCompsphere = countdownConfig?.countdown_compsphere_enabled === "true";
   const showTalkSphere = countdownConfig?.countdown_talksphere_enabled === "true";
+  const showExpoSphere = countdownConfig?.countdown_exposphere_enabled === "true";
   const showHacksphere = countdownConfig?.countdown_enabled === "true";
   const show24hTimer = countdownConfig?.countdown_24h_enabled === "true";
+  const showFestSphere = countdownConfig?.countdown_festsphere_enabled === "true";
   const showLogin = countdownConfig?.show_login_buttons !== "false";
 
   const consolePath =
@@ -104,7 +108,7 @@ export function HeroSection() {
         {showCompsphere && (
           <motion.div variants={item} className="mt-6 sm:mt-8">
             <CountdownTimer
-              targetDate={COMPSPHERE_DATE}
+              targetDate={compsphereDate}
               label="Compsphere"
               variant="compsphere"
             />
@@ -114,9 +118,19 @@ export function HeroSection() {
         {showTalkSphere && (
           <motion.div variants={item} className="mt-3 sm:mt-5">
             <CountdownTimer
-              targetDate={TALKSPHERE_DATE}
+              targetDate={talkSphereDate}
               label="TalkSphere"
               variant="talksphere"
+            />
+          </motion.div>
+        )}
+
+        {showExpoSphere && (
+          <motion.div variants={item} className="mt-3 sm:mt-5">
+            <CountdownTimer
+              targetDate={expoSphereDate}
+              label="ExpoSphere"
+              variant="exposphere"
             />
           </motion.div>
         )}
@@ -124,7 +138,7 @@ export function HeroSection() {
         {showHacksphere && (
           <motion.div variants={item} className="mt-3 sm:mt-5">
             <CountdownTimer
-              targetDate={HACKSPHERE_DATE}
+              targetDate={hacksphereDate}
               label="Hacksphere"
               variant="hacksphere"
             />
@@ -134,9 +148,19 @@ export function HeroSection() {
         {show24hTimer && (
           <motion.div variants={item} className="mt-3 sm:mt-5">
             <CountdownTimer
-              targetDate={HACKATHON_24H_END}
+              targetDate={hackathon24hEnd}
               label="24-Hour Hackathon"
               variant="24h"
+            />
+          </motion.div>
+        )}
+
+        {showFestSphere && (
+          <motion.div variants={item} className="mt-3 sm:mt-5">
+            <CountdownTimer
+              targetDate={festSphereDate}
+              label="FestSphere"
+              variant="festsphere"
             />
           </motion.div>
         )}

@@ -118639,10 +118639,13 @@ var ALLOWED_ORIGINS = [
 ];
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  res.setHeader("Vary", "Origin");
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
-  } else if (origin && ALLOWED_ORIGINS.length > 0) {
-    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
+  } else if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "https://www.compsphere12.id");
   }
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
@@ -118651,7 +118654,7 @@ app.use((req, res, next) => {
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
+    "Content-Type, Authorization, X-Requested-With, Cookie"
   );
   res.setHeader("Access-Control-Max-Age", "86400");
   if (req.method === "OPTIONS") {

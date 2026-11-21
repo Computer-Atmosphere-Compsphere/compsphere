@@ -70,7 +70,7 @@ function fileFilter(allowedMimes: string[]) {
 }
 
 const MAX_PAYMENT_SIZE = 5 * 1024 * 1024;   // 5MB
-const MAX_SLIDE_SIZE = 10 * 1024 * 1024;    // 10MB
+const MAX_SLIDE_SIZE = 50 * 1024 * 1024;    // 50MB
 const MAX_PROPOSAL_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_DOCUMENT_SIZE = 5 * 1024 * 1024;  // 5MB
 const MAX_QRIS_SIZE = 5 * 1024 * 1024;      // 5MB

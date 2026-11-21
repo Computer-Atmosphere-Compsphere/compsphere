@@ -197,13 +197,22 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
         js.final_score,
         js.submitted_at    AS score_submitted_at,
         js.updated_at      AS score_updated_at,
-        j.id               AS judge_id
+        j.id               AS judge_id,
+        sub.id             AS submission_id,
+        sub.repository_url,
+        sub.deployment_url,
+        sub.slide_storage_key,
+        sub.slide_filename,
+        sub.slide_size_bytes,
+        sub.submitted_at   AS submission_submitted_at,
+        sub.status         AS submission_status
       FROM judges j
       INNER JOIN profiles pr ON pr.id = j.user_id
       INNER JOIN judge_assignments ja ON ja.judge_id = j.id
       INNER JOIN competition_teams ct ON ct.id = ja.team_id
       LEFT JOIN proposals p ON p.team_id = ct.id
       LEFT JOIN judge_scores js ON js.judge_id = j.id AND js.team_id = ct.id
+      LEFT JOIN submissions sub ON sub.team_id = ct.id
       WHERE (pr.id::text = ${user.profileId} OR pr.email = ${user.email})
         AND j.status = 'ACTIVE'
       ORDER BY ja.assigned_at ASC
@@ -315,6 +324,18 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
                 description: row.proposal_description,
                 devpostUrl: row.devpost_url,
                 files: pFiles,
+              }
+            : null,
+          submission: row.submission_id
+            ? {
+                id: row.submission_id,
+                repositoryUrl: row.repository_url,
+                deploymentUrl: row.deployment_url,
+                slideStorageKey: row.slide_storage_key,
+                slideFilename: row.slide_filename,
+                slideSizeBytes: row.slide_size_bytes ? Number(row.slide_size_bytes) : null,
+                submittedAt: row.submission_submitted_at,
+                status: row.submission_status,
               }
             : null,
         },

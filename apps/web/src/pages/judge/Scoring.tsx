@@ -11,12 +11,9 @@ import {
   FileText,
   ExternalLink,
   Lock,
-  Clock,
   CheckCircle2,
   Download,
   Users,
-  Trophy,
-  RefreshCw,
   Info,
   Maximize2,
   BookOpen,
@@ -73,8 +70,7 @@ export function Scoring() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"pdf" | "summary">("pdf");
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"pdf" | "slides" | "summary">("pdf");
 
   const { data: assignmentData, isLoading } = useQuery<any>({
     queryKey: ["judge-score", teamId],
@@ -89,15 +85,12 @@ export function Scoring() {
   const isFrozen = assignmentData?.isFrozen;
   const phase = assignmentData?.phase;
 
-  const syncPdfMutation = useMutation({
-    mutationFn: () => api.post("/api/judges/sync-dummy-pdfs"),
-    onMutate: () => setIsSyncing(true),
-    onSuccess: () => {
-      setIsSyncing(false);
-      queryClient.invalidateQueries({ queryKey: ["judge-score", teamId] });
-      queryClient.invalidateQueries({ queryKey: ["judge-assignments"] });
-    },
-    onError: () => setIsSyncing(false),
+  // Fetch slide URL for the team's Phase 2 submission
+  const { data: slideData, isLoading: slideLoading } = useQuery<any>({
+    queryKey: ["slide-url", teamId],
+    queryFn: () => api.get(`/api/submissions/slide-url/${teamId}`),
+    enabled: !!teamId,
+    retry: false,
   });
 
   const { control, handleSubmit, watch } = useForm<ScoreForm>({
@@ -152,6 +145,18 @@ export function Scoring() {
   const proposalFile = team.proposal?.files?.[0];
   const proposalUrl = proposalFile ? getUploadUrl(proposalFile.storageKey) : null;
 
+  // Phase 2 submission slide — fetched from /api/submissions/slide-url/:teamId
+  const submission = team?.submission ?? null;
+  const rawSlideUrl: string | null = slideData?.slideUrl ?? null;
+  const slideFilename: string | null = slideData?.slideFilename ?? submission?.slideFilename ?? null;
+  // PPT/PPTX → Google Docs Viewer; PDF → native embed
+  const isPptSlide = !!slideFilename?.toLowerCase().match(/\.(ppt|pptx)$/);
+  const slideViewerUrl: string | null = rawSlideUrl
+    ? isPptSlide
+      ? `https://docs.google.com/gviewer?url=${encodeURIComponent(rawSlideUrl)}&embedded=true`
+      : rawSlideUrl
+    : null;
+
   return (
     <div className="p-8 space-y-6 max-w-[1600px] mx-auto pb-12">
       {/* Navigation & Header */}
@@ -185,7 +190,7 @@ export function Scoring() {
           </div>
         </div>
 
-        {/* Action Controls & Code Freeze */}
+        {/* Code Freeze Badge */}
         <div className="flex items-center gap-3">
           {isFrozen && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-900/50 text-red-400 text-xs font-bold">
@@ -198,12 +203,13 @@ export function Scoring() {
 
       {/* Main 2-Column Scoring Workspace */}
       <div className="grid lg:grid-cols-12 gap-6 min-h-[calc(100vh-220px)]">
-        {/* Left Column: PDF & Proposal Document Viewer (7 cols) */}
+        {/* Left Column: Document Viewer (7 cols) */}
         <div className="lg:col-span-7 flex flex-col space-y-4">
           <GlassPanel className="p-4 flex flex-col flex-1 border border-border/80 rounded-2xl overflow-hidden shadow-2xl">
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-border/60">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Proposal PDF tab */}
                 <button
                   onClick={() => setActiveTab("pdf")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
@@ -212,8 +218,26 @@ export function Scoring() {
                       : "text-text-secondary hover:bg-bg-surface"
                   }`}
                 >
-                  <FileText className="w-3.5 h-3.5" /> PDF Document
+                  <FileText className="w-3.5 h-3.5" /> Proposal PDF
                 </button>
+
+                {/* Presentation Slides tab */}
+                <button
+                  onClick={() => setActiveTab("slides")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    activeTab === "slides"
+                      ? "bg-purple-600 text-white"
+                      : "text-text-secondary hover:bg-bg-surface"
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Presentation Slides
+                  {submission?.slideFilename && (
+                    <span className="ml-1 w-2 h-2 rounded-full bg-green-400 inline-block" title="Slide submitted" />
+                  )}
+                </button>
+
+                {/* Summary/Meta tab */}
                 <button
                   onClick={() => setActiveTab("summary")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
@@ -222,18 +246,18 @@ export function Scoring() {
                       : "text-text-secondary hover:bg-bg-surface"
                   }`}
                 >
-                  <BookOpen className="w-3.5 h-3.5" /> Proposal Text & Meta
+                  <BookOpen className="w-3.5 h-3.5" /> Meta &amp; Links
                 </button>
               </div>
 
-              {proposalUrl && (
+              {/* Contextual action buttons */}
+              {activeTab === "pdf" && proposalUrl && (
                 <div className="flex items-center gap-2">
                   <a
                     href={proposalUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline bg-brand-dim px-2.5 py-1 rounded"
-                    title="Open PDF in Full Screen"
                   >
                     <Maximize2 className="w-3 h-3" /> Full Window
                   </a>
@@ -241,16 +265,36 @@ export function Scoring() {
                     href={proposalUrl}
                     download={`proposal_${team.teamCode}.pdf`}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-text-primary hover:bg-bg-surface border border-border px-2.5 py-1 rounded"
-                    title="Download PDF File"
                   >
                     <Download className="w-3 h-3 text-brand-primary" /> Download
                   </a>
                 </div>
               )}
+              {activeTab === "slides" && rawSlideUrl && (
+                <div className="flex items-center gap-2">
+                  <a
+                    href={rawSlideUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-purple-400 hover:underline bg-purple-950/30 px-2.5 py-1 rounded"
+                  >
+                    <Maximize2 className="w-3 h-3" /> Full Window
+                  </a>
+                  <a
+                    href={rawSlideUrl}
+                    download={slideFilename ?? `slide_${team.teamCode}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-text-primary hover:bg-bg-surface border border-border px-2.5 py-1 rounded"
+                  >
+                    <Download className="w-3 h-3 text-purple-400" /> Download
+                  </a>
+                </div>
+              )}
             </div>
 
-            {/* Content Area */}
-            {activeTab === "pdf" ? (
+            {/* ── Content Area ── */}
+
+            {/* PROPOSAL PDF TAB */}
+            {activeTab === "pdf" && (
               proposalUrl ? (
                 <div className="flex-1 w-full min-h-[600px] rounded-xl overflow-hidden border border-border/60 bg-white">
                   <object
@@ -266,7 +310,7 @@ export function Scoring() {
                       <div className="flex flex-col items-center justify-center p-8 bg-bg-surface text-center space-y-3">
                         <FileText className="w-10 h-10 text-brand-primary" />
                         <p className="text-xs text-text-secondary">
-                          Direct PDF preview is not supported by your browser viewer.
+                          Direct PDF preview is not supported by your browser.
                         </p>
                         <a
                           href={proposalUrl}
@@ -291,8 +335,93 @@ export function Scoring() {
                   </div>
                 </div>
               )
-            ) : (
-              /* Summary Tab */
+            )}
+
+            {/* PRESENTATION SLIDES TAB */}
+            {activeTab === "slides" && (
+              slideLoading ? (
+                <div className="flex-1 flex items-center justify-center py-20">
+                  <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : slideViewerUrl ? (
+                <div className="flex-1 flex flex-col rounded-xl overflow-hidden border border-purple-900/40">
+                  {isPptSlide ? (
+                    <iframe
+                      src={slideViewerUrl}
+                      className="w-full border-0 flex-1"
+                      style={{ minHeight: "620px" }}
+                      title={`Presentation Slides - ${team.teamName}`}
+                      allowFullScreen
+                    />
+                  ) : (
+                    <object
+                      data={slideViewerUrl}
+                      type="application/pdf"
+                      className="w-full border-0 flex-1"
+                      style={{ minHeight: "620px" }}
+                    >
+                      <iframe
+                        src={slideViewerUrl}
+                        className="w-full border-0 flex-1"
+                        style={{ minHeight: "620px" }}
+                        title={`Presentation Slides - ${team.teamName}`}
+                      >
+                        <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
+                          <FileText className="w-10 h-10 text-purple-400" />
+                          <p className="text-xs text-text-secondary">
+                            Preview not supported. Use Full Window or Download above.
+                          </p>
+                          <a
+                            href={rawSlideUrl ?? ""}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-bold text-purple-400 hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
+                          </a>
+                        </div>
+                      </iframe>
+                    </object>
+                  )}
+                  {/* Footer info bar */}
+                  <div className="p-2.5 bg-bg-surface border-t border-border/60 flex items-center gap-3 text-xs text-text-muted shrink-0">
+                    <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span className="font-semibold truncate text-text-primary">{slideFilename || "presentation"}</span>
+                    {slideData?.slideSizeBytes && (
+                      <span className="shrink-0">({(slideData.slideSizeBytes / (1024 * 1024)).toFixed(1)} MB)</span>
+                    )}
+                    {slideData?.submittedAt && (
+                      <span className="shrink-0 ml-auto">
+                        Submitted {new Date(slideData.submittedAt).toLocaleString("id-ID")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center py-20 text-center space-y-3">
+                  <FileText className="w-10 h-10 text-purple-400 opacity-40" />
+                  <div>
+                    <h3 className="text-sm font-bold text-text-primary">No Presentation Slides</h3>
+                    <p className="text-xs text-text-muted mt-0.5 max-w-xs">
+                      This team has not yet uploaded their Phase 2 presentation slides.
+                    </p>
+                    {submission?.repositoryUrl && (
+                      <a
+                        href={submission.repositoryUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-brand-primary hover:underline"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> View Repository
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* META & LINKS TAB */}
+            {activeTab === "summary" && (
               <div className="flex-1 space-y-4 overflow-y-auto pr-2 max-h-[700px]">
                 <div className="p-4 rounded-xl bg-bg-surface border border-border space-y-2">
                   <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider">Project Title</h4>
@@ -322,6 +451,55 @@ export function Scoring() {
                     </span>
                   </div>
                 </div>
+
+                {/* Phase 2 Deliverables block */}
+                {submission && (
+                  <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-900/40 space-y-3">
+                    <h4 className="text-xs font-bold text-purple-300 uppercase tracking-wider">Phase 2 Deliverables</h4>
+                    <div className="space-y-2.5">
+                      {submission.repositoryUrl && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-text-muted shrink-0">Repository:</span>
+                          <a
+                            href={submission.repositoryUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-1 max-w-[200px] min-w-0"
+                          >
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{submission.repositoryUrl}</span>
+                          </a>
+                        </div>
+                      )}
+                      {submission.deploymentUrl && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-text-muted shrink-0">Live Demo:</span>
+                          <a
+                            href={submission.deploymentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-bold text-green-400 hover:underline flex items-center gap-1 max-w-[200px] min-w-0"
+                          >
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{submission.deploymentUrl}</span>
+                          </a>
+                        </div>
+                      )}
+                      {submission.slideFilename && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-text-muted shrink-0">Slides:</span>
+                          <button
+                            onClick={() => setActiveTab("slides")}
+                            className="text-xs font-bold text-purple-400 hover:underline flex items-center gap-1 max-w-[200px] min-w-0"
+                          >
+                            <FileText className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{submission.slideFilename}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {team.proposal?.devpostUrl && (
                   <div className="p-4 rounded-xl bg-bg-surface border border-border flex items-center justify-between">
@@ -366,7 +544,7 @@ export function Scoring() {
                 </p>
               </GlassPanel>
             )}
-            {CRITERIA.map(({ key, label, weight, weightValue, description }) => (
+            {CRITERIA.map(({ key, label, weight, description }) => (
               <GlassPanel key={key} className="p-4 space-y-3 hover:border-brand-primary/30 transition">
                 <div className="flex justify-between items-start">
                   <div className="pr-2">
@@ -408,7 +586,7 @@ export function Scoring() {
 
             {/* Evaluation Feedback Notes */}
             <GlassPanel className="p-4 space-y-2">
-              <h4 className="font-bold text-xs text-text-primary">Qualitative Feedback & Evaluation Notes</h4>
+              <h4 className="font-bold text-xs text-text-primary">Qualitative Feedback &amp; Evaluation Notes</h4>
               <Controller
                 name="notes"
                 control={control}

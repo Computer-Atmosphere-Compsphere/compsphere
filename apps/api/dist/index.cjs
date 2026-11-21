@@ -102705,7 +102705,7 @@ function fileFilter(allowedMimes) {
   };
 }
 var MAX_PAYMENT_SIZE = 5 * 1024 * 1024;
-var MAX_SLIDE_SIZE = 10 * 1024 * 1024;
+var MAX_SLIDE_SIZE = 50 * 1024 * 1024;
 var MAX_PROPOSAL_SIZE = 20 * 1024 * 1024;
 var MAX_DOCUMENT_SIZE = 5 * 1024 * 1024;
 var MAX_QRIS_SIZE = 5 * 1024 * 1024;
@@ -102985,6 +102985,48 @@ router7.get("/deadline", async (req, res, next) => {
       data: {
         deadline: deadline.toISOString(),
         isExpired: /* @__PURE__ */ new Date() >= deadline
+      }
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router7.get("/slide-url/:teamId", requireAuth, async (req, res, next) => {
+  try {
+    const user = req.sessionUser;
+    const { teamId } = req.params;
+    const isPrivileged = user.role === "ADMIN" || user.role === "JUDGE";
+    const isOwnTeam = user.teamId === teamId;
+    if (!isPrivileged && !isOwnTeam) {
+      return res.status(403).json({ success: false, error: "Access denied." });
+    }
+    const submission = await db.query.submissions.findFirst({
+      where: eq(schema_exports.submissions.teamId, teamId)
+    });
+    if (!submission || !submission.slideStorageKey) {
+      return res.status(404).json({
+        success: false,
+        error: "No presentation slide found for this team."
+      });
+    }
+    let slideUrl;
+    if (isHostinger) {
+      slideUrl = generatePresignedUrl(
+        submission.slideStorageKey,
+        3600,
+        // 1 hour TTL
+        submission.slideFilename ?? void 0
+      );
+    } else {
+      slideUrl = `/api/uploads/${submission.slideStorageKey.replace(/^\/?/, "")}`;
+    }
+    res.json({
+      success: true,
+      data: {
+        slideUrl,
+        slideFilename: submission.slideFilename,
+        slideSizeBytes: submission.slideSizeBytes,
+        submittedAt: submission.submittedAt
       }
     });
   } catch (error4) {
@@ -116115,13 +116157,22 @@ router9.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, re
         js.final_score,
         js.submitted_at    AS score_submitted_at,
         js.updated_at      AS score_updated_at,
-        j.id               AS judge_id
+        j.id               AS judge_id,
+        sub.id             AS submission_id,
+        sub.repository_url,
+        sub.deployment_url,
+        sub.slide_storage_key,
+        sub.slide_filename,
+        sub.slide_size_bytes,
+        sub.submitted_at   AS submission_submitted_at,
+        sub.status         AS submission_status
       FROM judges j
       INNER JOIN profiles pr ON pr.id = j.user_id
       INNER JOIN judge_assignments ja ON ja.judge_id = j.id
       INNER JOIN competition_teams ct ON ct.id = ja.team_id
       LEFT JOIN proposals p ON p.team_id = ct.id
       LEFT JOIN judge_scores js ON js.judge_id = j.id AND js.team_id = ct.id
+      LEFT JOIN submissions sub ON sub.team_id = ct.id
       WHERE (pr.id::text = ${user.profileId} OR pr.email = ${user.email})
         AND j.status = 'ACTIVE'
       ORDER BY ja.assigned_at ASC
@@ -116221,6 +116272,16 @@ router9.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, re
             description: row.proposal_description,
             devpostUrl: row.devpost_url,
             files: pFiles
+          } : null,
+          submission: row.submission_id ? {
+            id: row.submission_id,
+            repositoryUrl: row.repository_url,
+            deploymentUrl: row.deployment_url,
+            slideStorageKey: row.slide_storage_key,
+            slideFilename: row.slide_filename,
+            slideSizeBytes: row.slide_size_bytes ? Number(row.slide_size_bytes) : null,
+            submittedAt: row.submission_submitted_at,
+            status: row.submission_status
           } : null
         },
         score: row.score_id ? {

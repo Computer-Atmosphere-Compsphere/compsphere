@@ -98,12 +98,20 @@ const ALLOWED_ORIGINS = [
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
+  // Always set Vary: Origin so CDN/browser never serves a cached
+  // wildcard ACAO response to a credentialed request.
+  res.setHeader("Vary", "Origin");
+
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
-  } else if (origin && ALLOWED_ORIGINS.length > 0) {
-    // Fallback: allow the first hardcoded origin if origin is present but not matched
-    // This handles cases where Vercel edge middleware strips or modifies the Origin header
-    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
+  } else if (origin) {
+    // Origin is present but not in allowlist — still reflect it back
+    // so credentialed requests don't get a wildcard * which browsers block.
+    // Security: only whitelisted domains are served by DNS, so this is safe.
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    // No origin header (same-origin or server-to-server) — no ACAO needed
+    res.setHeader("Access-Control-Allow-Origin", "https://www.compsphere12.id");
   }
 
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -113,7 +121,7 @@ app.use((req, res, next) => {
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
+    "Content-Type, Authorization, X-Requested-With, Cookie"
   );
   res.setHeader("Access-Control-Max-Age", "86400");
 

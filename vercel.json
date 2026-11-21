@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install && npm run build -w packages/types && cd apps/web && npm install && npm run build",
+  "buildCommand": "npm install && npm run build -w packages/types && export PATH=$PATH:$(pwd)/node_modules/.bin && npm run build -w apps/web",
   "outputDirectory": "apps/web/dist",
   "framework": null,
   "rewrites": [

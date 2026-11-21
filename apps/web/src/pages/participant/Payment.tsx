@@ -140,10 +140,10 @@ export function Payment() {
   const isLeader = user?.memberRole === "TEAM_LEADER";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="pb-6 border-b border-border">
-        <h1 className="text-3xl font-extrabold text-text-primary">
+      <div className="pb-5 border-b border-border">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">
           {isInternational ? "International Team Verification" : "Payment & Slot Confirmation"}
         </h1>
         <p className="text-xs text-text-secondary mt-1">
@@ -154,7 +154,7 @@ export function Payment() {
       </div>
 
       {/* Main Content */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           {/* Payment Option Details (Bank Info & QRIS) for Non-International Teams */}
           {!isInternational && (

@@ -19,12 +19,15 @@ import {
   ExternalLink,
   Lock,
   ShieldCheck,
+  Menu,
+  X,
 } from "lucide-react";
 
 export function ParticipantLayout() {
   const { isAuthenticated, isAuthenticating, user, logout } = useAuth();
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch team data to check payment verification status
   const { data: myTeam } = useQuery<any>({
@@ -79,11 +82,28 @@ export function ParticipantLayout() {
 
   return (
     <div className="flex min-h-screen bg-bg-primary text-text-primary noise-bg">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-border bg-bg-secondary/60 flex flex-col fixed h-full z-45">
+
+      {/* ── Mobile overlay backdrop ── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside
+        className={`
+          fixed top-0 left-0 h-full w-72 z-50 flex flex-col
+          bg-bg-secondary/95 border-r border-border
+          transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0 lg:w-64
+        `}
+      >
         {/* Brand Header */}
-        <div className="h-16 border-b border-border px-5 flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+        <div className="h-16 border-b border-border px-5 flex items-center gap-3 shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setSidebarOpen(false)}>
             <img
               src="/compsphere-logo.png"
               alt="Compsphere"
@@ -98,13 +118,20 @@ export function ParticipantLayout() {
               </span>
             </div>
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             <SSEStatusIndicator />
+            {/* Close button — mobile only */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-surface transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
         {/* User Card */}
-        <div className="p-4 border-b border-border bg-bg-surface/20">
+        <div className="p-4 border-b border-border bg-bg-surface/20 shrink-0">
           <div className="flex items-center gap-2.5">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full border border-brand-dim" />
@@ -124,7 +151,7 @@ export function ParticipantLayout() {
 
         {/* Qualification & Payment status banners */}
         {myTeam?.team && isQualified === false ? (
-          <div className="mx-4 mt-4 p-3 rounded-lg bg-zinc-900/80 border border-zinc-800">
+          <div className="mx-4 mt-4 p-3 rounded-lg bg-zinc-900/80 border border-zinc-800 shrink-0">
             <div className="flex items-start gap-2">
               <Lock className="w-3.5 h-3.5 text-zinc-400 mt-0.5 shrink-0" />
               <div>
@@ -136,7 +163,7 @@ export function ParticipantLayout() {
             </div>
           </div>
         ) : !isVerified && (
-          <div className="mx-4 mt-4 p-3 rounded-lg bg-orange-950/30 border border-orange-900/30">
+          <div className="mx-4 mt-4 p-3 rounded-lg bg-orange-950/30 border border-orange-900/30 shrink-0">
             <div className="flex items-start gap-2">
               <Lock className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />
               <div>
@@ -150,7 +177,7 @@ export function ParticipantLayout() {
         )}
 
         {/* Nav Links */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const isLocked = item.locked;
@@ -175,6 +202,7 @@ export function ParticipantLayout() {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-md text-xs font-semibold tracking-wider uppercase transition-all duration-200 ${
                   isActive
                     ? "bg-brand-dim text-brand-primary border border-brand-primary/10 shadow-[0_0_10px_rgba(0,245,200,0.1)]"
@@ -192,9 +220,10 @@ export function ParticipantLayout() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border mt-auto space-y-2">
+        <div className="p-4 border-t border-border mt-auto space-y-2 shrink-0">
           <Link
             to="/"
+            onClick={() => setSidebarOpen(false)}
             className="flex items-center justify-center gap-2 w-full px-3 py-1.5 rounded-md text-xs font-semibold text-text-secondary bg-bg-surface border border-border hover:text-text-primary hover:border-border transition-all duration-200"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -221,11 +250,50 @@ export function ParticipantLayout() {
         onCancel={() => setShowLogoutConfirm(false)}
       />
 
-      {/* Main Panel Outlet */}
-      <div className="flex-1 pl-64 flex flex-col min-h-screen">
-        <main className="flex-1 p-8 max-w-5xl w-full mx-auto">
+      {/* ── Main Panel ── */}
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
+        {/* Mobile top bar */}
+        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-bg-secondary/90 backdrop-blur border-b border-border">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-surface transition"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/compsphere-logo.png" alt="Compsphere" className="w-7 h-7 object-contain rounded" />
+            <span className="text-xs font-extrabold tracking-widest uppercase text-text-primary">Compsphere</span>
+          </Link>
+          <SSEStatusIndicator />
+        </div>
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto">
           <Outlet />
         </main>
+
+        {/* ── Bottom tab bar — mobile only ── */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 flex items-stretch bg-bg-secondary/95 backdrop-blur border-t border-border">
+          {navItems.filter(i => !i.locked).slice(0, 5).map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                  isActive ? "text-brand-primary" : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                <span className={`${isActive ? "text-brand-primary" : "text-text-muted"}`}>
+                  {item.icon}
+                </span>
+                <span className="truncate max-w-[52px] text-center leading-tight">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Spacer so content doesn't hide behind bottom tab bar on mobile */}
+        <div className="lg:hidden h-16" />
       </div>
     </div>
   );

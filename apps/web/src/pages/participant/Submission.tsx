@@ -74,10 +74,10 @@ export function Submission() {
   const isLocked = deadlineData?.isExpired;
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-start gap-4 pb-6 border-b border-border">
+    <div className="space-y-6">
+      <div className="flex flex-wrap justify-between items-start gap-3 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-extrabold text-text-primary">Final Submission Portal</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">Final Submission Portal</h1>
           <p className="text-xs text-text-secondary mt-1">
             Submit your final project: repository, presentation slides, and live deployment.
           </p>

@@ -31,10 +31,10 @@ export function Confirmation() {
   const isInternational = team.category === "INTERNATIONAL";
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-start gap-4 pb-6 border-b border-border">
+    <div className="space-y-6">
+      <div className="flex flex-wrap justify-between items-start gap-3 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-extrabold text-text-primary">Confirmation Space</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">Confirmation Space</h1>
           <p className="text-xs text-text-secondary mt-1">
             Confirm your slot details and upload documentation to secure your team.
           </p>

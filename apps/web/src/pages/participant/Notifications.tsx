@@ -34,15 +34,15 @@ export function Notifications() {
   }
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto">
-      <div className="pb-6 border-b border-border flex justify-between items-center">
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="pb-5 border-b border-border flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-extrabold text-text-primary">Notifications</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">Notifications</h1>
           <p className="text-xs text-text-secondary mt-1">
             Stay updated with qualification reviews, submissions, and SLA notices.
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-bg-surface border border-border flex items-center justify-center text-brand-primary">
+        <div className="w-10 h-10 rounded-full bg-bg-surface border border-border flex items-center justify-center text-brand-primary shrink-0">
           <Bell className="w-5 h-5" />
         </div>
       </div>

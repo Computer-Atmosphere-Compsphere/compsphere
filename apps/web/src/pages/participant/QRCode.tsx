@@ -33,15 +33,15 @@ export function QRCode() {
   const isEligible = ["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status);
 
   return (
-    <div className="space-y-8">
-      <div className="pb-6 border-b border-border">
-        <h1 className="text-3xl font-extrabold text-text-primary">Attendance Pass</h1>
+    <div className="space-y-6">
+      <div className="pb-5 border-b border-border">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">Attendance Pass</h1>
         <p className="text-xs text-text-secondary mt-1">
           Access your timing-safe event entry QR code.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           {isEligible && tokenData?.token ? (
             <QRCard
@@ -49,10 +49,10 @@ export function QRCode() {
               participantName={user?.fullName || "Participant"}
               teamName={team.teamName}
               teamCode={team.teamCode}
-              className="max-w-md mx-auto"
+              className="w-full max-w-sm mx-auto md:max-w-none"
             />
           ) : (
-            <GlassPanel className="text-center p-12 max-w-md mx-auto space-y-4">
+            <GlassPanel className="text-center p-10 max-w-sm mx-auto space-y-4">
               <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto" />
               <h3 className="text-lg font-bold text-text-primary">QR Code Unavailable</h3>
               <p className="text-xs text-text-secondary leading-relaxed">

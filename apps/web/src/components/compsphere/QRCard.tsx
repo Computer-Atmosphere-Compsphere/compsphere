@@ -23,16 +23,17 @@ export function QRCard({
 
   useEffect(() => {
     if (!token || !canvasRef.current) return;
-    
+    // Responsive size: clamp between 200px (small mobile) and 280px
+    const size = Math.min(280, Math.max(200, window.innerWidth - 120));
     QRCode.toCanvas(
       canvasRef.current,
       token,
       {
-        width: 240,
+        width: size,
         margin: 2,
         color: {
-          dark: "#020807", // dark theme base
-          light: "#F4FFFC", // luminous primary light text
+          dark: "#020807",
+          light: "#F4FFFC",
         },
       },
       (err) => {
@@ -54,31 +55,31 @@ export function QRCard({
 
   return (
     <GlassPanel className={className}>
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-5">
         <QrCode className="w-5 h-5 text-brand-primary" />
-        <h3 className="font-bold text-lg text-text-primary">Attendance QR Code</h3>
+        <h3 className="font-bold text-base sm:text-lg text-text-primary">Attendance QR Code</h3>
       </div>
 
       <div className="flex flex-col items-center">
         {token ? (
-          <div className="bg-[#F4FFFC] p-3 rounded-lg shadow-brand-glow-sm">
-            <canvas ref={canvasRef} />
+          <div className="bg-[#F4FFFC] p-3 rounded-lg shadow-brand-glow-sm w-fit mx-auto">
+            <canvas ref={canvasRef} className="block max-w-full" />
           </div>
         ) : (
-          <div className="w-[240px] h-[240px] bg-bg-surface border border-dashed border-border rounded-lg flex items-center justify-center text-xs text-text-muted">
+          <div className="w-[220px] h-[220px] sm:w-[240px] sm:h-[240px] bg-bg-surface border border-dashed border-border rounded-lg flex items-center justify-center text-xs text-text-muted">
             QR loading...
           </div>
         )}
 
-        <div className="text-center mt-6">
-          <p className="font-bold text-text-primary">{participantName}</p>
+        <div className="text-center mt-5">
+          <p className="font-bold text-text-primary text-sm">{participantName}</p>
           <p className="text-xs text-text-secondary mt-1">
             {teamName} ({teamCode})
           </p>
         </div>
 
         {token && (
-          <NeonButton onClick={handleDownload} variant="secondary" size="sm" className="mt-6 w-full">
+          <NeonButton onClick={handleDownload} variant="secondary" size="sm" className="mt-5 w-full">
             <Download className="w-4 h-4 mr-2" />
             Download QR Code
           </NeonButton>

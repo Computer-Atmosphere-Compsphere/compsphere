@@ -47,15 +47,15 @@ export function Team() {
   const isLeader = user?.memberRole === "TEAM_LEADER";
 
   return (
-    <div className="space-y-8">
-      <div className="pb-6 border-b border-border">
-        <h1 className="text-3xl font-extrabold text-text-primary">Team Space</h1>
+    <div className="space-y-6">
+      <div className="pb-5 border-b border-border">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary">Team Space</h1>
         <p className="text-xs text-text-secondary mt-1">
           Manage team members and workspace invitation links.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
         {/* Members List */}
         <div className="md:col-span-2 space-y-4">
           <GlassPanel className="space-y-6">

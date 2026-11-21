@@ -113,15 +113,15 @@ export function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Header Block */}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-border">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 pb-5 border-b border-border">
         <div>
           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider bg-brand-dim px-2.5 py-0.5 rounded">
             {team.teamCode}
           </span>
-          <h1 className="text-3xl font-extrabold text-text-primary mt-2">{team.teamName}</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary mt-2">{team.teamName}</h1>
           <p className="text-xs text-text-secondary mt-1">Category: {team.category}</p>
         </div>
-        <StatusBadge status={team.status} className="text-sm px-4 py-1.5" />
+        <StatusBadge status={team.status} className="text-sm px-4 py-1.5 shrink-0" />
       </div>
 
       {/* Grid of SLA Countdown / Rank / Alerts */}

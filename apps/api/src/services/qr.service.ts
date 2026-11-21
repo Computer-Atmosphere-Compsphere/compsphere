@@ -34,7 +34,9 @@ export const qrService = {
 
   /**
    * Validate a QR code token and record attendance.
-   * Checks for duplication, invalidity, or team status.
+   * Team-level check: if ANY member of the team already checked in
+   * for this attendanceType today, the whole team is considered attended.
+   * The scanner who scanned is recorded, but the whole team is marked.
    */
   async scanQRToken(
     scannerId: string,
@@ -61,13 +63,19 @@ export const qrService = {
       // 3. Check team qualification status (must be verified or higher)
       const team = await tx.query.competitionTeams.findFirst({
         where: eq(schema.competitionTeams.id, token.teamId),
+        with: {
+          members: {
+            columns: { userId: true, role: true },
+            where: eq(schema.teamMembers.status, "ACTIVE"),
+          },
+        },
       });
 
       if (!team || !["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status)) {
         return { result: "NOT_ELIGIBLE" as const, message: "Team is not confirmed or has dropped." };
       }
 
-      // Get user profile
+      // Get the profile of the person whose QR was scanned
       const profile = await tx.query.profiles.findFirst({
         where: eq(schema.profiles.id, token.userId),
       });
@@ -76,31 +84,42 @@ export const qrService = {
         return { result: "INVALID" as const, message: "Associated profile not found." };
       }
 
-      // 4. Check for duplicate attendance on the same day/event type
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // 4. TEAM-LEVEL duplicate check:
+      //    If any member of this team already has an attendance record
+      //    for this attendanceType today → the whole team is already attended.
+      const teamMemberIds = (team.members ?? []).map((m: { userId: string }) => m.userId);
 
-      const existingAttendance = await tx.query.attendance.findFirst({
-        where: and(
-          eq(schema.attendance.userId, token.userId),
-          eq(schema.attendance.attendanceType, attendanceType),
-          sql`DATE(scanned_at) = DATE(NOW())`
-        ),
-      });
+      const existingTeamAttendance = teamMemberIds.length > 0
+        ? await tx.query.attendance.findFirst({
+            where: and(
+              eq(schema.attendance.teamId, token.teamId),
+              eq(schema.attendance.attendanceType, attendanceType),
+              sql`DATE(scanned_at) = DATE(NOW())`
+            ),
+            with: {
+              profile: { columns: { fullName: true } },
+            },
+          })
+        : null;
 
-      if (existingAttendance) {
+      if (existingTeamAttendance) {
+        const whoScanned = (existingTeamAttendance as any).profile?.fullName ?? "A team member";
+        const isSelf = existingTeamAttendance.userId === token.userId;
         return {
-          result: "ALREADY_SCANNED" as const,
+          result: "TEAM_ALREADY_ATTENDED" as const,
           participant: {
             fullName: profile.fullName,
             teamName: team.teamName,
             teamCode: team.teamCode,
           },
-          message: `${profile.fullName} already checked in for ${attendanceType} today.`,
+          alreadyScannedBy: whoScanned,
+          message: isSelf
+            ? `${profile.fullName} already checked in for ${attendanceType} today.`
+            : `Team "${team.teamName}" already checked in for ${attendanceType} today (by ${whoScanned}). No need to scan again.`,
         };
       }
 
-      // 5. Insert attendance record
+      // 5. Insert attendance record for the scanned user
       await tx.insert(schema.attendance).values({
         teamId: token.teamId,
         userId: token.userId,
@@ -113,7 +132,7 @@ export const qrService = {
         action: "ATTENDANCE_SCANNED",
         entityType: "attendance",
         entityId: token.userId,
-        metadata: { teamId: token.teamId, attendanceType },
+        metadata: { teamId: token.teamId, attendanceType, teamName: team.teamName },
       });
 
       return {
@@ -123,7 +142,7 @@ export const qrService = {
           teamName: team.teamName,
           teamCode: team.teamCode,
         },
-        message: `Successfully checked in ${profile.fullName} for ${attendanceType}!`,
+        message: `✓ ${profile.fullName} (${team.teamName}) checked in for ${attendanceType}!`,
       };
     });
   },

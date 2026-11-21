@@ -101506,8 +101506,8 @@ var teamService = {
     const topSlotsConfig = await db.query.systemConfig.findFirst({
       where: eq(schema_exports.systemConfig.key, "top30_total_slots")
     });
-    const topSlotsLimit = parseInt(topSlotsConfig?.value || "30");
-    const isQualified = team.category === "INTERNATIONAL" || team.originalRank !== null && team.originalRank >= 1 && team.originalRank <= topSlotsLimit;
+    const topSlotsLimit = parseInt(topSlotsConfig?.value || "40");
+    const isQualified = team.category === "INTERNATIONAL" || ["VERIFIED", "CONFIRMED", "PAYMENT_SUBMITTED", "PAYMENT_PENDING"].includes(team.status) || payments2.some((p) => p.status === "APPROVED") || team.originalRank !== null && team.originalRank >= 1 && team.originalRank <= topSlotsLimit;
     return {
       team: {
         ...team,

@@ -57,13 +57,17 @@ export function ParticipantLayout() {
   }
 
   // Determine qualification and verification status
-  const isQualified = myTeam?.team?.isQualified ?? true;
+  const teamStatus = myTeam?.team?.status;
   const isInternational = myTeam?.team?.category === "INTERNATIONAL";
   const latestPayment = myTeam?.payments?.[0] ?? null;
   const isPaymentApproved = latestPayment?.status === "APPROVED";
-  const teamStatus = myTeam?.team?.status;
   // Team is verified if international, payment is approved, or team status is VERIFIED
   const isVerified = isInternational || isPaymentApproved || teamStatus === "VERIFIED";
+  // Team is qualified if backend says so, or if they are verified/confirmed/paid
+  const isQualified =
+    myTeam?.team?.isQualified === true ||
+    isVerified ||
+    ["CONFIRMED", "PAYMENT_PENDING", "PAYMENT_SUBMITTED", "VERIFIED"].includes(teamStatus);
 
   // If user is not qualified and attempts to visit sub-pages, redirect to dashboard
   if (myTeam?.team && isQualified === false && location.pathname !== "/dashboard") {

@@ -48,8 +48,11 @@ export function Dashboard() {
 
   const { team, members, proposal, payments, submissions } = myTeam;
 
+  const isTeamVerified = team?.category === "INTERNATIONAL" || payments?.some((p: any) => p.status === "APPROVED") || team?.status === "VERIFIED";
+  const isTeamQualified = team?.isQualified !== false || isTeamVerified;
+
   // Restricted view for teams that did not qualify for Top 30/40
-  if (team?.isQualified === false) {
+  if (!isTeamQualified) {
     return (
       <div className="space-y-8 max-w-4xl">
         {/* Header */}

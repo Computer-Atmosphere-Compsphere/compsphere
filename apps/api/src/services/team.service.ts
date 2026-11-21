@@ -361,11 +361,14 @@ export const teamService = {
     const topSlotsConfig = await db.query.systemConfig.findFirst({
       where: eq(schema.systemConfig.key, "top30_total_slots"),
     });
-    const topSlotsLimit = parseInt(topSlotsConfig?.value || "30");
+    const topSlotsLimit = parseInt(topSlotsConfig?.value || "40");
     // International teams always qualify (no ranking restriction for them)
-    // National/Mix teams qualify only if their originalRank is within the top N slots
+    // Any team verified, confirmed, or with an approved payment qualifies
+    // National/Mix teams also qualify if their originalRank is within the top N slots
     const isQualified =
       team.category === "INTERNATIONAL" ||
+      ["VERIFIED", "CONFIRMED", "PAYMENT_SUBMITTED", "PAYMENT_PENDING"].includes(team.status) ||
+      payments.some((p) => p.status === "APPROVED") ||
       (team.originalRank !== null &&
         team.originalRank >= 1 &&
         team.originalRank <= topSlotsLimit);

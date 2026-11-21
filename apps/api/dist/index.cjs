@@ -102903,7 +102903,7 @@ var submissionService = {
         where: eq(schema_exports.competitionTeams.id, teamId)
       });
       if (!team) throw new AppError(404, "Team not found");
-      if (team.status !== "VERIFIED" && team.status !== "SUBMITTED" && team.status !== "SUBMISSION_OPEN") {
+      if (team.status !== "VERIFIED" && team.status !== "SUBMITTED" && team.status !== "JUDGED" && team.status !== "SUBMISSION_OPEN") {
         throw new AppError(400, "Your team must be verified before submitting deliverables.");
       }
       const existing = await tx.query.submissions.findFirst({
@@ -116214,7 +116214,15 @@ router9.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, re
       isFrozen = deadline && !isNaN(deadline.getTime()) ? /* @__PURE__ */ new Date() > deadline : false;
     } catch (_) {
     }
-    const assignments = rawRows.map((row) => {
+    let currentPhase = "1";
+    try {
+      const phaseConfig = await db.query.systemConfig.findFirst({
+        where: eq(schema_exports.systemConfig.key, "competition_phase")
+      });
+      if (phaseConfig) currentPhase = phaseConfig.value;
+    } catch (_) {
+    }
+    let filteredAssignments = rawRows.map((row) => {
       const pFiles = row.proposal_id ? filesMap[row.proposal_id] || [] : [];
       const mInfo = membersMap[row.team_id] || { count: 1 };
       return {
@@ -116253,12 +116261,18 @@ router9.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, re
         } : null
       };
     });
+    if (currentPhase === "PHASE2_JUDGING") {
+      filteredAssignments = filteredAssignments.filter(
+        (a) => a.team.status === "SUBMITTED"
+      );
+    }
     res.json({
       success: true,
       data: {
-        assignments,
+        assignments: filteredAssignments,
         isFrozen,
-        deadline: freezeConfig?.value ?? null
+        deadline: freezeConfig?.value ?? null,
+        phase: currentPhase
       }
     });
   } catch (error4) {
@@ -116387,11 +116401,23 @@ router9.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res
       notes: external_exports.string().optional()
     });
     const parsed = bodySchema.parse(req.body);
-    const freezeConfig = await db.query.systemConfig.findFirst({
-      where: eq(schema_exports.systemConfig.key, "submission_deadline")
+    const phase2ClosedConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema_exports.systemConfig.key, "judging_phase_2_closed")
     });
-    if (freezeConfig && /* @__PURE__ */ new Date() > new Date(freezeConfig.value)) {
-      throw new AppError(403, "Code freeze active \u2014 submission deadline has passed.", "CODE_FREEZE");
+    if (phase2ClosedConfig && phase2ClosedConfig.value === "true") {
+      throw new AppError(403, "Phase 2 judging is closed \u2014 scoring is no longer allowed.", "JUDGING_CLOSED");
+    }
+    const phaseConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema_exports.systemConfig.key, "competition_phase")
+    });
+    const isPhase2 = phaseConfig && (phaseConfig.value === "PHASE2_JUDGING" || phaseConfig.value === "PHASE2_CLOSED");
+    if (!isPhase2) {
+      const freezeConfig = await db.query.systemConfig.findFirst({
+        where: eq(schema_exports.systemConfig.key, "submission_deadline")
+      });
+      if (freezeConfig && /* @__PURE__ */ new Date() > new Date(freezeConfig.value)) {
+        throw new AppError(403, "Code freeze active \u2014 submission deadline has passed.", "CODE_FREEZE");
+      }
     }
     const result = await scoringService.submitScore(user.profileId, parsed.teamId, {
       technicalScore: parsed.technicalScore,
@@ -116830,6 +116856,223 @@ router9.post("/close-phase-1", requireAuth, requireRole("ADMIN"), async (req, re
     next(error4);
   }
 });
+router9.post("/open-phase-2-submission", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser;
+    const bodySchema = external_exports.object({
+      deadline: external_exports.string().optional()
+      // ISO string; defaults to 24h from now
+    });
+    const { deadline: deadlineStr } = bodySchema.parse(req.body);
+    const deadline = deadlineStr ? new Date(deadlineStr) : new Date(Date.now() + 24 * 60 * 60 * 1e3);
+    const result = await db.execute(sql2`
+      UPDATE competition_teams
+      SET status = 'SUBMISSION_OPEN', updated_at = NOW()
+      WHERE status IN ('SUBMITTED', 'JUDGED')
+    `);
+    const affectedRows = result.rowCount ?? result.count ?? 0;
+    await db.execute(sql2`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('phase2_submission_deadline', ${deadline.toISOString()}, 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = ${deadline.toISOString()}, updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+    await db.execute(sql2`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('competition_phase', 'PHASE2_SUBMISSION', 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = 'PHASE2_SUBMISSION', updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+    await auditService.log(null, {
+      actorId: admin.profileId,
+      action: "PHASE2_SUBMISSION_OPENED",
+      entityType: "system",
+      entityId: "phase-2-submission",
+      metadata: { teamsOpened: affectedRows, deadline: deadline.toISOString() }
+    });
+    sseService.broadcast("admin:phase_changed", { phase: "PHASE2_SUBMISSION" });
+    res.json({
+      success: true,
+      message: `Phase 2 final submission window opened for ${affectedRows} team(s). Deadline: ${deadline.toISOString()}`,
+      data: { teamsOpened: affectedRows, deadline: deadline.toISOString() }
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router9.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser;
+    const judgeRows = await db.execute(sql2`
+      SELECT j.id, pr.full_name
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      WHERE j.status = 'ACTIVE'
+      ORDER BY j.id ASC
+    `);
+    const judges2 = Array.isArray(judgeRows) ? judgeRows : judgeRows.rows ?? [];
+    if (judges2.length < 1) {
+      throw new AppError(400, "At least 1 active judge is required to generate Phase 2 assignments.");
+    }
+    const teamRows = await db.execute(sql2`
+      SELECT id, team_code, team_name, status
+      FROM competition_teams
+      WHERE status = 'SUBMITTED'
+      ORDER BY team_code ASC
+    `);
+    const teams = Array.isArray(teamRows) ? teamRows : teamRows.rows ?? [];
+    if (teams.length === 0) {
+      throw new AppError(400, "No SUBMITTED teams found. Teams must submit their Phase 2 deliverables first.");
+    }
+    const nJudges = judges2.length;
+    const nTeams = teams.length;
+    const JUDGES_PER_TEAM = Math.min(2, nJudges);
+    const assignments = [];
+    for (let i = 0; i < nTeams; i++) {
+      const teamId = teams[i].id;
+      for (let k = 0; k < JUDGES_PER_TEAM; k++) {
+        const judgeIdx = (i + k) % nJudges;
+        assignments.push({ judgeId: judges2[judgeIdx].id, teamId });
+      }
+    }
+    const seen = /* @__PURE__ */ new Set();
+    const uniqueAssignments = assignments.filter((a) => {
+      const key = `${a.judgeId}:${a.teamId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const submittedTeamIds = teams.map((t) => t.id);
+    if (submittedTeamIds.length > 0) {
+      await db.execute(sql2`
+        DELETE FROM judge_scores
+        WHERE team_id::text IN (${sql2.join(submittedTeamIds.map((id) => sql2`${id}`), sql2`, `)})
+      `);
+      await db.execute(sql2`
+        DELETE FROM judge_assignments
+        WHERE team_id::text IN (${sql2.join(submittedTeamIds.map((id) => sql2`${id}`), sql2`, `)})
+      `);
+    }
+    for (let i = 0; i < uniqueAssignments.length; i += 100) {
+      const batch = uniqueAssignments.slice(i, i + 100);
+      const valueClauses = batch.map(
+        (a) => sql2`(${a.judgeId}::uuid, ${a.teamId}::uuid, NOW())`
+      );
+      await db.execute(
+        sql2`INSERT INTO judge_assignments (judge_id, team_id, assigned_at) VALUES ${sql2.join(valueClauses, sql2`, `)}`
+      );
+    }
+    await db.execute(sql2`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('competition_phase', 'PHASE2_JUDGING', 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = 'PHASE2_JUDGING', updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+    await db.execute(sql2`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('judging_phase', '2', 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = '2', updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+    await auditService.log(null, {
+      actorId: admin.profileId,
+      action: "PHASE2_JUDGING_GENERATED",
+      entityType: "system",
+      entityId: "phase-2",
+      metadata: {
+        judgeCount: nJudges,
+        teamCount: nTeams,
+        assignmentCount: uniqueAssignments.length,
+        judges: judges2.map((j) => j.full_name || j.id)
+      }
+    });
+    sseService.broadcast("admin:phase_changed", { phase: "PHASE2_JUDGING" });
+    res.json({
+      success: true,
+      message: `Phase 2 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams.`,
+      data: {
+        assignments: uniqueAssignments.length,
+        judges: nJudges,
+        teams: nTeams,
+        summary: judges2.map((j) => ({
+          judgeId: j.id,
+          judgeName: j.full_name || "Unknown",
+          assignedCount: uniqueAssignments.filter((a) => a.judgeId === j.id).length
+        }))
+      }
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router9.post("/close-phase-2", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser;
+    const leaderboardRows = await db.execute(sql2`
+      SELECT
+        ct.id AS team_id,
+        ct.team_code,
+        ct.team_name,
+        ct.category,
+        ROUND(AVG(js.final_score)::numeric, 2) AS avg_score,
+        COUNT(js.id)::int AS judge_count
+      FROM competition_teams ct
+      INNER JOIN judge_scores js ON js.team_id = ct.id
+      WHERE ct.status = 'SUBMITTED'
+      GROUP BY ct.id, ct.team_code, ct.team_name, ct.category
+      ORDER BY avg_score DESC
+    `);
+    const leaderboard = Array.isArray(leaderboardRows) ? leaderboardRows : leaderboardRows.rows ?? [];
+    await db.transaction(async (tx) => {
+      await tx.insert(schema_exports.systemConfig).values({
+        key: "judging_phase_2_closed",
+        value: "true",
+        type: "BOOLEAN",
+        updatedAt: /* @__PURE__ */ new Date(),
+        updatedBy: admin.profileId
+      }).onConflictDoUpdate({
+        target: schema_exports.systemConfig.key,
+        set: { value: "true", updatedAt: /* @__PURE__ */ new Date(), updatedBy: admin.profileId }
+      });
+      await tx.insert(schema_exports.systemConfig).values({
+        key: "phase2_leaderboard",
+        value: JSON.stringify(leaderboard),
+        type: "STRING",
+        updatedAt: /* @__PURE__ */ new Date(),
+        updatedBy: admin.profileId
+      }).onConflictDoUpdate({
+        target: schema_exports.systemConfig.key,
+        set: { value: JSON.stringify(leaderboard), updatedAt: /* @__PURE__ */ new Date(), updatedBy: admin.profileId }
+      });
+      await tx.insert(schema_exports.systemConfig).values({
+        key: "competition_phase",
+        value: "PHASE2_CLOSED",
+        type: "STRING",
+        updatedAt: /* @__PURE__ */ new Date(),
+        updatedBy: admin.profileId
+      }).onConflictDoUpdate({
+        target: schema_exports.systemConfig.key,
+        set: { value: "PHASE2_CLOSED", updatedAt: /* @__PURE__ */ new Date(), updatedBy: admin.profileId }
+      });
+      await tx.execute(sql2`
+        UPDATE competition_teams
+        SET status = 'JUDGED', updated_at = NOW()
+        WHERE status = 'SUBMITTED'
+      `);
+      await auditService.log(tx, {
+        actorId: admin.profileId,
+        action: "PHASE_2_JUDGING_CLOSED",
+        entityType: "judging",
+        entityId: "phase_2",
+        metadata: { teamCount: leaderboard.length }
+      });
+    });
+    sseService.broadcast("admin:phase_changed", { phase: "PHASE2_CLOSED" });
+    res.json({
+      success: true,
+      message: `Phase 2 Judging closed. ${leaderboard.length} team(s) finalized.`,
+      data: { totalTeams: leaderboard.length }
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
 var judges_routes_default = router9;
 
 // src/routes/qr.routes.ts
@@ -116857,7 +117100,9 @@ var qrService = {
   },
   /**
    * Validate a QR code token and record attendance.
-   * Checks for duplication, invalidity, or team status.
+   * Team-level check: if ANY member of the team already checked in
+   * for this attendanceType today, the whole team is considered attended.
+   * The scanner who scanned is recorded, but the whole team is marked.
    */
   async scanQRToken(scannerId, rawToken, attendanceType) {
     const tokenHash = hashToken(rawToken);
@@ -116872,7 +117117,13 @@ var qrService = {
         return { result: "EXPIRED", message: "This QR code has expired." };
       }
       const team = await tx.query.competitionTeams.findFirst({
-        where: eq(schema_exports.competitionTeams.id, token.teamId)
+        where: eq(schema_exports.competitionTeams.id, token.teamId),
+        with: {
+          members: {
+            columns: { userId: true, role: true },
+            where: eq(schema_exports.teamMembers.status, "ACTIVE")
+          }
+        }
       });
       if (!team || !["VERIFIED", "SUBMITTED", "JUDGED"].includes(team.status)) {
         return { result: "NOT_ELIGIBLE", message: "Team is not confirmed or has dropped." };
@@ -116883,24 +117134,29 @@ var qrService = {
       if (!profile) {
         return { result: "INVALID", message: "Associated profile not found." };
       }
-      const today = /* @__PURE__ */ new Date();
-      today.setHours(0, 0, 0, 0);
-      const existingAttendance = await tx.query.attendance.findFirst({
+      const teamMemberIds = (team.members ?? []).map((m) => m.userId);
+      const existingTeamAttendance = teamMemberIds.length > 0 ? await tx.query.attendance.findFirst({
         where: and(
-          eq(schema_exports.attendance.userId, token.userId),
+          eq(schema_exports.attendance.teamId, token.teamId),
           eq(schema_exports.attendance.attendanceType, attendanceType),
           sql2`DATE(scanned_at) = DATE(NOW())`
-        )
-      });
-      if (existingAttendance) {
+        ),
+        with: {
+          profile: { columns: { fullName: true } }
+        }
+      }) : null;
+      if (existingTeamAttendance) {
+        const whoScanned = existingTeamAttendance.profile?.fullName ?? "A team member";
+        const isSelf = existingTeamAttendance.userId === token.userId;
         return {
-          result: "ALREADY_SCANNED",
+          result: "TEAM_ALREADY_ATTENDED",
           participant: {
             fullName: profile.fullName,
             teamName: team.teamName,
             teamCode: team.teamCode
           },
-          message: `${profile.fullName} already checked in for ${attendanceType} today.`
+          alreadyScannedBy: whoScanned,
+          message: isSelf ? `${profile.fullName} already checked in for ${attendanceType} today.` : `Team "${team.teamName}" already checked in for ${attendanceType} today (by ${whoScanned}). No need to scan again.`
         };
       }
       await tx.insert(schema_exports.attendance).values({
@@ -116914,7 +117170,7 @@ var qrService = {
         action: "ATTENDANCE_SCANNED",
         entityType: "attendance",
         entityId: token.userId,
-        metadata: { teamId: token.teamId, attendanceType }
+        metadata: { teamId: token.teamId, attendanceType, teamName: team.teamName }
       });
       return {
         result: "VALID",
@@ -116923,7 +117179,7 @@ var qrService = {
           teamName: team.teamName,
           teamCode: team.teamCode
         },
-        message: `Successfully checked in ${profile.fullName} for ${attendanceType}!`
+        message: `\u2713 ${profile.fullName} (${team.teamName}) checked in for ${attendanceType}!`
       };
     });
   }

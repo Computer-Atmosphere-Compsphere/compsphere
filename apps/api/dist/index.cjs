@@ -107,7 +107,7 @@ var require_main = __commonJS({
     var fs10 = require("fs");
     var path11 = require("path");
     var os4 = require("os");
-    var crypto16 = require("crypto");
+    var crypto15 = require("crypto");
     var packageJson = require_package();
     var version4 = packageJson.version;
     var LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
@@ -326,7 +326,7 @@ var require_main = __commonJS({
       const authTag = ciphertext.subarray(-16);
       ciphertext = ciphertext.subarray(12, -16);
       try {
-        const aesgcm = crypto16.createDecipheriv("aes-256-gcm", key, nonce);
+        const aesgcm = crypto15.createDecipheriv("aes-256-gcm", key, nonce);
         aesgcm.setAuthTag(authTag);
         return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
       } catch (error4) {
@@ -20468,14 +20468,14 @@ var require_etag = __commonJS({
   "../../node_modules/etag/index.js"(exports2, module2) {
     "use strict";
     module2.exports = etag;
-    var crypto16 = require("crypto");
+    var crypto15 = require("crypto");
     var Stats = require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash = crypto16.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash = crypto15.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash + '"';
     }
@@ -23368,11 +23368,11 @@ var require_request = __commonJS({
 // ../../node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/cookie-signature/index.js"(exports2) {
-    var crypto16 = require("crypto");
+    var crypto15 = require("crypto");
     exports2.sign = function(val, secret) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto16.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto15.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports2.unsign = function(val, secret) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -23381,7 +23381,7 @@ var require_cookie_signature = __commonJS({
       return sha1(mac2) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto16.createHash("sha1").update(str).digest("hex");
+      return crypto15.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -62111,10 +62111,10 @@ var require_disk = __commonJS({
     var fs10 = require("fs");
     var os4 = require("os");
     var path11 = require("path");
-    var crypto16 = require("crypto");
+    var crypto15 = require("crypto");
     var mkdirp = require_mkdirp();
     function getFilename(req, file, cb) {
-      crypto16.randomBytes(16, function(err, raw) {
+      crypto15.randomBytes(16, function(err, raw) {
         cb(err, err ? void 0 : raw.toString("hex"));
       });
     }
@@ -101045,34 +101045,6 @@ async function requireAuth(req, res, next) {
     next(error4);
   }
 }
-async function optionalAuth(req, res, next) {
-  try {
-    const session = await auth.api.getSession({
-      headers: new Headers(req.headers)
-    });
-    if (session?.user) {
-      const profile = await db.query.profiles.findFirst({
-        where: eq(schema_exports.profiles.email, session.user.email)
-      });
-      if (profile) {
-        req.sessionUser = {
-          authUserId: session.user.id,
-          profileId: profile.id,
-          email: profile.email,
-          fullName: profile.fullName,
-          avatarUrl: profile.avatarUrl,
-          role: "USER",
-          teamId: null,
-          memberRole: null,
-          onboardingStatus: profile.onboardingStatus
-        };
-      }
-    }
-    next();
-  } catch {
-    next();
-  }
-}
 async function requireGoogleSession(req, res, next) {
   try {
     console.log("\u{1F511} [requireGoogleSession] Request headers cookie:", req.headers.cookie);
@@ -117872,59 +117844,18 @@ var audit_routes_default = router15;
 
 // src/routes/sse.routes.ts
 var import_express15 = __toESM(require_express2());
-var import_crypto14 = __toESM(require("crypto"));
 var router16 = (0, import_express15.Router)();
-router16.get("/", optionalAuth, (req, res) => {
-  res.removeHeader("Cross-Origin-Opener-Policy");
-  res.removeHeader("Cross-Origin-Resource-Policy");
-  res.removeHeader("Origin-Agent-Cluster");
+router16.get("/", (_req, res) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
-    "Connection": "keep-alive",
+    "Connection": "close",
     "X-Accel-Buffering": "no"
   });
-  const clientId = import_crypto14.default.randomBytes(16).toString("hex");
   res.write(`: ok
 
 `);
-  sseService.addClient({
-    id: clientId,
-    res,
-    userId: req.sessionUser?.profileId,
-    teamId: req.sessionUser?.teamId || void 0,
-    role: req.sessionUser?.role
-  });
-  const pingInterval = setInterval(() => {
-    try {
-      res.write(`: ping
-
-`);
-    } catch {
-      cleanup();
-    }
-  }, 8e3);
-  const cycleTimer = setTimeout(() => {
-    try {
-      res.write(`event: heartbeat
-data: ${JSON.stringify({ type: "heartbeat", status: "cycle", timestamp: (/* @__PURE__ */ new Date()).toISOString() })}
-
-`);
-      res.end();
-    } catch {
-    }
-    cleanup();
-  }, 25e3);
-  let isCleanedUp = false;
-  function cleanup() {
-    if (isCleanedUp) return;
-    isCleanedUp = true;
-    clearInterval(pingInterval);
-    clearTimeout(cycleTimer);
-    sseService.removeClient(clientId);
-  }
-  req.on("close", cleanup);
-  res.on("finish", cleanup);
+  res.end();
 });
 var sse_routes_default = router16;
 
@@ -117933,7 +117864,7 @@ var import_express16 = __toESM(require_express2());
 var import_multer2 = __toESM(require_multer());
 var import_fs4 = __toESM(require("fs"));
 var import_path6 = __toESM(require("path"));
-var import_crypto15 = __toESM(require("crypto"));
+var import_crypto14 = __toESM(require("crypto"));
 init_storage();
 var PDFParse = null;
 async function loadPDFParse() {
@@ -118134,7 +118065,7 @@ ${xp}
         } else {
           await db.execute(sql2`
             INSERT INTO proposal_files (id, proposal_id, storage_key, original_filename, mime_type, size_bytes)
-            VALUES (${import_crypto15.default.randomUUID()}, ${p.id}, ${storageKey}, ${filename}, 'application/pdf', ${pdfBuf.length})
+            VALUES (${import_crypto14.default.randomUUID()}, ${p.id}, ${storageKey}, ${filename}, 'application/pdf', ${pdfBuf.length})
           `);
         }
         synced++;
@@ -118490,7 +118421,7 @@ router17.post("/submit-team", upload.single("proposalFile"), async (req, res, ne
         console.log(`[submit-team] Existing profile for ${targetEmail}:`, profile ? profile.id : "NOT FOUND");
         if (!profile) {
           [profile] = await tx.insert(schema_exports.profiles).values({
-            googleSub: `manual_${import_crypto15.default.randomUUID()}`,
+            googleSub: `manual_${import_crypto14.default.randomUUID()}`,
             email: targetEmail,
             fullName: member.fullName,
             preferredRole: "PARTICIPANT",

@@ -257,9 +257,11 @@ app.get("/api/health", (_req, res) => {
 // -------------------------------------------------------------------------
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 COMPSPHERE API running on http://localhost:${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/api/health`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 COMPSPHERE API running on http://localhost:${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/api/health`);
+  });
+}
 
 export default app;

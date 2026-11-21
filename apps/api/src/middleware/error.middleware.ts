@@ -20,12 +20,15 @@ export function errorHandler(
 ): void {
   // Ensure CORS headers are always present, even on errors
   const origin = req.headers.origin;
+  res.setHeader("Vary", "Origin");
   if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "https://www.compsphere12.id");
   }
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Cookie");
 
   // Zod validation errors
   if (err instanceof ZodError) {

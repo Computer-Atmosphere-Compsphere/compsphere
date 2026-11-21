@@ -1,11 +1,22 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "builds": [
     {
       "src": "dist/index.cjs",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**"]
+        "memory": 1024,
+        "maxDuration": 15,
+        "includeFiles": [
+          "node_modules/pg/**",
+          "node_modules/pg-types/**",
+          "node_modules/pgpass/**",
+          "node_modules/pdf-parse/**",
+          "node_modules/pdfjs-dist/**",
+          "node_modules/@napi-rs/**"
+        ]
       }
     }
   ],
@@ -14,10 +25,5 @@
       "src": "/(.*)",
       "dest": "dist/index.cjs"
     }
-  ],
-  "functions": {
-    "dist/index.cjs": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }

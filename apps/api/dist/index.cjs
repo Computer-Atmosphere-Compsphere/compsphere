@@ -100931,12 +100931,15 @@ var AppError = class extends Error {
 };
 function errorHandler(err, req, res, _next) {
   const origin = req.headers.origin;
+  res.setHeader("Vary", "Origin");
   if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "https://www.compsphere12.id");
   }
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Cookie");
   if (err instanceof ZodError) {
     res.status(400).json({
       success: false,
@@ -118742,10 +118745,12 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
 });
 app.use(errorHandler);
-app.listen(PORT, () => {
-  console.log(`\u{1F680} COMPSPHERE API running on http://localhost:${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/api/health`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\u{1F680} COMPSPHERE API running on http://localhost:${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/api/health`);
+  });
+}
 var index_default = app;
 /*! Bundled license information:
 

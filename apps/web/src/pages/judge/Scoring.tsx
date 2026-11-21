@@ -87,6 +87,7 @@ export function Scoring() {
   const team = assignment?.team;
   const existingScore = assignment?.score;
   const isFrozen = assignmentData?.isFrozen;
+  const phase = assignmentData?.phase;
 
   const syncPdfMutation = useMutation({
     mutationFn: () => api.post("/api/judges/sync-dummy-pdfs"),
@@ -358,6 +359,13 @@ export function Scoring() {
 
           {/* Scoring Form */}
           <form onSubmit={handleSubmit((data) => scoreMutation.mutate(data))} className="space-y-4">
+            {phase === "PHASE2_JUDGING" && (
+              <GlassPanel className="p-3 bg-amber-950/20 border border-amber-700/30">
+                <p className="text-xs text-amber-400 font-semibold">
+                  Phase 2 — Final Submission Judging. You are evaluating the team's final deliverables including their presentation slides and live deployment.
+                </p>
+              </GlassPanel>
+            )}
             {CRITERIA.map(({ key, label, weight, weightValue, description }) => (
               <GlassPanel key={key} className="p-4 space-y-3 hover:border-brand-primary/30 transition">
                 <div className="flex justify-between items-start">

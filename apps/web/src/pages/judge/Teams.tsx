@@ -112,6 +112,15 @@ export function JudgeTeams() {
             >
               {totalCount} TEAMS
             </span>
+            {data?.phase === "PHASE2_JUDGING" ? (
+              <span className="text-xs font-bold text-amber-400 bg-amber-950/40 border border-amber-700/40 px-2 py-0.5 rounded-full">
+                Phase 2 — Final Judging
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-brand-primary bg-brand-dim border border-brand-primary/20 px-2 py-0.5 rounded-full">
+                Phase 1 — Proposal Review
+              </span>
+            )}
           </div>
         </div>
 

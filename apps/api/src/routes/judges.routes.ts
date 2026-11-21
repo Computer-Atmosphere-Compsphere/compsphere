@@ -3,9 +3,10 @@ import { requireAuth } from "../middleware/auth.middleware";
 import { requireRole } from "../middleware/role.middleware";
 import { scoringService } from "../services/scoring.service";
 import { db, schema } from "@compsphere/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "../services/audit.service";
+import { sseService } from "../sse/sse.service";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
@@ -278,7 +279,17 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
       isFrozen = deadline && !isNaN(deadline.getTime()) ? new Date() > deadline : false;
     } catch (_) {}
 
-    const assignments = rawRows.map((row: any) => {
+    // Determine current competition phase
+    let currentPhase = "1";
+    try {
+      const phaseConfig = await db.query.systemConfig.findFirst({
+        where: eq(schema.systemConfig.key, "competition_phase"),
+      });
+      if (phaseConfig) currentPhase = phaseConfig.value;
+    } catch (_) {}
+
+    // For Phase 2 judging: only show assignments where team status is SUBMITTED
+    let filteredAssignments = rawRows.map((row: any) => {
       const pFiles = row.proposal_id ? (filesMap[row.proposal_id] || []) : [];
       const mInfo = membersMap[row.team_id] || { count: 1 };
 
@@ -323,12 +334,20 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
       };
     });
 
+    // If in PHASE2_JUDGING, only show teams with status SUBMITTED
+    if (currentPhase === "PHASE2_JUDGING") {
+      filteredAssignments = filteredAssignments.filter(
+        (a: any) => a.team.status === "SUBMITTED"
+      );
+    }
+
     res.json({
       success: true,
       data: {
-        assignments,
+        assignments: filteredAssignments,
         isFrozen,
         deadline: freezeConfig?.value ?? null,
+        phase: currentPhase,
       },
     });
   } catch (error) {
@@ -486,12 +505,26 @@ router.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res,
 
     const parsed = bodySchema.parse(req.body);
 
-    // Code freeze check
-    const freezeConfig = await db.query.systemConfig.findFirst({
-      where: eq(schema.systemConfig.key, "submission_deadline"),
+    // Code freeze check: frozen only if phase 2 judging is closed
+    const phase2ClosedConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema.systemConfig.key, "judging_phase_2_closed"),
     });
-    if (freezeConfig && new Date() > new Date(freezeConfig.value)) {
-      throw new AppError(403, "Code freeze active — submission deadline has passed.", "CODE_FREEZE");
+    if (phase2ClosedConfig && phase2ClosedConfig.value === "true") {
+      throw new AppError(403, "Phase 2 judging is closed — scoring is no longer allowed.", "JUDGING_CLOSED");
+    }
+
+    // Also check legacy phase-1 freeze only if we are NOT in phase 2 judging
+    const phaseConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema.systemConfig.key, "competition_phase"),
+    });
+    const isPhase2 = phaseConfig && (phaseConfig.value === "PHASE2_JUDGING" || phaseConfig.value === "PHASE2_CLOSED");
+    if (!isPhase2) {
+      const freezeConfig = await db.query.systemConfig.findFirst({
+        where: eq(schema.systemConfig.key, "submission_deadline"),
+      });
+      if (freezeConfig && new Date() > new Date(freezeConfig.value)) {
+        throw new AppError(403, "Code freeze active — submission deadline has passed.", "CODE_FREEZE");
+      }
     }
 
     const result = await scoringService.submitScore(user.profileId, parsed.teamId, {
@@ -1099,5 +1132,308 @@ router.post("/close-phase-1", requireAuth, requireRole("ADMIN"), async (req, res
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 2 — FINAL SUBMISSION + JUDGING LIFECYCLE
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Open Phase 2 final submission window for all SUBMITTED/JUDGED teams
+ * POST /api/judges/open-phase-2-submission
+ */
+router.post("/open-phase-2-submission", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser!;
+
+    const bodySchema = z.object({
+      deadline: z.string().optional(), // ISO string; defaults to 24h from now
+    });
+    const { deadline: deadlineStr } = bodySchema.parse(req.body);
+    const deadline = deadlineStr ? new Date(deadlineStr) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // 1. Open submission for all SUBMITTED or JUDGED teams
+    const result = await db.execute(sql`
+      UPDATE competition_teams
+      SET status = 'SUBMISSION_OPEN', updated_at = NOW()
+      WHERE status IN ('SUBMITTED', 'JUDGED')
+    `);
+    const affectedRows = (result as any).rowCount ?? (result as any).count ?? 0;
+
+    // 2. Set phase2 submission deadline in system_config
+    await db.execute(sql`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('phase2_submission_deadline', ${deadline.toISOString()}, 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = ${deadline.toISOString()}, updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+
+    // 3. Set competition phase to PHASE2_SUBMISSION
+    await db.execute(sql`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('competition_phase', 'PHASE2_SUBMISSION', 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = 'PHASE2_SUBMISSION', updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+
+    // 4. Audit log
+    await auditService.log(null, {
+      actorId: admin.profileId,
+      action: "PHASE2_SUBMISSION_OPENED",
+      entityType: "system",
+      entityId: "phase-2-submission",
+      metadata: { teamsOpened: affectedRows, deadline: deadline.toISOString() },
+    });
+
+    // 5. SSE broadcast
+    sseService.broadcast("admin:phase_changed", { phase: "PHASE2_SUBMISSION" });
+
+    res.json({
+      success: true,
+      message: `Phase 2 final submission window opened for ${affectedRows} team(s). Deadline: ${deadline.toISOString()}`,
+      data: { teamsOpened: affectedRows, deadline: deadline.toISOString() },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Generate Phase 2 judging assignments for all SUBMITTED teams
+ * POST /api/judges/generate-phase-2
+ */
+router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser!;
+
+    // 1. Get all active judges
+    const judgeRows = await db.execute(sql`
+      SELECT j.id, pr.full_name
+      FROM judges j
+      INNER JOIN profiles pr ON pr.id = j.user_id
+      WHERE j.status = 'ACTIVE'
+      ORDER BY j.id ASC
+    `);
+    const judges = (Array.isArray(judgeRows) ? judgeRows : (judgeRows as any).rows ?? []) as {
+      id: string;
+      full_name: string;
+    }[];
+
+    if (judges.length < 1) {
+      throw new AppError(400, "At least 1 active judge is required to generate Phase 2 assignments.");
+    }
+
+    // 2. Get only SUBMITTED teams (Phase 2 final submission done)
+    const teamRows = await db.execute(sql`
+      SELECT id, team_code, team_name, status
+      FROM competition_teams
+      WHERE status = 'SUBMITTED'
+      ORDER BY team_code ASC
+    `);
+    const teams = (Array.isArray(teamRows) ? teamRows : (teamRows as any).rows ?? []) as {
+      id: string;
+      team_code: string;
+      team_name: string;
+      status: string;
+    }[];
+
+    if (teams.length === 0) {
+      throw new AppError(400, "No SUBMITTED teams found. Teams must submit their Phase 2 deliverables first.");
+    }
+
+    const nJudges = judges.length;
+    const nTeams = teams.length;
+
+    // 3. Generate balanced 2-judge-per-team assignments using modular rotation
+    const JUDGES_PER_TEAM = Math.min(2, nJudges);
+    const assignments: { judgeId: string; teamId: string }[] = [];
+
+    for (let i = 0; i < nTeams; i++) {
+      const teamId = teams[i].id;
+      for (let k = 0; k < JUDGES_PER_TEAM; k++) {
+        const judgeIdx = (i + k) % nJudges;
+        assignments.push({ judgeId: judges[judgeIdx].id, teamId });
+      }
+    }
+
+    // 4. Deduplicate
+    const seen = new Set<string>();
+    const uniqueAssignments = assignments.filter((a) => {
+      const key = `${a.judgeId}:${a.teamId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // 5. Only remove existing assignments + scores for SUBMITTED teams (preserve Phase 1 data for other teams)
+    const submittedTeamIds = teams.map((t) => t.id);
+    if (submittedTeamIds.length > 0) {
+      await db.execute(sql`
+        DELETE FROM judge_scores
+        WHERE team_id::text IN (${sql.join(submittedTeamIds.map((id) => sql`${id}`), sql`, `)})
+      `);
+      await db.execute(sql`
+        DELETE FROM judge_assignments
+        WHERE team_id::text IN (${sql.join(submittedTeamIds.map((id) => sql`${id}`), sql`, `)})
+      `);
+    }
+
+    // 6. Bulk insert new assignments (batches of 100)
+    for (let i = 0; i < uniqueAssignments.length; i += 100) {
+      const batch = uniqueAssignments.slice(i, i + 100);
+      const valueClauses = batch.map(
+        (a) => sql`(${a.judgeId}::uuid, ${a.teamId}::uuid, NOW())`
+      );
+      await db.execute(
+        sql`INSERT INTO judge_assignments (judge_id, team_id, assigned_at) VALUES ${sql.join(valueClauses, sql`, `)}`
+      );
+    }
+
+    // 7. Set competition phase to PHASE2_JUDGING
+    await db.execute(sql`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('competition_phase', 'PHASE2_JUDGING', 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = 'PHASE2_JUDGING', updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+
+    await db.execute(sql`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('judging_phase', '2', 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = '2', updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+
+    // 8. Audit log
+    await auditService.log(null, {
+      actorId: admin.profileId,
+      action: "PHASE2_JUDGING_GENERATED",
+      entityType: "system",
+      entityId: "phase-2",
+      metadata: {
+        judgeCount: nJudges,
+        teamCount: nTeams,
+        assignmentCount: uniqueAssignments.length,
+        judges: judges.map((j) => (j as any).full_name || j.id),
+      },
+    });
+
+    // 9. SSE broadcast
+    sseService.broadcast("admin:phase_changed", { phase: "PHASE2_JUDGING" });
+
+    res.json({
+      success: true,
+      message: `Phase 2 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams.`,
+      data: {
+        assignments: uniqueAssignments.length,
+        judges: nJudges,
+        teams: nTeams,
+        summary: judges.map((j) => ({
+          judgeId: j.id,
+          judgeName: (j as any).full_name || "Unknown",
+          assignedCount: uniqueAssignments.filter((a) => a.judgeId === j.id).length,
+        })),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Close Phase 2 Judging — snapshot leaderboard & finalize
+ * POST /api/judges/close-phase-2
+ */
+router.post("/close-phase-2", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
+  try {
+    const admin = req.sessionUser!;
+
+    // Get Phase 2 leaderboard (only SUBMITTED teams)
+    const leaderboardRows = await db.execute(sql`
+      SELECT
+        ct.id AS team_id,
+        ct.team_code,
+        ct.team_name,
+        ct.category,
+        ROUND(AVG(js.final_score)::numeric, 2) AS avg_score,
+        COUNT(js.id)::int AS judge_count
+      FROM competition_teams ct
+      INNER JOIN judge_scores js ON js.team_id = ct.id
+      WHERE ct.status = 'SUBMITTED'
+      GROUP BY ct.id, ct.team_code, ct.team_name, ct.category
+      ORDER BY avg_score DESC
+    `);
+    const leaderboard = Array.isArray(leaderboardRows) ? leaderboardRows : (leaderboardRows as any).rows ?? [];
+
+    await db.transaction(async (tx) => {
+      // 1. Mark Phase 2 judging closed
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "judging_phase_2_closed",
+          value: "true",
+          type: "BOOLEAN",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: { value: "true", updatedAt: new Date(), updatedBy: admin.profileId },
+        });
+
+      // 2. Snapshot Phase 2 leaderboard
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "phase2_leaderboard",
+          value: JSON.stringify(leaderboard),
+          type: "STRING",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: { value: JSON.stringify(leaderboard), updatedAt: new Date(), updatedBy: admin.profileId },
+        });
+
+      // 3. Set competition phase to PHASE2_CLOSED
+      await tx
+        .insert(schema.systemConfig)
+        .values({
+          key: "competition_phase",
+          value: "PHASE2_CLOSED",
+          type: "STRING",
+          updatedAt: new Date(),
+          updatedBy: admin.profileId,
+        })
+        .onConflictDoUpdate({
+          target: schema.systemConfig.key,
+          set: { value: "PHASE2_CLOSED", updatedAt: new Date(), updatedBy: admin.profileId },
+        });
+
+      // 4. Mark all SUBMITTED teams as JUDGED
+      await tx.execute(sql`
+        UPDATE competition_teams
+        SET status = 'JUDGED', updated_at = NOW()
+        WHERE status = 'SUBMITTED'
+      `);
+
+      await auditService.log(tx, {
+        actorId: admin.profileId,
+        action: "PHASE_2_JUDGING_CLOSED",
+        entityType: "judging",
+        entityId: "phase_2",
+        metadata: { teamCount: leaderboard.length },
+      });
+    });
+
+    // 5. SSE broadcast
+    sseService.broadcast("admin:phase_changed", { phase: "PHASE2_CLOSED" });
+
+    res.json({
+      success: true,
+      message: `Phase 2 Judging closed. ${leaderboard.length} team(s) finalized.`,
+      data: { totalTeams: leaderboard.length },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+
 

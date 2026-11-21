@@ -71,15 +71,15 @@ export function Submission() {
   if (!myTeam) return null;
   const { team, submissions } = myTeam;
   const submission = submissions?.[0] ?? null;
-  const isLocked = deadlineData?.isExpired || team.status === "JUDGED";
+  const isLocked = deadlineData?.isExpired;
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-start gap-4 pb-6 border-b border-border">
         <div>
-          <h1 className="text-3xl font-extrabold text-text-primary">Deliverables Portal</h1>
+          <h1 className="text-3xl font-extrabold text-text-primary">Final Submission Portal</h1>
           <p className="text-xs text-text-secondary mt-1">
-            Submit your Phase 2 code repository and presentation slides.
+            Submit your final project: repository, presentation slides, and live deployment.
           </p>
         </div>
         {isLocked ? (
@@ -119,7 +119,7 @@ export function Submission() {
                   The submission window has closed. All mutations or updates are locked server-side.
                 </span>
               </div>
-            ) : !["VERIFIED", "SUBMISSION_OPEN", "SUBMITTED"].includes(team.status) ? (
+            ) : !["VERIFIED", "SUBMISSION_OPEN", "SUBMITTED", "JUDGED"].includes(team.status) ? (
               <div className="p-4 bg-bg-surface border border-border text-xs text-text-muted rounded flex gap-2">
                 <AlertCircle className="w-4.5 h-4.5 text-yellow-500 shrink-0" />
                 <span>

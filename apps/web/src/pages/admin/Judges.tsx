@@ -20,6 +20,7 @@ import {
   Lock,
   ArrowRight,
   AlertTriangle,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,9 @@ export function Judges() {
   const [expandedJudge, setExpandedJudge] = useState<string | null>(null);
   const [confirmGenerate, setConfirmGenerate] = useState(false);
   const [confirmClosePhase1, setConfirmClosePhase1] = useState(false);
+  const [confirmOpenPhase2, setConfirmOpenPhase2] = useState(false);
+  const [confirmGeneratePhase2, setConfirmGeneratePhase2] = useState(false);
+  const [confirmClosePhase2, setConfirmClosePhase2] = useState(false);
   const [confirmToggle, setConfirmToggle] = useState<{ judgeId: string; judgeName: string; currentStatus: string } | null>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<JudgeForm>();
 
@@ -124,6 +128,37 @@ export function Judges() {
     },
   });
 
+  const openPhase2Mutation = useMutation({
+    mutationFn: () => api.post('/api/judges/open-phase-2-submission', {
+      deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-judges'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-config'] });
+      setConfirmOpenPhase2(false);
+    },
+  });
+
+  const generatePhase2Mutation = useMutation({
+    mutationFn: () => api.post<any>('/api/judges/generate-phase-2'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-judges'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-judges-matrix'] });
+      setConfirmGeneratePhase2(false);
+    },
+  });
+
+  const closePhase2Mutation = useMutation({
+    mutationFn: () => api.post<any>('/api/judges/close-phase-2'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-judges'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-judges-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-judges-leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-config'] });
+      setConfirmClosePhase2(false);
+    },
+  });
+
   const onSubmit = (data: JudgeForm) => addJudgeMutation.mutate(data);
 
   const progress = leaderboardData?.progress;
@@ -183,6 +218,39 @@ export function Judges() {
           >
             <RefreshCw className={cn("w-3.5 h-3.5", generatePhase1Mutation.isPending && "animate-spin")} />
             {generatePhase1Mutation.isPending ? "Generating..." : "Generate Phase 1"}
+          </NeonButton>
+
+          <NeonButton
+            onClick={() => setConfirmOpenPhase2(true)}
+            disabled={openPhase2Mutation.isPending}
+            size="sm"
+            variant="secondary"
+            className="flex items-center gap-1.5 text-sky-400 border-sky-500/40 hover:border-sky-400 hover:text-sky-300"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            {openPhase2Mutation.isPending ? "Opening..." : "Open Final Submission"}
+          </NeonButton>
+
+          <NeonButton
+            onClick={() => setConfirmGeneratePhase2(true)}
+            disabled={generatePhase2Mutation.isPending}
+            size="sm"
+            variant="secondary"
+            className="flex items-center gap-1.5 text-violet-400 border-violet-500/40 hover:border-violet-400 hover:text-violet-300"
+          >
+            <Gavel className={cn("w-3.5 h-3.5", generatePhase2Mutation.isPending && "animate-spin")} />
+            {generatePhase2Mutation.isPending ? "Generating..." : "Generate Phase 2 Judging"}
+          </NeonButton>
+
+          <NeonButton
+            onClick={() => setConfirmClosePhase2(true)}
+            disabled={closePhase2Mutation.isPending}
+            size="sm"
+            variant="secondary"
+            className="flex items-center gap-1.5 text-amber-400 border-amber-500/40 hover:border-amber-400 hover:text-amber-300"
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            {closePhase2Mutation.isPending ? "Closing..." : "Close Phase 2 & Finalize"}
           </NeonButton>
 
           <NeonButton onClick={() => setShowForm(!showForm)} variant="ghost" size="sm" className="flex items-center gap-1.5 border border-border">
@@ -739,6 +807,138 @@ export function Judges() {
                     <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
                     Close & Proceed
                   </>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Open Phase 2 Submission Modal ── */}
+      {confirmOpenPhase2 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md p-6 rounded-xl bg-bg-surface border border-border shadow-xl space-y-5 text-left">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-base text-text-primary">Open Phase 2 Submission Window?</h3>
+                <p className="text-xs text-text-muted">Open Final Submission</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg bg-bg-primary/50 border border-border text-xs text-text-muted leading-relaxed">
+              This will unlock submission for all teams that have been judged (Phase 1 JUDGED teams), allowing them to upload their final deliverables.
+            </div>
+
+            {openPhase2Mutation.isError && (
+              <div className="p-3 rounded bg-red-950/30 border border-red-900/40 text-red-400 text-xs">
+                {(openPhase2Mutation.error as any)?.message || "Failed to open Phase 2 submission. Please try again."}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <NeonButton onClick={() => setConfirmOpenPhase2(false)} variant="secondary" size="sm" className="flex-1" disabled={openPhase2Mutation.isPending}>Cancel</NeonButton>
+              <NeonButton
+                onClick={() => openPhase2Mutation.mutate()}
+                disabled={openPhase2Mutation.isPending}
+                size="sm"
+                variant="primary"
+                className="flex-1"
+              >
+                {openPhase2Mutation.isPending ? (
+                  <><div className="w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin mr-1.5" />Opening...</>
+                ) : (
+                  <><Upload className="w-3.5 h-3.5 mr-1.5" />Open Final Submission</>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Generate Phase 2 Judging Modal ── */}
+      {confirmGeneratePhase2 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md p-6 rounded-xl bg-bg-surface border border-border shadow-xl space-y-5 text-left">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                <Gavel className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-base text-text-primary">Generate Phase 2 Judging Assignments?</h3>
+                <p className="text-xs text-text-muted">Generate Phase 2 Judging</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg bg-bg-primary/50 border border-border text-xs text-text-muted leading-relaxed">
+              This creates new judge assignments for all teams that have submitted Phase 2 deliverables. Only teams with status SUBMITTED will be assigned.
+            </div>
+
+            {generatePhase2Mutation.isError && (
+              <div className="p-3 rounded bg-red-950/30 border border-red-900/40 text-red-400 text-xs">
+                {(generatePhase2Mutation.error as any)?.message || "Failed to generate Phase 2 assignments. Please try again."}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <NeonButton onClick={() => setConfirmGeneratePhase2(false)} variant="secondary" size="sm" className="flex-1" disabled={generatePhase2Mutation.isPending}>Cancel</NeonButton>
+              <NeonButton
+                onClick={() => generatePhase2Mutation.mutate()}
+                disabled={generatePhase2Mutation.isPending}
+                size="sm"
+                variant="primary"
+                className="flex-1"
+              >
+                {generatePhase2Mutation.isPending ? (
+                  <><div className="w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin mr-1.5" />Generating...</>
+                ) : (
+                  <><Gavel className="w-3.5 h-3.5 mr-1.5" />Generate Phase 2 Judging</>
+                )}
+              </NeonButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Close Phase 2 Judging Modal ── */}
+      {confirmClosePhase2 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md p-6 rounded-xl bg-bg-surface border border-border shadow-xl space-y-5 text-left">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-base text-text-primary">Close Phase 2 Judging?</h3>
+                <p className="text-xs text-text-muted">Close Phase 2 & Finalize</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg bg-bg-primary/50 border border-border text-xs text-text-muted leading-relaxed">
+              This will freeze all Phase 2 judging scores, snapshot the final leaderboard, and mark all submitted teams as JUDGED. This action cannot be undone.
+            </div>
+
+            {closePhase2Mutation.isError && (
+              <div className="p-3 rounded bg-red-950/30 border border-red-900/40 text-red-400 text-xs">
+                {(closePhase2Mutation.error as any)?.message || "Failed to close Phase 2 judging. Please try again."}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <NeonButton onClick={() => setConfirmClosePhase2(false)} variant="secondary" size="sm" className="flex-1" disabled={closePhase2Mutation.isPending}>Cancel</NeonButton>
+              <NeonButton
+                onClick={() => closePhase2Mutation.mutate()}
+                disabled={closePhase2Mutation.isPending}
+                size="sm"
+                variant="primary"
+                className="flex-1"
+              >
+                {closePhase2Mutation.isPending ? (
+                  <><div className="w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin mr-1.5" />Closing...</>
+                ) : (
+                  <><Trophy className="w-3.5 h-3.5 mr-1.5" />Close Phase 2 & Finalize</>
                 )}
               </NeonButton>
             </div>

@@ -416,6 +416,7 @@ export type SSEEventType =
   | "payment:rejected"
   | "submission:locked"
   | "admin:counter_updated"
+  | "admin:phase_changed"
   | "notification:new"
   | "migration:team_added"
   | "heartbeat";

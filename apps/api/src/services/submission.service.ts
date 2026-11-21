@@ -40,7 +40,12 @@ export const submissionService = {
       });
 
       if (!team) throw new AppError(404, "Team not found");
-      if (team.status !== "VERIFIED" && team.status !== "SUBMITTED" && team.status !== "SUBMISSION_OPEN") {
+      if (
+        team.status !== "VERIFIED" &&
+        team.status !== "SUBMITTED" &&
+        team.status !== "JUDGED" &&
+        team.status !== "SUBMISSION_OPEN"
+      ) {
         throw new AppError(400, "Your team must be verified before submitting deliverables.");
       }
 

@@ -200,16 +200,18 @@ export function useSSE() {
           }
         }
 
-        // Stream ended unexpectedly
-        console.warn("[SSE] Stream ended unexpectedly.");
-        scheduleRetry();
+        // Stream ended cleanly (serverless 25s cycle) — seamlessly reconnect without marking offline
+        if (!unmounted) {
+          retryCount = 0;
+          retryTimer = setTimeout(connect, 1000);
+        }
       } catch (err: any) {
         if (err.name === "AbortError") {
           // Intentional abort — don't retry
           return;
         }
         console.warn("[SSE] Connection error:", err.message);
-        scheduleRetry();
+        healthFallback();
       }
     }
 

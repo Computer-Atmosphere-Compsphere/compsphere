@@ -117880,8 +117880,9 @@ router16.get("/", optionalAuth, (req, res) => {
   res.removeHeader("Origin-Agent-Cluster");
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "Connection": "keep-alive"
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no"
   });
   const clientId = import_crypto14.default.randomBytes(16).toString("hex");
   res.write(`: ok
@@ -117894,9 +117895,36 @@ router16.get("/", optionalAuth, (req, res) => {
     teamId: req.sessionUser?.teamId || void 0,
     role: req.sessionUser?.role
   });
-  req.on("close", () => {
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(`: ping
+
+`);
+    } catch {
+      cleanup();
+    }
+  }, 8e3);
+  const cycleTimer = setTimeout(() => {
+    try {
+      res.write(`event: heartbeat
+data: ${JSON.stringify({ type: "heartbeat", status: "cycle", timestamp: (/* @__PURE__ */ new Date()).toISOString() })}
+
+`);
+      res.end();
+    } catch {
+    }
+    cleanup();
+  }, 25e3);
+  let isCleanedUp = false;
+  function cleanup() {
+    if (isCleanedUp) return;
+    isCleanedUp = true;
+    clearInterval(pingInterval);
+    clearTimeout(cycleTimer);
     sseService.removeClient(clientId);
-  });
+  }
+  req.on("close", cleanup);
+  res.on("finish", cleanup);
 });
 var sse_routes_default = router16;
 

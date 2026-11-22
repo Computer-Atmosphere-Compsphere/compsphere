@@ -102854,6 +102854,18 @@ var payments_routes_default = router6;
 var import_express6 = __toESM(require_express2());
 
 // src/services/submission.service.ts
+init_storage();
+function getSlideUrl(slideStorageKey, slideFilename) {
+  if (!slideStorageKey) return null;
+  if (isHostinger) {
+    try {
+      return generatePresignedUrl(slideStorageKey, 3600, slideFilename ?? void 0);
+    } catch {
+      return `/api/uploads/${slideStorageKey.replace(/^\/?/, "")}`;
+    }
+  }
+  return `/api/uploads/${slideStorageKey.replace(/^\/?/, "")}`;
+}
 var submissionService = {
   /**
    * Get the configured submission deadline.
@@ -102934,6 +102946,227 @@ var submissionService = {
         team: true
       }
     });
+  },
+  /**
+   * Get all submissions with full team, proposal, and member details for admin / committee monitoring.
+   */
+  async getAdminSubmissions() {
+    const deadline = await this.getDeadline();
+    const isDeadlineExpired = /* @__PURE__ */ new Date() >= deadline;
+    const rawSubmissions = await db.query.submissions.findMany({
+      orderBy: (s, { desc: desc5 }) => [desc5(s.submittedAt)],
+      with: {
+        team: {
+          with: {
+            members: {
+              where: eq(schema_exports.teamMembers.status, "ACTIVE"),
+              with: { user: true }
+            },
+            proposal: {
+              with: {
+                files: true
+              }
+            }
+          }
+        }
+      }
+    });
+    const submissions2 = rawSubmissions.map((s) => {
+      const slideUrl = getSlideUrl(s.slideStorageKey, s.slideFilename);
+      const team = s.team;
+      const proposal = team?.proposal?.[0] ?? null;
+      const members = team?.members ?? [];
+      const leader = members.find((m) => m.role === "TEAM_LEADER") || members[0] || null;
+      return {
+        id: s.id,
+        teamId: s.teamId,
+        repositoryUrl: s.repositoryUrl,
+        deploymentUrl: s.deploymentUrl,
+        slideStorageKey: s.slideStorageKey,
+        slideFilename: s.slideFilename,
+        slideSizeBytes: s.slideSizeBytes,
+        submittedAt: s.submittedAt,
+        status: s.status,
+        slideUrl,
+        team: team ? {
+          id: team.id,
+          teamCode: team.teamCode,
+          teamName: team.teamName,
+          category: team.category,
+          countryMix: team.countryMix,
+          originalRank: team.originalRank,
+          status: team.status
+        } : null,
+        proposal: proposal ? {
+          id: proposal.id,
+          title: proposal.title,
+          description: proposal.description,
+          devpostUrl: proposal.devpostUrl,
+          files: proposal.files ?? []
+        } : null,
+        leader: leader?.user ? {
+          id: leader.user.id,
+          fullName: leader.user.fullName,
+          email: leader.user.email,
+          avatarUrl: leader.user.avatarUrl
+        } : null,
+        members: members.map((m) => ({
+          id: m.id,
+          role: m.role,
+          status: m.status,
+          user: m.user ? {
+            id: m.user.id,
+            fullName: m.user.fullName,
+            email: m.user.email,
+            avatarUrl: m.user.avatarUrl
+          } : null
+        }))
+      };
+    });
+    const submittedTeamIds = new Set(submissions2.map((s) => s.teamId));
+    const eligibleTeams = await db.query.competitionTeams.findMany({
+      where: inArray(schema_exports.competitionTeams.status, [
+        "VERIFIED",
+        "SUBMISSION_OPEN",
+        "SUBMITTED",
+        "JUDGED",
+        "FINALIST"
+      ]),
+      orderBy: [schema_exports.competitionTeams.teamCode],
+      with: {
+        members: {
+          where: eq(schema_exports.teamMembers.status, "ACTIVE"),
+          with: { user: true }
+        },
+        proposal: true
+      }
+    });
+    const missingTeams = eligibleTeams.filter((t) => !submittedTeamIds.has(t.id)).map((t) => {
+      const leader = t.members.find((m) => m.role === "TEAM_LEADER") || t.members[0];
+      const proposal = t.proposal?.[0];
+      return {
+        teamId: t.id,
+        teamCode: t.teamCode,
+        teamName: t.teamName,
+        category: t.category,
+        countryMix: t.countryMix,
+        status: t.status,
+        leader: leader?.user ? {
+          name: leader.user.fullName,
+          email: leader.user.email,
+          avatarUrl: leader.user.avatarUrl
+        } : null,
+        proposalTitle: proposal?.title || null,
+        memberCount: t.members.length
+      };
+    });
+    const totalSubmissions = submissions2.length;
+    const totalEligible = eligibleTeams.length;
+    const submissionRate = totalEligible > 0 ? Math.round(totalSubmissions / totalEligible * 100) : 0;
+    const withRepository = submissions2.filter((s) => !!s.repositoryUrl?.trim()).length;
+    const withDeployment = submissions2.filter((s) => !!s.deploymentUrl?.trim()).length;
+    const withSlide = submissions2.filter((s) => !!s.slideStorageKey).length;
+    const completeDeliverables = submissions2.filter(
+      (s) => !!s.repositoryUrl?.trim() && !!s.deploymentUrl?.trim() && !!s.slideStorageKey
+    ).length;
+    const metrics = {
+      totalSubmissions,
+      totalEligible,
+      submissionRate,
+      withRepository,
+      withDeployment,
+      withSlide,
+      completeDeliverables,
+      missingCount: missingTeams.length,
+      deadline: deadline.toISOString(),
+      isExpired: isDeadlineExpired
+    };
+    return {
+      submissions: submissions2,
+      missingTeams,
+      metrics
+    };
+  },
+  /**
+   * Get single submission details for admin / committee
+   */
+  async getSubmissionByTeamId(teamId) {
+    const team = await db.query.competitionTeams.findFirst({
+      where: eq(schema_exports.competitionTeams.id, teamId),
+      with: {
+        members: {
+          where: eq(schema_exports.teamMembers.status, "ACTIVE"),
+          with: { user: true }
+        },
+        proposal: {
+          with: { files: true }
+        }
+      }
+    });
+    if (!team) {
+      throw new AppError(404, "Team not found");
+    }
+    const submission = await db.query.submissions.findFirst({
+      where: eq(schema_exports.submissions.teamId, teamId)
+    });
+    const slideUrl = getSlideUrl(
+      submission?.slideStorageKey ?? null,
+      submission?.slideFilename ?? null
+    );
+    const proposal = team.proposal?.[0] ?? null;
+    const members = team.members ?? [];
+    const leader = members.find((m) => m.role === "TEAM_LEADER") || members[0] || null;
+    let auditLogs2 = [];
+    if (submission) {
+      auditLogs2 = await db.query.auditLogs.findMany({
+        where: eq(schema_exports.auditLogs.entityId, submission.id),
+        orderBy: (l, { desc: desc5 }) => [desc5(l.createdAt)],
+        limit: 10,
+        with: {
+          actor: true
+        }
+      });
+    }
+    return {
+      team: {
+        id: team.id,
+        teamCode: team.teamCode,
+        teamName: team.teamName,
+        category: team.category,
+        countryMix: team.countryMix,
+        originalRank: team.originalRank,
+        status: team.status
+      },
+      submission: submission ? {
+        ...submission,
+        slideUrl
+      } : null,
+      proposal: proposal ? {
+        id: proposal.id,
+        title: proposal.title,
+        description: proposal.description,
+        devpostUrl: proposal.devpostUrl,
+        files: proposal.files ?? []
+      } : null,
+      leader: leader?.user ? {
+        id: leader.user.id,
+        fullName: leader.user.fullName,
+        email: leader.user.email,
+        avatarUrl: leader.user.avatarUrl
+      } : null,
+      members: members.map((m) => ({
+        id: m.id,
+        role: m.role,
+        status: m.status,
+        user: m.user ? {
+          id: m.user.id,
+          fullName: m.user.fullName,
+          email: m.user.email,
+          avatarUrl: m.user.avatarUrl
+        } : null
+      })),
+      auditLogs: auditLogs2
+    };
   }
 };
 
@@ -115533,12 +115766,26 @@ router8.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req
       where: eq(schema_exports.systemConfig.key, "judging_phase_1_closed")
     });
     const isClosed = isClosedConfig?.value === "true";
+    const phaseConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema_exports.systemConfig.key, "competition_phase")
+    });
+    const currentPhase = phaseConfig?.value ?? "1";
+    const isPhase2 = currentPhase === "PHASE2_JUDGING" || currentPhase === "PHASE2_SUBMISSION" || currentPhase === "PHASE2_CLOSED";
+    if (isPhase2) {
+      leaderboard.sort((a, b) => (Number(b.average_score) || 0) - (Number(a.average_score) || 0));
+    }
+    leaderboard = leaderboard.map((item, idx) => ({
+      ...item,
+      rank: idx + 1
+    }));
     res.json({
       success: true,
       data: {
         isClosed,
         isEmailConfigured: emailService.isConfigured(),
-        leaderboard
+        leaderboard,
+        phase: currentPhase,
+        isPhase2
       }
     });
   } catch (error4) {
@@ -116297,9 +116544,9 @@ router9.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, re
         } : null
       };
     });
-    if (currentPhase === "PHASE2_JUDGING") {
+    if (currentPhase === "PHASE2_JUDGING" || currentPhase === "PHASE2_SUBMISSION" || currentPhase === "PHASE2_CLOSED") {
       filteredAssignments = filteredAssignments.filter(
-        (a) => a.team.status === "SUBMITTED"
+        (a) => a.team.submission !== null
       );
     }
     res.json({
@@ -116462,6 +116709,19 @@ router9.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res
       marketScore: parsed.marketScore,
       documentScore: parsed.documentScore
     });
+    if (isPhase2) {
+      try {
+        const liveLb = await scoringService.getLeaderboard();
+        await db.execute(sql2`
+          INSERT INTO system_config (key, value, type, updated_at, updated_by)
+          VALUES ('phase1_leaderboard', ${JSON.stringify(liveLb)}, 'STRING', NOW(), ${user.profileId})
+          ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(liveLb)}, updated_at = NOW(), updated_by = ${user.profileId}
+        `);
+        sseService.broadcast("battle_royale:slot_updated", { totalTeams: liveLb.length });
+      } catch (syncErr) {
+        console.warn("[submit-score] Failed to sync Phase 2 scores to BR leaderboard:", syncErr);
+      }
+    }
     res.json({
       success: true,
       message: "Score submitted successfully.",
@@ -116949,24 +117209,22 @@ router9.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req,
       throw new AppError(400, "At least 1 active judge is required to generate Phase 2 assignments.");
     }
     const teamRows = await db.execute(sql2`
-      SELECT id, team_code, team_name, status
-      FROM competition_teams
-      WHERE status = 'SUBMITTED'
-      ORDER BY team_code ASC
+      SELECT ct.id, ct.team_code, ct.team_name, ct.status
+      FROM competition_teams ct
+      INNER JOIN submissions s ON s.team_id = ct.id
+      WHERE ct.status IN ('SUBMITTED', 'JUDGED')
+      ORDER BY ct.team_code ASC
     `);
     const teams = Array.isArray(teamRows) ? teamRows : teamRows.rows ?? [];
     if (teams.length === 0) {
-      throw new AppError(400, "No SUBMITTED teams found. Teams must submit their Phase 2 deliverables first.");
+      throw new AppError(400, "No teams with submitted deliverables found. Teams must upload their Phase 2 deliverables (repository, demo, or slides) before judging can be generated.");
     }
     const nJudges = judges2.length;
     const nTeams = teams.length;
-    const JUDGES_PER_TEAM = Math.min(2, nJudges);
     const assignments = [];
-    for (let i = 0; i < nTeams; i++) {
-      const teamId = teams[i].id;
-      for (let k = 0; k < JUDGES_PER_TEAM; k++) {
-        const judgeIdx = (i + k) % nJudges;
-        assignments.push({ judgeId: judges2[judgeIdx].id, teamId });
+    for (const team of teams) {
+      for (const judge of judges2) {
+        assignments.push({ judgeId: judge.id, teamId: team.id });
       }
     }
     const seen = /* @__PURE__ */ new Set();
@@ -117006,6 +117264,12 @@ router9.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req,
       VALUES ('judging_phase', '2', 'STRING', NOW(), ${admin.profileId})
       ON CONFLICT (key) DO UPDATE SET value = '2', updated_at = NOW(), updated_by = ${admin.profileId}
     `);
+    const currentLeaderboard = await scoringService.getLeaderboard();
+    await db.execute(sql2`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('phase1_leaderboard', ${JSON.stringify(currentLeaderboard)}, 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(currentLeaderboard)}, updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
     await auditService.log(null, {
       actorId: admin.profileId,
       action: "PHASE2_JUDGING_GENERATED",
@@ -117019,9 +117283,10 @@ router9.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req,
       }
     });
     sseService.broadcast("admin:phase_changed", { phase: "PHASE2_JUDGING" });
+    sseService.broadcast("battle_royale:slot_updated", { totalTeams: currentLeaderboard.length });
     res.json({
       success: true,
-      message: `Phase 2 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams.`,
+      message: `Phase 2 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams (each team evaluated by all ${nJudges} judges).`,
       data: {
         assignments: uniqueAssignments.length,
         judges: nJudges,
@@ -117614,6 +117879,29 @@ router12.patch("/teams/:teamId", async (req, res, next) => {
       success: true,
       message: "Team updated successfully.",
       data: result
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router12.get("/submissions", async (req, res, next) => {
+  try {
+    const data = await submissionService.getAdminSubmissions();
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error4) {
+    next(error4);
+  }
+});
+router12.get("/submissions/:teamId", async (req, res, next) => {
+  try {
+    const { teamId } = req.params;
+    const data = await submissionService.getSubmissionByTeamId(teamId);
+    res.json({
+      success: true,
+      data
     });
   } catch (error4) {
     next(error4);

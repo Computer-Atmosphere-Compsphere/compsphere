@@ -32,6 +32,10 @@ export function JudgeDashboard() {
   const scored = assignments.filter((a) => a.score);
   const pending = assignments.filter((a) => !a.score);
   const isFrozen = data?.isFrozen;
+  const isPhase2 =
+    data?.phase === "PHASE2_JUDGING" ||
+    data?.phase === "PHASE2_SUBMISSION" ||
+    data?.phase === "PHASE2_CLOSED";
 
   const totalCount = assignments.length;
   const scoredCount = scored.length;
@@ -71,12 +75,12 @@ export function JudgeDashboard() {
             <span
               className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase"
               style={{
-                background: "rgba(0,245,200,0.08)",
-                border: "1px solid rgba(0,245,200,0.2)",
-                color: "#00f5c8",
+                background: isPhase2 ? "rgba(245,158,11,0.12)" : "rgba(0,245,200,0.08)",
+                border: isPhase2 ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(0,245,200,0.2)",
+                color: isPhase2 ? "#f59e0b" : "#00f5c8",
               }}
             >
-              Phase 1 Evaluation
+              {isPhase2 ? "Phase 2 Final Evaluation" : "Phase 1 Evaluation"}
             </span>
           </div>
 

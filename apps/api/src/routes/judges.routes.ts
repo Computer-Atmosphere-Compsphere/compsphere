@@ -355,10 +355,17 @@ router.get("/my-assignments", requireAuth, requireRole("JUDGE"), async (req, res
       };
     });
 
-    // If in PHASE2_JUDGING, only show teams with status SUBMITTED
-    if (currentPhase === "PHASE2_JUDGING") {
+    // In PHASE2_JUDGING (or any phase 2 variant), only show teams that have
+    // actually submitted their deliverables (submission record exists).
+    // We rely on sub.id being present in the row — teams without a submission
+    // are excluded so judges only see teams with real deliverables to evaluate.
+    if (
+      currentPhase === "PHASE2_JUDGING" ||
+      currentPhase === "PHASE2_SUBMISSION" ||
+      currentPhase === "PHASE2_CLOSED"
+    ) {
       filteredAssignments = filteredAssignments.filter(
-        (a: any) => a.team.status === "SUBMITTED"
+        (a: any) => a.team.submission !== null
       );
     }
 
@@ -555,6 +562,21 @@ router.post("/submit-score", requireAuth, requireRole("JUDGE"), async (req, res,
       marketScore: parsed.marketScore,
       documentScore: parsed.documentScore,
     });
+
+    // In Phase 2: automatically sync the updated scores to Battle Royale leaderboard snapshot
+    if (isPhase2) {
+      try {
+        const liveLb = await scoringService.getLeaderboard();
+        await db.execute(sql`
+          INSERT INTO system_config (key, value, type, updated_at, updated_by)
+          VALUES ('phase1_leaderboard', ${JSON.stringify(liveLb)}, 'STRING', NOW(), ${user.profileId})
+          ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(liveLb)}, updated_at = NOW(), updated_by = ${user.profileId}
+        `);
+        sseService.broadcast("battle_royale:slot_updated", { totalTeams: liveLb.length });
+      } catch (syncErr) {
+        console.warn("[submit-score] Failed to sync Phase 2 scores to BR leaderboard:", syncErr);
+      }
+    }
 
     res.json({
       success: true,
@@ -1216,7 +1238,7 @@ router.post("/open-phase-2-submission", requireAuth, requireRole("ADMIN"), async
 });
 
 /**
- * Generate Phase 2 judging assignments for all SUBMITTED teams
+ * Generate Phase 2 judging assignments for all teams that have submitted deliverables
  * POST /api/judges/generate-phase-2
  */
 router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, res, next) => {
@@ -1240,12 +1262,17 @@ router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, 
       throw new AppError(400, "At least 1 active judge is required to generate Phase 2 assignments.");
     }
 
-    // 2. Get only SUBMITTED teams (Phase 2 final submission done)
+    // 2. Get teams that have actually delivered their Phase 2 submission
+    // We join competition_teams with submissions so only teams with a real
+    // submission record (repo / demo / slide uploaded) are included.
+    // Teams with status SUBMITTED or JUDGED that also have a submission row
+    // are eligible; pure status check is NOT sufficient.
     const teamRows = await db.execute(sql`
-      SELECT id, team_code, team_name, status
-      FROM competition_teams
-      WHERE status = 'SUBMITTED'
-      ORDER BY team_code ASC
+      SELECT ct.id, ct.team_code, ct.team_name, ct.status
+      FROM competition_teams ct
+      INNER JOIN submissions s ON s.team_id = ct.id
+      WHERE ct.status IN ('SUBMITTED', 'JUDGED')
+      ORDER BY ct.team_code ASC
     `);
     const teams = (Array.isArray(teamRows) ? teamRows : (teamRows as any).rows ?? []) as {
       id: string;
@@ -1255,21 +1282,19 @@ router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, 
     }[];
 
     if (teams.length === 0) {
-      throw new AppError(400, "No SUBMITTED teams found. Teams must submit their Phase 2 deliverables first.");
+      throw new AppError(400, "No teams with submitted deliverables found. Teams must upload their Phase 2 deliverables (repository, demo, or slides) before judging can be generated.");
     }
 
     const nJudges = judges.length;
     const nTeams = teams.length;
 
-    // 3. Generate balanced 2-judge-per-team assignments using modular rotation
-    const JUDGES_PER_TEAM = Math.min(2, nJudges);
+    // 3. Phase 2 Concept: Every eligible team is evaluated by ALL available active judges
+    // All judges on the panel will score every single submitted team.
     const assignments: { judgeId: string; teamId: string }[] = [];
 
-    for (let i = 0; i < nTeams; i++) {
-      const teamId = teams[i].id;
-      for (let k = 0; k < JUDGES_PER_TEAM; k++) {
-        const judgeIdx = (i + k) % nJudges;
-        assignments.push({ judgeId: judges[judgeIdx].id, teamId });
+    for (const team of teams) {
+      for (const judge of judges) {
+        assignments.push({ judgeId: judge.id, teamId: team.id });
       }
     }
 
@@ -1282,7 +1307,7 @@ router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, 
       return true;
     });
 
-    // 5. Only remove existing assignments + scores for SUBMITTED teams (preserve Phase 1 data for other teams)
+    // 5. Only remove existing assignments + scores for teams with deliverables (preserve Phase 1 data)
     const submittedTeamIds = teams.map((t) => t.id);
     if (submittedTeamIds.length > 0) {
       await db.execute(sql`
@@ -1319,7 +1344,15 @@ router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, 
       ON CONFLICT (key) DO UPDATE SET value = '2', updated_at = NOW(), updated_by = ${admin.profileId}
     `);
 
-    // 8. Audit log
+    // 8. Sync latest scores into Battle Royale leaderboard snapshot
+    const currentLeaderboard = await scoringService.getLeaderboard();
+    await db.execute(sql`
+      INSERT INTO system_config (key, value, type, updated_at, updated_by)
+      VALUES ('phase1_leaderboard', ${JSON.stringify(currentLeaderboard)}, 'STRING', NOW(), ${admin.profileId})
+      ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(currentLeaderboard)}, updated_at = NOW(), updated_by = ${admin.profileId}
+    `);
+
+    // 9. Audit log
     await auditService.log(null, {
       actorId: admin.profileId,
       action: "PHASE2_JUDGING_GENERATED",
@@ -1333,12 +1366,13 @@ router.post("/generate-phase-2", requireAuth, requireRole("ADMIN"), async (req, 
       },
     });
 
-    // 9. SSE broadcast
+    // 10. SSE broadcast
     sseService.broadcast("admin:phase_changed", { phase: "PHASE2_JUDGING" });
+    sseService.broadcast("battle_royale:slot_updated", { totalTeams: currentLeaderboard.length });
 
     res.json({
       success: true,
-      message: `Phase 2 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams.`,
+      message: `Phase 2 judging generated: ${uniqueAssignments.length} assignments across ${nJudges} judges and ${nTeams} teams (each team evaluated by all ${nJudges} judges).`,
       data: {
         assignments: uniqueAssignments.length,
         judges: nJudges,

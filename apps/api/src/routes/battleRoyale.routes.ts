@@ -222,12 +222,35 @@ router.get("/phase1-leaderboard", requireAuth, requireRole("ADMIN"), async (req,
     });
     const isClosed = isClosedConfig?.value === "true";
 
+    // Determine current competition phase
+    const phaseConfig = await db.query.systemConfig.findFirst({
+      where: eq(schema.systemConfig.key, "competition_phase"),
+    });
+    const currentPhase = phaseConfig?.value ?? "1";
+    const isPhase2 =
+      currentPhase === "PHASE2_JUDGING" ||
+      currentPhase === "PHASE2_SUBMISSION" ||
+      currentPhase === "PHASE2_CLOSED";
+
+    // In Phase 2: automatically sort leaderboard by latest average score across all judges
+    if (isPhase2) {
+      leaderboard.sort((a, b) => (Number(b.average_score) || 0) - (Number(a.average_score) || 0));
+    }
+
+    // Recalculate rank order
+    leaderboard = leaderboard.map((item, idx) => ({
+      ...item,
+      rank: idx + 1,
+    }));
+
     res.json({
       success: true,
       data: {
         isClosed,
         isEmailConfigured: emailService.isConfigured(),
         leaderboard,
+        phase: currentPhase,
+        isPhase2,
       },
     });
   } catch (error) {

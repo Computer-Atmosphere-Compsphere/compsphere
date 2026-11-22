@@ -364,6 +364,7 @@ export function BattleRoyale() {
   const claimed = slots.filter((s) => s.claimedBy);
   const available = slots.filter((s) => !s.claimedBy);
   const isClosed = Boolean(leaderboardResponse?.isClosed ?? leaderboardResponse?.data?.isClosed);
+  const isPhase2 = Boolean(leaderboardResponse?.isPhase2 ?? leaderboardResponse?.data?.isPhase2);
 
   // Filtered leaderboard for search and filters
   const filteredTeams = currentTeams
@@ -435,7 +436,11 @@ export function BattleRoyale() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-text-primary">Battle Royale & Phase 2 Management</h1>
-            {isClosed ? (
+            {isPhase2 ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                <Sparkles className="w-3.5 h-3.5" /> Phase 2 Live Standings (All Judges)
+              </span>
+            ) : isClosed ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Phase 1 Finalized
               </span>

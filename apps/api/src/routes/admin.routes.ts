@@ -7,6 +7,7 @@ import { eq, desc, ilike, or, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { auditService } from "../services/audit.service";
 import { AppError } from "../middleware/error.middleware";
+import { submissionService } from "../services/submission.service";
 
 const SCORE_SECURITY_PASSWORD =
   process.env.SCORE_OVERRIDE_AUTH_PASSWORD || "compsphere12jayajayajaya";
@@ -419,6 +420,39 @@ router.patch("/teams/:teamId", async (req, res, next) => {
       success: true,
       message: "Team updated successfully.",
       data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Get all team submissions for admin / committee monitoring
+ * GET /api/admin/submissions
+ */
+router.get("/submissions", async (req, res, next) => {
+  try {
+    const data = await submissionService.getAdminSubmissions();
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Get single submission details for admin / committee
+ * GET /api/admin/submissions/:teamId
+ */
+router.get("/submissions/:teamId", async (req, res, next) => {
+  try {
+    const { teamId } = req.params;
+    const data = await submissionService.getSubmissionByTeamId(teamId);
+    res.json({
+      success: true,
+      data,
     });
   } catch (error) {
     next(error);

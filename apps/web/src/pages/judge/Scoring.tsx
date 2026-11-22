@@ -24,6 +24,8 @@ import {
   ChevronUp,
   Star,
   AlertTriangle,
+  FileImage,
+  MonitorPlay,
 } from "lucide-react";
 
 interface ScoreForm {
@@ -139,6 +141,174 @@ function Section({
   );
 }
 
+// ─── Presentation Viewer ─────────────────────────────────────────────────────
+
+type ViewMode = "embed" | "office" | "google" | "download";
+
+function PresentationViewer({
+  rawUrl,
+  filename,
+  teamName,
+  slideData,
+}: {
+  rawUrl: string;
+  filename: string | null;
+  teamName: string;
+  slideData: any;
+}) {
+  const ext = filename?.split(".").pop()?.toLowerCase() ?? "";
+  const isPptx = ext === "pptx" || ext === "ppt";
+  const isPdf = ext === "pdf";
+
+  // If rawUrl is relative (e.g. /api/uploads/...), convert to absolute URL for external viewers
+  const absoluteUrl = rawUrl.startsWith("http")
+    ? rawUrl
+    : typeof window !== "undefined"
+    ? `${window.location.origin}${rawUrl}`
+    : rawUrl;
+
+  // For PPTX: default to Microsoft Office Online viewer
+  // For PDF: default to native embed
+  const [mode, setMode] = useState<ViewMode>(isPptx ? "office" : "embed");
+
+  const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteUrl)}`;
+  const googleUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteUrl)}&embedded=true`;
+
+  const viewerSrc = mode === "office" ? officeUrl : mode === "google" ? googleUrl : rawUrl;
+
+  const fileLabel = isPptx ? "PPTX" : isPdf ? "PDF" : ext.toUpperCase() || "File";
+
+  return (
+    <div className="space-y-2">
+      {/* Viewer mode selector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted">View As:</span>
+        <div
+          className="flex items-center rounded border overflow-hidden text-[10px] font-bold"
+          style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+        >
+          {isPptx && (
+            <button
+              onClick={() => setMode("office")}
+              className="px-2.5 py-1 transition-all"
+              style={{
+                background: mode === "office" ? "rgba(99,102,241,0.18)" : "transparent",
+                color: mode === "office" ? "#a5b4fc" : "rgba(255,255,255,0.4)",
+              }}
+            >
+              🖥 Office Online
+            </button>
+          )}
+          <button
+            onClick={() => setMode("google")}
+            className="px-2.5 py-1 transition-all"
+            style={{
+              background: mode === "google" ? "rgba(59,130,246,0.18)" : "transparent",
+              color: mode === "google" ? "#93c5fd" : "rgba(255,255,255,0.4)",
+            }}
+          >
+            🌐 Google Viewer
+          </button>
+          {isPdf && (
+            <button
+              onClick={() => setMode("embed")}
+              className="px-2.5 py-1 transition-all"
+              style={{
+                background: mode === "embed" ? "rgba(139,92,246,0.18)" : "transparent",
+                color: mode === "embed" ? "#c4b5fd" : "rgba(255,255,255,0.4)",
+              }}
+            >
+              📄 Native PDF
+            </button>
+          )}
+        </div>
+
+        {/* File type badge */}
+        <span
+          className="text-[9px] font-bold px-1.5 py-0.5 rounded border"
+          style={{
+            background: isPptx ? "rgba(99,102,241,0.08)" : "rgba(139,92,246,0.08)",
+            borderColor: isPptx ? "rgba(99,102,241,0.3)" : "rgba(139,92,246,0.3)",
+            color: isPptx ? "#a5b4fc" : "#c4b5fd",
+          }}
+        >
+          {fileLabel}
+        </span>
+      </div>
+
+      {/* Presentation frame */}
+      <div
+        className="rounded-xl overflow-hidden relative"
+        style={{ border: "1px solid rgba(139,92,246,0.25)" }}
+      >
+        {mode === "embed" ? (
+          <object
+            data={rawUrl}
+            type="application/pdf"
+            className="w-full border-0"
+            style={{ height: "520px", background: "#fff" }}
+          >
+            <iframe
+              src={rawUrl}
+              className="w-full border-0"
+              style={{ height: "520px", background: "#fff" }}
+              title={`Presentation – ${teamName}`}
+            />
+          </object>
+        ) : (
+          <iframe
+            key={mode}
+            src={viewerSrc}
+            className="w-full border-0"
+            style={{ height: "520px", background: "#1a1a2e" }}
+            title={`Presentation – ${teamName}`}
+            allowFullScreen
+          />
+        )}
+
+        {/* Info bar */}
+        <div
+          className="px-3 py-2 flex items-center gap-3 text-xs text-text-muted"
+          style={{ background: "rgba(0,0,0,0.35)", borderTop: "1px solid rgba(139,92,246,0.15)" }}
+        >
+          {isPptx ? (
+            <FileImage className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+          ) : (
+            <Presentation className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+          )}
+          <span className="font-semibold text-text-primary truncate">{filename || "presentation"}</span>
+          {slideData?.slideSizeBytes && (
+            <span className="shrink-0">
+              ({(slideData.slideSizeBytes / (1024 * 1024)).toFixed(1)} MB)
+            </span>
+          )}
+          {slideData?.submittedAt && (
+            <span className="shrink-0 ml-auto">
+              Submitted {new Date(slideData.submittedAt).toLocaleString("id-ID")}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Fallback notice */}
+      <p className="text-[10px] text-text-muted leading-relaxed px-0.5">
+        {isPptx
+          ? "If the Office Online viewer shows an error, switch to Google Viewer or download the file."
+          : "If the PDF doesn't render, switch to Google Viewer or open in a new tab."}
+        {" "}
+        <a
+          href={rawUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-purple-400 hover:underline font-semibold"
+        >
+          Open in new tab ↗
+        </a>
+      </p>
+    </div>
+  );
+}
+
 export function Scoring() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
@@ -155,7 +325,10 @@ export function Scoring() {
   const existingScore = assignment?.score;
   const isFrozen = assignmentData?.isFrozen;
   const phase = assignmentData?.phase;
-  const isPhase2 = phase === "PHASE2_JUDGING";
+  const isPhase2 =
+    phase === "PHASE2_JUDGING" ||
+    phase === "PHASE2_SUBMISSION" ||
+    phase === "PHASE2_CLOSED";
 
   const { data: slideData, isLoading: slideLoading } = useQuery<any>({
     queryKey: ["slide-url", teamId],
@@ -231,13 +404,8 @@ export function Scoring() {
   const proposalUrl = proposalFile ? getUploadUrl(proposalFile.storageKey) : null;
   const submission = team?.submission ?? null;
   const rawSlideUrl: string | null = slideData?.slideUrl ?? null;
-  const slideFilename: string | null = slideData?.slideFilename ?? submission?.slideFilename ?? null;
-  const isPptSlide = !!slideFilename?.toLowerCase().match(/\.(ppt|pptx)$/);
-  const slideViewerUrl: string | null = rawSlideUrl
-    ? isPptSlide
-      ? `https://docs.google.com/gviewer?url=${encodeURIComponent(rawSlideUrl)}&embedded=true`
-      : rawSlideUrl
-    : null;
+  const slideFilename: string | null =
+    slideData?.slideFilename ?? submission?.slideFilename ?? null;
 
   return (
     <div className="p-4 md:p-6 max-w-[1800px] mx-auto pb-16">
@@ -472,15 +640,28 @@ export function Scoring() {
               )}
             </div>
 
-            {/* Presentation Slide sub-section */}
+            {/* ── Presentation Slide sub-section ── */}
             <div
               className="border-t"
               style={{ borderColor: "rgba(255,255,255,0.06)" }}
             >
-              <div className="px-4 pb-4 pt-3 space-y-3">
+              <div className="px-4 pb-5 pt-4 space-y-3">
+                {/* Sub-header */}
                 <div className="flex items-center justify-between">
                   <p className="text-[9px] font-bold uppercase tracking-widest text-purple-400 flex items-center gap-1.5">
-                    <Presentation className="w-3.5 h-3.5" /> Presentation Slide
+                    <Presentation className="w-3.5 h-3.5" /> Pitching Presentation
+                    {slideFilename && (
+                      <span
+                        className="ml-1 text-[8px] px-1 py-0.5 rounded border font-mono"
+                        style={{
+                          borderColor: "rgba(139,92,246,0.3)",
+                          color: "#a78bfa",
+                          background: "rgba(139,92,246,0.08)",
+                        }}
+                      >
+                        {slideFilename.split(".").pop()?.toUpperCase()}
+                      </span>
+                    )}
                   </p>
                   {rawSlideUrl && (
                     <div className="flex items-center gap-2">
@@ -490,7 +671,7 @@ export function Scoring() {
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-400 hover:underline bg-purple-950/30 px-2 py-0.5 rounded"
                       >
-                        <Maximize2 className="w-3 h-3" /> Full Window
+                        <MonitorPlay className="w-3 h-3" /> Full Screen
                       </a>
                       <a
                         href={rawSlideUrl}
@@ -506,78 +687,21 @@ export function Scoring() {
                 {slideLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="w-7 h-7 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="ml-3 text-xs text-text-muted">Loading slide...</span>
+                    <span className="ml-3 text-xs text-text-muted">Loading presentation...</span>
                   </div>
-                ) : slideViewerUrl ? (
-                  <div
-                    className="rounded-xl overflow-hidden"
-                    style={{ border: "1px solid rgba(139,92,246,0.25)" }}
-                  >
-                    {isPptSlide ? (
-                      <iframe
-                        src={slideViewerUrl}
-                        className="w-full border-0"
-                        style={{ height: "480px" }}
-                        title={`Presentation Slides - ${team.teamName}`}
-                        allowFullScreen
-                      />
-                    ) : (
-                      <object
-                        data={slideViewerUrl}
-                        type="application/pdf"
-                        className="w-full border-0"
-                        style={{ height: "480px", background: "#fff" }}
-                      >
-                        <iframe
-                          src={slideViewerUrl}
-                          className="w-full border-0"
-                          style={{ height: "480px" }}
-                          title={`Presentation Slides - ${team.teamName}`}
-                        >
-                          <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
-                            <Presentation className="w-10 h-10 text-purple-400" />
-                            <p className="text-xs text-text-secondary">
-                              Preview not supported. Use Full Window or Download above.
-                            </p>
-                            <a
-                              href={rawSlideUrl ?? ""}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs font-bold text-purple-400 hover:underline flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
-                            </a>
-                          </div>
-                        </iframe>
-                      </object>
-                    )}
-                    {/* Slide info bar */}
-                    <div
-                      className="px-3 py-2 flex items-center gap-3 text-xs text-text-muted"
-                      style={{ background: "rgba(0,0,0,0.3)", borderTop: "1px solid rgba(139,92,246,0.15)" }}
-                    >
-                      <Presentation className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                      <span className="font-semibold text-text-primary truncate">
-                        {slideFilename || "presentation"}
-                      </span>
-                      {slideData?.slideSizeBytes && (
-                        <span className="shrink-0">
-                          ({(slideData.slideSizeBytes / (1024 * 1024)).toFixed(1)} MB)
-                        </span>
-                      )}
-                      {slideData?.submittedAt && (
-                        <span className="shrink-0 ml-auto">
-                          Submitted {new Date(slideData.submittedAt).toLocaleString("id-ID")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                ) : rawSlideUrl ? (
+                  <PresentationViewer
+                    rawUrl={rawSlideUrl}
+                    filename={slideFilename}
+                    teamName={team.teamName}
+                    slideData={slideData}
+                  />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-10 text-center space-y-2">
                     <Presentation className="w-8 h-8 text-purple-400 opacity-30" />
-                    <p className="text-sm font-bold text-text-primary">No Presentation Slides</p>
+                    <p className="text-sm font-bold text-text-primary">No Presentation Uploaded</p>
                     <p className="text-xs text-text-muted max-w-xs">
-                      This team has not uploaded their Phase 2 presentation slides.
+                      This team has not uploaded their Phase 2 pitching slides yet.
                     </p>
                   </div>
                 )}
@@ -673,7 +797,7 @@ export function Scoring() {
             <GlassPanel className="p-3 bg-amber-950/20 border border-amber-700/30">
               <p className="text-xs text-amber-400 font-semibold flex items-start gap-2">
                 <Star className="w-4 h-4 shrink-0 mt-0.5" />
-                Phase 2 — Final Submission Judging. Evaluate the team's complete deliverables: proposal quality, live product, repository, and presentation slides.
+                Phase 2 — Final Submission Judging. Evaluate the team's complete deliverables: proposal quality, live product, repository, and pitching presentation slides.
               </p>
             </GlassPanel>
           )}

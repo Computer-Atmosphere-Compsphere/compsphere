@@ -1,8 +1,21 @@
 import { db, schema } from "@compsphere/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { AppError } from "../middleware/error.middleware";
 import { auditService } from "./audit.service";
 import { sseService } from "../sse/sse.service";
+import { isHostinger, generatePresignedUrl } from "../lib/storage";
+
+function getSlideUrl(slideStorageKey: string | null, slideFilename: string | null): string | null {
+  if (!slideStorageKey) return null;
+  if (isHostinger) {
+    try {
+      return generatePresignedUrl(slideStorageKey, 3600, slideFilename ?? undefined);
+    } catch {
+      return `/api/uploads/${slideStorageKey.replace(/^\/?/, "")}`;
+    }
+  }
+  return `/api/uploads/${slideStorageKey.replace(/^\/?/, "")}`;
+}
 
 export const submissionService = {
   /**
@@ -122,5 +135,266 @@ export const submissionService = {
         team: true,
       },
     });
+  },
+
+  /**
+   * Get all submissions with full team, proposal, and member details for admin / committee monitoring.
+   */
+  async getAdminSubmissions() {
+    const deadline = await this.getDeadline();
+    const isDeadlineExpired = new Date() >= deadline;
+
+    // 1. Fetch all submissions with team, members, and proposal
+    const rawSubmissions = await db.query.submissions.findMany({
+      orderBy: (s, { desc }) => [desc(s.submittedAt)],
+      with: {
+        team: {
+          with: {
+            members: {
+              where: eq(schema.teamMembers.status, "ACTIVE"),
+              with: { user: true },
+            },
+            proposal: {
+              with: {
+                files: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const submissions = rawSubmissions.map((s) => {
+      const slideUrl = getSlideUrl(s.slideStorageKey, s.slideFilename);
+      const team = s.team;
+      const proposal = team?.proposal?.[0] ?? null;
+      const members = team?.members ?? [];
+      const leader = members.find((m) => m.role === "TEAM_LEADER") || members[0] || null;
+
+      return {
+        id: s.id,
+        teamId: s.teamId,
+        repositoryUrl: s.repositoryUrl,
+        deploymentUrl: s.deploymentUrl,
+        slideStorageKey: s.slideStorageKey,
+        slideFilename: s.slideFilename,
+        slideSizeBytes: s.slideSizeBytes,
+        submittedAt: s.submittedAt,
+        status: s.status,
+        slideUrl,
+        team: team
+          ? {
+              id: team.id,
+              teamCode: team.teamCode,
+              teamName: team.teamName,
+              category: team.category,
+              countryMix: team.countryMix,
+              originalRank: team.originalRank,
+              status: team.status,
+            }
+          : null,
+        proposal: proposal
+          ? {
+              id: proposal.id,
+              title: proposal.title,
+              description: proposal.description,
+              devpostUrl: proposal.devpostUrl,
+              files: proposal.files ?? [],
+            }
+          : null,
+        leader: leader?.user
+          ? {
+              id: leader.user.id,
+              fullName: leader.user.fullName,
+              email: leader.user.email,
+              avatarUrl: leader.user.avatarUrl,
+            }
+          : null,
+        members: members.map((m) => ({
+          id: m.id,
+          role: m.role,
+          status: m.status,
+          user: m.user
+            ? {
+                id: m.user.id,
+                fullName: m.user.fullName,
+                email: m.user.email,
+                avatarUrl: m.user.avatarUrl,
+              }
+            : null,
+        })),
+      };
+    });
+
+    const submittedTeamIds = new Set(submissions.map((s) => s.teamId));
+
+    // 2. Fetch eligible teams for Phase 2 that might not have submitted yet
+    const eligibleTeams = await db.query.competitionTeams.findMany({
+      where: inArray(schema.competitionTeams.status, [
+        "VERIFIED",
+        "SUBMISSION_OPEN",
+        "SUBMITTED",
+        "JUDGED",
+        "FINALIST",
+      ]),
+      orderBy: [schema.competitionTeams.teamCode],
+      with: {
+        members: {
+          where: eq(schema.teamMembers.status, "ACTIVE"),
+          with: { user: true },
+        },
+        proposal: true,
+      },
+    });
+
+    const missingTeams = eligibleTeams
+      .filter((t) => !submittedTeamIds.has(t.id))
+      .map((t) => {
+        const leader = t.members.find((m) => m.role === "TEAM_LEADER") || t.members[0];
+        const proposal = t.proposal?.[0];
+        return {
+          teamId: t.id,
+          teamCode: t.teamCode,
+          teamName: t.teamName,
+          category: t.category,
+          countryMix: t.countryMix,
+          status: t.status,
+          leader: leader?.user
+            ? {
+                name: leader.user.fullName,
+                email: leader.user.email,
+                avatarUrl: leader.user.avatarUrl,
+              }
+            : null,
+          proposalTitle: proposal?.title || null,
+          memberCount: t.members.length,
+        };
+      });
+
+    // 3. Calculate summary metrics
+    const totalSubmissions = submissions.length;
+    const totalEligible = eligibleTeams.length;
+    const submissionRate = totalEligible > 0 ? Math.round((totalSubmissions / totalEligible) * 100) : 0;
+    const withRepository = submissions.filter((s) => !!s.repositoryUrl?.trim()).length;
+    const withDeployment = submissions.filter((s) => !!s.deploymentUrl?.trim()).length;
+    const withSlide = submissions.filter((s) => !!s.slideStorageKey).length;
+    const completeDeliverables = submissions.filter(
+      (s) => !!s.repositoryUrl?.trim() && !!s.deploymentUrl?.trim() && !!s.slideStorageKey
+    ).length;
+
+    const metrics = {
+      totalSubmissions,
+      totalEligible,
+      submissionRate,
+      withRepository,
+      withDeployment,
+      withSlide,
+      completeDeliverables,
+      missingCount: missingTeams.length,
+      deadline: deadline.toISOString(),
+      isExpired: isDeadlineExpired,
+    };
+
+    return {
+      submissions,
+      missingTeams,
+      metrics,
+    };
+  },
+
+  /**
+   * Get single submission details for admin / committee
+   */
+  async getSubmissionByTeamId(teamId: string) {
+    const team = await db.query.competitionTeams.findFirst({
+      where: eq(schema.competitionTeams.id, teamId),
+      with: {
+        members: {
+          where: eq(schema.teamMembers.status, "ACTIVE"),
+          with: { user: true },
+        },
+        proposal: {
+          with: { files: true },
+        },
+      },
+    });
+
+    if (!team) {
+      throw new AppError(404, "Team not found");
+    }
+
+    const submission = await db.query.submissions.findFirst({
+      where: eq(schema.submissions.teamId, teamId),
+    });
+
+    const slideUrl = getSlideUrl(
+      submission?.slideStorageKey ?? null,
+      submission?.slideFilename ?? null
+    );
+
+    const proposal = team.proposal?.[0] ?? null;
+    const members = team.members ?? [];
+    const leader = members.find((m) => m.role === "TEAM_LEADER") || members[0] || null;
+
+    let auditLogs: any[] = [];
+    if (submission) {
+      auditLogs = await db.query.auditLogs.findMany({
+        where: eq(schema.auditLogs.entityId, submission.id),
+        orderBy: (l, { desc }) => [desc(l.createdAt)],
+        limit: 10,
+        with: {
+          actor: true,
+        },
+      });
+    }
+
+    return {
+      team: {
+        id: team.id,
+        teamCode: team.teamCode,
+        teamName: team.teamName,
+        category: team.category,
+        countryMix: team.countryMix,
+        originalRank: team.originalRank,
+        status: team.status,
+      },
+      submission: submission
+        ? {
+            ...submission,
+            slideUrl,
+          }
+        : null,
+      proposal: proposal
+        ? {
+            id: proposal.id,
+            title: proposal.title,
+            description: proposal.description,
+            devpostUrl: proposal.devpostUrl,
+            files: proposal.files ?? [],
+          }
+        : null,
+      leader: leader?.user
+        ? {
+            id: leader.user.id,
+            fullName: leader.user.fullName,
+            email: leader.user.email,
+            avatarUrl: leader.user.avatarUrl,
+          }
+        : null,
+      members: members.map((m) => ({
+        id: m.id,
+        role: m.role,
+        status: m.status,
+        user: m.user
+          ? {
+              id: m.user.id,
+              fullName: m.user.fullName,
+              email: m.user.email,
+              avatarUrl: m.user.avatarUrl,
+            }
+          : null,
+      })),
+      auditLogs,
+    };
   },
 };

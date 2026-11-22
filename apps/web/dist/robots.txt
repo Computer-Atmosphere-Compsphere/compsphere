@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /judge/
+Disallow: /participant/
+
+Sitemap: https://compsphere12.id/sitemap.xml
